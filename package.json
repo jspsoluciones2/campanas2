@@ -1,0 +1,16 @@
+{
+  "name": "plataforma-campanas",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web",
+    "dev:api": "python services/python/run.py",
+    "build:web": "npm run build --workspace=web",
+    "lint:web": "npm run lint --workspace=web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

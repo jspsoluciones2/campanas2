@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Proyecto: Plataforma de campañas políticas (Colombia)
+  Stack: Next.js 15 + Tailwind + shadcn/ui (UI) | Python 3.12 + Flask (stats, IA, export) | Supabase (Postgres, Auth, Storage)
+  Integraciones: WhatsApp (Twilio), Telegram, CAPTCHA Solver, IA para E14
+  Arquitectura: Monorepo híbrido — apps/web + services/python + supabase; SaaS multi-campaña, RLS
+  Estado: Greenfield — sin código de aplicación aún
+  Persistencia SDD: hybrid (openspec + Engram)
+
+strict_tdd: false
+
+testing:
+  strict_tdd: false
+  detected: "2026-06-13"
+  test_runner:
+    command: null
+    framework: null
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage: false
+  note: "Vitest (web) + pytest (Flask) + Playwright E2E recomendados"
+
+rules:
+  proposal:
+    - Incluir plan de rollback para integraciones externas
+    - Identificar módulos afectados por capability
+  specs:
+    - Usar formato Given/When/Then en escenarios
+    - Usar palabras clave RFC 2119 (MUST, SHALL, SHOULD, MAY)
+    - Documentar supuestos pendientes de validación con el usuario
+  design:
+    - Incluir diagramas de flujo para cuarentena y canales
+    - Documentar decisiones de arquitectura con rationale
+    - Definir contratos API entre módulos
+  tasks:
+    - Agrupar por fase MVP según proposal
+    - Numeración jerárquica (1.1, 1.2)
+  apply:
+    - UI en apps/web (Next.js + Tailwind + shadcn/ui)
+    - Stats, IA, export y jobs en services/python (Flask)
+    - Un módulo por bounded context en cada capa
+  verify:
+    - Comparar implementación contra cada escenario de spec
+  archive:
+    - Advertir antes de fusionar deltas destructivos

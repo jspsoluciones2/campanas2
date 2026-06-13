@@ -1,0 +1,38 @@
+change: plataforma-campanas
+status: in_progress
+artifact_store: hybrid
+execution_mode: interactive
+
+phases:
+  explore:
+    status: completed
+    completed_at: "2026-06-13"
+  propose:
+    status: completed
+    completed_at: "2026-06-13"
+  spec:
+    status: completed
+    completed_at: "2026-06-13"
+  design:
+    status: completed
+    completed_at: "2026-06-13"
+  tasks:
+    status: completed
+    completed_at: "2026-06-13"
+  apply:
+    status: in_progress
+    started_at: "2026-06-13"
+  verify:
+    status: pending
+  archive:
+    status: pending
+
+capabilities:
+  - platform-core
+  - voter-registry
+  - voter-quarantine
+  - capture-channels
+  - brand-config
+  - analytics-dashboard
+  - captcha-solver-integration
+  - e14-ai-audit
