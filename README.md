@@ -24,10 +24,15 @@ copy .env.example .env
 # Supabase (migraciones)
 npx supabase db push
 
-# Servicios
+# Servicios (UI + API a la vez)
+npm run dev
+
+# O por separado:
 python services/python/run.py   # http://localhost:5000
 npm run dev:web                 # http://localhost:3000
 ```
+
+Ver [`supabase/DESARROLLO-LOCAL.md`](supabase/DESARROLLO-LOCAL.md) para `.env.local` y login.
 
 ## Estructura
 
@@ -38,16 +43,20 @@ supabase/              Migraciones y Edge Functions
 openspec/              Especificaciones SDD
 ```
 
-## Primer usuario (platform_owner)
+## Base de datos Supabase
 
-1. Crear usuario en Supabase Auth (Dashboard → Authentication).
-2. Insertar en `platform_members`:
+1. Aplicar migraciones en orden: `001_platform_core.sql` → `002_domain_schema.sql`
+2. Crear usuario en Auth y registrar dueño en `miembros_plataforma`
+3. Configurar `apps/web/.env.local`
 
-```sql
-INSERT INTO platform_members (user_id, role)
-VALUES ('<uuid-del-usuario>', 'platform_owner');
-```
+**Guía completa (prueba → BD definitiva):** [`supabase/GUIA-MIGRACION-BD.md`](supabase/GUIA-MIGRACION-BD.md)  
+**Checklist rápido:** [`supabase/SETUP-DB.md`](supabase/SETUP-DB.md)
 
 ## Documentación
 
-Especificaciones y decisiones de producto en `openspec/changes/plataforma-campanas/`.
+Especificaciones y decisiones de producto en `openspec/changes/plataforma-campanas/`.  
+| Recurso | Archivo |
+|---------|---------|
+| Diccionario de campos | `supabase/DICCIONARIO-DATOS.md` |
+| Esquema / tablas | `supabase/DATABASE-SCHEMA.md` |
+| Migración BD | `supabase/GUIA-MIGRACION-BD.md` |

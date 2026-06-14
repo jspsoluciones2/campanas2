@@ -58,11 +58,35 @@
 
 ---
 
-## 5. Campos del votante — Diferido a fase Supabase
+## 5. Campos del votante — Definidos por PO (2026-06-13)
 
-**Confirmado.** Los campos detallados del votante se definirán cuando **construyamos la base de datos en Supabase** (`sdd-tasks` / migraciones).
+**Confirmado en sesión de diseño BD.**
 
-Por ahora en specs: campos mínimos provisionales (`cedula`, `nombres`, `apellidos`, `telefono`, `zona`, `puesto_votacion`, estados, trazabilidad).
+### Votante
+Nombres, apellidos, documento, tipo de documento, sexo, fecha de nacimiento, teléfono, dirección, id puesto de votación, mesa, id rol (organizacional), id líder directo.
+
+### Catálogos
+- **Puestos de votación:** id, nombre, municipio, comuna, barrio, dirección, cupos H/M, cantidad mesas
+- **Roles:** id, nombre (rol organizacional del votante en campaña)
+- **Comunas:** id, nombre, número
+- **Barrios:** id, nombre
+- **Tipos de novedad:** id, descripción
+- **Novedades:** votante, tipo, detalle
+- **Trabajadores (votante):** lugar y dirección de trabajo, comuna/barrio asignados
+
+### Cliente
+Nombre, documento, teléfono (además de campos en `001_platform_core`).
+
+### Campaña
+Nombre + usuarios asignados vía `campaign_members` (permisos de app).
+
+Ver `supabase/DATABASE-SCHEMA.md` y migración `002_domain_schema.sql`.
+
+### Catálogos por campaña (confirmado)
+Comunas, barrios, puestos de votación, roles y tipos de novedad se crean **por campaña**. Los puestos reflejan datos de **registraduría** (cupos hombres/mujeres, mesas) según el año/proceso y sus actualizaciones.
+
+### Árbol de líderes (confirmado)
+Cada votante tiene `lider_directo_id` → otro votante de la misma campaña. Roles con `nivel_jerarquia` 1, 2 o 3. Estructura en árbol para consultar votantes por jerarquía más adelante.
 
 ---
 

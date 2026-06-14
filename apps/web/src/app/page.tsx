@@ -1,9 +1,11 @@
 import Link from "next/link";
-
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function HomePage() {
+  const supabaseReady = isSupabaseConfigured();
+
   return (
     <main className="mx-auto flex min-h-full max-w-2xl flex-col justify-center gap-8 p-8">
       <div>
@@ -11,22 +13,49 @@ export default function HomePage() {
           Plataforma de campañas
         </h1>
         <p className="mt-2 text-muted-foreground">
-          MVP — Phase 0 bootstrap. Selecciona un área para continuar.
+          Interfaz en Next.js (puerto 3000) · API Flask (puerto 5000).
         </p>
       </div>
+
+      {!supabaseReady && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <p className="font-medium">Supabase no configurado</p>
+          <p className="mt-1 text-muted-foreground">
+            Crea <code className="text-xs">apps/web/.env.local</code> con{" "}
+            <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
+            <code className="text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.
+            Copia la anon key desde{" "}
+            <a
+              href="https://supabase.com/dashboard/project/kadhnauhghzyhfhsomif/settings/api"
+              className="underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Supabase → Settings → API
+            </a>
+            , reinicia <code className="text-xs">npm run dev</code> y vuelve a cargar.
+          </p>
+        </div>
+      )}
+
       <nav className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Link href="/login" className={cn(buttonVariants())}>
-          Auth
+          Login
         </Link>
-        <Link href="/platform" className={cn(buttonVariants({ variant: "secondary" }))}>
+        <Link
+          href="/platform"
+          className={cn(buttonVariants({ variant: "secondary" }))}
+        >
           Plataforma (dueños)
         </Link>
-        <Link href="/campaign/demo" className={cn(buttonVariants({ variant: "outline" }))}>
-          Campaña (demo)
-        </Link>
-        <Link href="/capture/demo" className={cn(buttonVariants({ variant: "outline" }))}>
-          Captura (demo)
-        </Link>
+        <a
+          href="http://localhost:5000/api/health"
+          target="_blank"
+          rel="noreferrer"
+          className={cn(buttonVariants({ variant: "outline" }))}
+        >
+          API Flask (health)
+        </a>
       </nav>
     </main>
   );

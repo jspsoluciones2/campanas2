@@ -24,7 +24,7 @@
 
 ## Phase 2: voter-registry + voter-quarantine
 
-- [ ] 2.1 Migración `002_voters.sql`
+- [ ] 2.1 Migración `002_domain_schema.sql` (campos PO: votante, puestos, comunas, barrios, roles, novedades, trabajadores)
 - [ ] 2.2 Flask `registerVoter()`; Next.js formularios
 - [ ] 2.3 Cuarentena scoped `campaign_id`
 - [ ] 2.4 UI `/campaign/{id}/quarantine`

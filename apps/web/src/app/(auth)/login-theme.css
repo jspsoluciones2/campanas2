@@ -1,0 +1,55 @@
+/* Login — tema configurable vía CSS variables (login-brand.ts) */
+
+.login-brand-root {
+  color: var(--login-text);
+}
+
+.login-brand-page {
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 45%,
+    var(--login-page-bg-center) 0%,
+    var(--login-page-bg) 100%
+  );
+}
+
+.login-brand-card {
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-card-border);
+  backdrop-filter: blur(12px);
+}
+
+.login-icon-box {
+  background: var(--login-icon-box);
+  color: var(--login-icon);
+}
+
+.login-field {
+  background: var(--login-input-bg);
+  color: var(--login-input-text);
+}
+
+.login-field::placeholder {
+  color: var(--login-input-placeholder);
+}
+
+.login-submit {
+  background: var(--login-button-bg);
+  color: var(--login-button-text);
+}
+
+.login-submit:hover:not(:disabled) {
+  background: var(--login-button-hover);
+}
+
+.login-link {
+  color: var(--login-link);
+}
+
+.login-checkbox {
+  accent-color: var(--login-checkbox-checked);
+  background: var(--login-checkbox-bg);
+}
+
+.login-text-muted {
+  color: var(--login-text-muted);
+}

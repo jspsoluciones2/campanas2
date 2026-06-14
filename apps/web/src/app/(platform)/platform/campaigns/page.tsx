@@ -5,161 +5,201 @@ import {
   createElectoralProcessFormAction,
 } from "../actions";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  DataTable,
+  FormField,
+  FormRow,
+  PageHeader,
+  platformInputClass,
+  platformSelectClass,
+  StatusBadge,
+} from "@/components/platform/platform-ui";
 
-const STATUS_LABELS: Record<string, string> = {
-  active: "Activa",
-  paused: "Pausada",
-  ended: "Finalizada",
-  purged: "Purgada",
+const ETIQUETAS_ESTADO: Record<string, string> = {
+  activa: "Activa",
+  pausada: "Pausada",
+  finalizada: "Finalizada",
+  purgada: "Purgada",
 };
+
+type CampanaRow = {
+  id: string;
+  nombre: string;
+  estado: string;
+  clientes: { nombre: string } | { nombre: string }[] | null;
+  procesos_electorales: { nombre: string } | { nombre: string }[] | null;
+};
+
+function nombreRelacion(
+  rel: { nombre: string } | { nombre: string }[] | null
+): string {
+  if (!rel) return "—";
+  if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
+  return rel.nombre;
+}
 
 export default async function PlatformCampaignsPage() {
   const supabase = await createClient();
 
-  const [{ data: campaigns }, { data: clients }, { data: processes }] =
+  const [{ data: campanas }, { data: clientes }, { data: procesos }] =
     await Promise.all([
       supabase
-        .from("campaigns")
+        .from("campanas")
         .select(
-          "id, name, status, created_at, clients(name), electoral_processes(name)"
+          "id, nombre, estado, creado_en, clientes(nombre), procesos_electorales(nombre)"
         )
-        .order("created_at", { ascending: false }),
-      supabase.from("clients").select("id, name").order("name"),
+        .order("creado_en", { ascending: false }),
+      supabase.from("clientes").select("id, nombre").order("nombre"),
       supabase
-        .from("electoral_processes")
-        .select("id, name")
-        .order("name"),
+        .from("procesos_electorales")
+        .select("id, nombre")
+        .order("nombre"),
     ]);
 
+  const rows = (campanas ?? []) as CampanaRow[];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">Campañas</h1>
-        <p className="text-sm text-muted-foreground">
-          Cada campaña es un silo aislado para una elección.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Campañas"
+        description="Cada campaña es un silo aislado para una elección."
+      />
 
-      <section className="space-y-3 rounded-lg border p-4">
-        <h2 className="text-sm font-medium">Proceso electoral</h2>
-        <form
-          action={createElectoralProcessFormAction}
-          className="flex flex-wrap gap-3"
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card
+          title="Proceso electoral"
+          description="Agrupa campañas de la misma elección (E14 compartido)."
         >
-          <input
-            name="name"
-            placeholder="Ej. Presidencia 2026"
-            required
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-          <input
-            name="election_date"
-            type="date"
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-          <Button type="submit" variant="outline">
-            Crear proceso
-          </Button>
-        </form>
-      </section>
+          <form action={createElectoralProcessFormAction}>
+            <FormRow>
+              <FormField label="Nombre">
+                <input
+                  name="nombre"
+                  placeholder="Ej. Presidencia 2026"
+                  required
+                  className={platformInputClass}
+                />
+              </FormField>
+              <FormField label="Fecha elección">
+                <input
+                  name="fecha_eleccion"
+                  type="date"
+                  className={platformInputClass}
+                />
+              </FormField>
+              <Button type="submit" variant="outline" className="h-10 shrink-0">
+                Crear proceso
+              </Button>
+            </FormRow>
+          </form>
+        </Card>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium">Nueva campaña</h2>
-        <form action={createCampaignFormAction} className="flex flex-wrap gap-3">
-          <input
-            name="name"
-            placeholder="Nombre de campaña"
-            required
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-          <select
-            name="client_id"
-            required
-            className="rounded-md border px-3 py-2 text-sm"
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Cliente
-            </option>
-            {clients?.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <select
-            name="electoral_process_id"
-            required
-            className="rounded-md border px-3 py-2 text-sm"
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Proceso electoral
-            </option>
-            {processes?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <Button type="submit">Crear campaña</Button>
-        </form>
-      </section>
-
-      <div className="rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left">
-            <tr>
-              <th className="p-3 font-medium">Campaña</th>
-              <th className="p-3 font-medium">Cliente</th>
-              <th className="p-3 font-medium">Proceso</th>
-              <th className="p-3 font-medium">Estado</th>
-              <th className="p-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {campaigns?.length ? (
-              campaigns.map((c) => {
-                const clientName =
-                  (Array.isArray(c.clients)
-                    ? c.clients[0]?.name
-                    : (c.clients as { name: string } | null)?.name) ?? "—";
-                const processName =
-                  (Array.isArray(c.electoral_processes)
-                    ? c.electoral_processes[0]?.name
-                    : (c.electoral_processes as { name: string } | null)
-                        ?.name) ?? "—";
-                return (
-                <tr key={c.id} className="border-b last:border-0">
-                  <td className="p-3">{c.name}</td>
-                  <td className="p-3 text-muted-foreground">{clientName}</td>
-                  <td className="p-3 text-muted-foreground">{processName}</td>
-                  <td className="p-3">
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                      {STATUS_LABELS[c.status] ?? c.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
-                    <Link
-                      href={`/platform/campaigns/${c.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      Gestionar
-                    </Link>
-                  </td>
-                </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                  Sin campañas.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <Card title="Nueva campaña" description="Requiere cliente y proceso electoral.">
+          <form action={createCampaignFormAction}>
+            <FormRow className="flex-col items-stretch">
+              <FormField label="Nombre de campaña">
+                <input
+                  name="nombre"
+                  placeholder="Nombre de campaña"
+                  required
+                  className={platformInputClass}
+                />
+              </FormField>
+              <FormField label="Cliente">
+                <select
+                  name="id_cliente"
+                  required
+                  className={platformSelectClass}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Seleccionar cliente
+                  </option>
+                  {clientes?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="Proceso electoral">
+                <select
+                  name="id_proceso_electoral"
+                  required
+                  className={platformSelectClass}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Seleccionar proceso
+                  </option>
+                  {procesos?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <Button type="submit" className="h-10 w-full sm:w-auto">
+                Crear campaña
+              </Button>
+            </FormRow>
+          </form>
+        </Card>
       </div>
-    </div>
+
+      <Card title="Campañas activas" description={`${rows.length} campaña(s)`}>
+        <DataTable
+          data={rows}
+          rowKey={(c) => c.id}
+          emptyMessage="Sin campañas. Crea un cliente y un proceso electoral primero."
+          columns={[
+            {
+              key: "nombre",
+              header: "Campaña",
+              cell: (c) => (
+                <span className="font-medium text-neutral-900">{c.nombre}</span>
+              ),
+            },
+            {
+              key: "cliente",
+              header: "Cliente",
+              cell: (c) => nombreRelacion(c.clientes),
+            },
+            {
+              key: "proceso",
+              header: "Proceso",
+              cell: (c) => nombreRelacion(c.procesos_electorales),
+            },
+            {
+              key: "estado",
+              header: "Estado",
+              cell: (c) => (
+                <StatusBadge
+                  variant={
+                    c.estado as "activa" | "pausada" | "finalizada" | "purgada"
+                  }
+                >
+                  {ETIQUETAS_ESTADO[c.estado] ?? c.estado}
+                </StatusBadge>
+              ),
+            },
+            {
+              key: "accion",
+              header: "",
+              className: "text-right",
+              cell: (c) => (
+                <Link
+                  href={`/platform/campaigns/${c.id}`}
+                  className="text-sm font-medium text-neutral-900 hover:underline"
+                >
+                  Gestionar →
+                </Link>
+              ),
+            },
+          ]}
+        />
+      </Card>
+    </>
   );
 }

@@ -1,0 +1,4 @@
+-- Ejecutar DESPUÉS de crear tu usuario en Supabase Auth (Dashboard → Authentication → Users).
+
+-- INSERT INTO miembros_plataforma (id_usuario, rol)
+-- VALUES ('<UUID-DEL-USUARIO>', 'dueno_plataforma');

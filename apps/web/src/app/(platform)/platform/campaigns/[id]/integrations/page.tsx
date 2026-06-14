@@ -1,12 +1,17 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  Card,
+  DataTable,
+  PageHeader,
+  StatusBadge,
+} from "@/components/platform/platform-ui";
 
-const PROVIDER_LABELS: Record<string, string> = {
+const ETIQUETAS_PROVEEDOR: Record<string, string> = {
   twilio: "Twilio / WhatsApp",
-  captcha_solver: "CAPTCHA Solver",
+  resolutor_captcha: "CAPTCHA Solver",
   telegram: "Telegram",
-  e14_ai: "IA E14",
+  ia_e14: "IA E14",
 };
 
 export default async function CampaignIntegrationsPage({
@@ -17,69 +22,65 @@ export default async function CampaignIntegrationsPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: campaign } = await supabase
-    .from("campaigns")
-    .select("id, name")
+  const { data: campana } = await supabase
+    .from("campanas")
+    .select("id, nombre")
     .eq("id", id)
     .single();
 
-  if (!campaign) notFound();
+  if (!campana) notFound();
 
-  const { data: integrations } = await supabase
-    .from("campaign_integrations")
-    .select("id, provider, is_active, updated_at")
-    .eq("campaign_id", id)
-    .order("provider");
+  const { data: integraciones } = await supabase
+    .from("integraciones_campana")
+    .select("id, proveedor, activa, actualizado_en")
+    .eq("id_campana", id)
+    .order("proveedor");
+
+  const rows = integraciones ?? [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href={`/platform/campaigns/${id}`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← {campaign.name}
-        </Link>
-        <h1 className="mt-2 text-xl font-semibold">Integraciones</h1>
-        <p className="text-sm text-muted-foreground">
-          Credenciales por campaña — solo visible para dueños de plataforma.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Integraciones"
+        description="Credenciales por campaña — solo visible para dueños de plataforma."
+        backHref={`/platform/campaigns/${id}`}
+        backLabel={campana.nombre}
+      />
 
-      <div className="rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left">
-            <tr>
-              <th className="p-3 font-medium">Proveedor</th>
-              <th className="p-3 font-medium">Estado</th>
-              <th className="p-3 font-medium">Actualizado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {integrations?.length ? (
-              integrations.map((i) => (
-                <tr key={i.id} className="border-b last:border-0">
-                  <td className="p-3">
-                    {PROVIDER_LABELS[i.provider] ?? i.provider}
-                  </td>
-                  <td className="p-3">
-                    {i.is_active ? "Activa" : "Inactiva"}
-                  </td>
-                  <td className="p-3 text-muted-foreground">
-                    {new Date(i.updated_at).toLocaleDateString("es-CO")}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={3} className="p-6 text-center text-muted-foreground">
-                  Sin integraciones configuradas. UI de edición en Phase 7.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <Card title="Proveedores configurados">
+        <DataTable
+          data={rows}
+          rowKey={(i) => i.id}
+          emptyMessage="Sin integraciones configuradas."
+          columns={[
+            {
+              key: "proveedor",
+              header: "Proveedor",
+              cell: (i) => (
+                <span className="font-medium text-neutral-900">
+                  {ETIQUETAS_PROVEEDOR[i.proveedor] ?? i.proveedor}
+                </span>
+              ),
+            },
+            {
+              key: "estado",
+              header: "Estado",
+              cell: (i) => (
+                <StatusBadge variant={i.activa ? "activa" : "default"}>
+                  {i.activa ? "Activa" : "Inactiva"}
+                </StatusBadge>
+              ),
+            },
+            {
+              key: "fecha",
+              header: "Actualizado",
+              cell: (i) =>
+                new Date(i.actualizado_en).toLocaleDateString("es-CO"),
+              className: "text-neutral-500",
+            },
+          ]}
+        />
+      </Card>
+    </>
   );
 }

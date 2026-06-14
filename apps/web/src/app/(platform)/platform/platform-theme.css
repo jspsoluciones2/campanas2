@@ -1,0 +1,51 @@
+/* Panel plataforma — escala de grises (alineado con login) */
+
+.platform-shell {
+  --platform-sidebar: #111827;
+  --platform-sidebar-hover: #1f2937;
+  --platform-sidebar-active: #374151;
+  --platform-sidebar-text: #e5e7eb;
+  --platform-sidebar-muted: #9ca3af;
+  --platform-main: #f3f4f6;
+  --platform-surface: #ffffff;
+  --platform-border: #e5e7eb;
+}
+
+.platform-main {
+  background: var(--platform-main);
+}
+
+.platform-sidebar {
+  background: var(--platform-sidebar);
+  color: var(--platform-sidebar-text);
+}
+
+.platform-nav-link {
+  color: var(--platform-sidebar-muted);
+}
+
+.platform-nav-link:hover {
+  background: var(--platform-sidebar-hover);
+  color: var(--platform-sidebar-text);
+}
+
+.platform-nav-link[data-active="true"] {
+  background: var(--platform-sidebar-active);
+  color: #fff;
+}
+
+.platform-card {
+  background: var(--platform-surface);
+  border: 1px solid var(--platform-border);
+}
+
+.platform-input {
+  border: 1px solid var(--platform-border);
+  background: #fff;
+}
+
+.platform-input:focus {
+  outline: none;
+  border-color: #6b7280;
+  box-shadow: 0 0 0 3px rgb(107 114 128 / 0.15);
+}

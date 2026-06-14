@@ -1,0 +1,2 @@
+# Coloca aquí el logo del login (PNG/SVG).
+# Luego en .env.local: NEXT_PUBLIC_LOGIN_LOGO_URL=/brand/logo.png

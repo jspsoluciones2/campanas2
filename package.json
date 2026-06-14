@@ -5,6 +5,7 @@
     "apps/web"
   ],
   "scripts": {
+    "dev": "concurrently -n web,api -c blue,green \"npm run dev:web\" \"npm run dev:api\"",
     "dev:web": "npm run dev --workspace=web",
     "dev:api": "python services/python/run.py",
     "build:web": "npm run build --workspace=web",

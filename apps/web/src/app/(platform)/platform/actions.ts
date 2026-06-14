@@ -6,16 +6,20 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function createClientAction(formData: FormData) {
   const supabase = await createClient();
-  const name = String(formData.get("name") ?? "").trim();
-  const contactEmail = String(formData.get("contact_email") ?? "").trim();
+  const nombre = String(formData.get("nombre") ?? formData.get("name") ?? "").trim();
+  const correo = String(formData.get("correo_contacto") ?? formData.get("contact_email") ?? "").trim();
+  const documento = String(formData.get("documento") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim();
 
-  if (!name) {
+  if (!nombre) {
     return { error: "El nombre es obligatorio." };
   }
 
-  const { error } = await supabase.from("clients").insert({
-    name,
-    contact_email: contactEmail || null,
+  const { error } = await supabase.from("clientes").insert({
+    nombre,
+    correo_contacto: correo || null,
+    documento: documento || null,
+    telefono: telefono || null,
   });
 
   if (error) return { error: error.message };
@@ -26,14 +30,14 @@ export async function createClientAction(formData: FormData) {
 
 export async function createElectoralProcessAction(formData: FormData) {
   const supabase = await createClient();
-  const name = String(formData.get("name") ?? "").trim();
-  const electionDate = String(formData.get("election_date") ?? "").trim();
+  const nombre = String(formData.get("nombre") ?? formData.get("name") ?? "").trim();
+  const fechaEleccion = String(formData.get("fecha_eleccion") ?? formData.get("election_date") ?? "").trim();
 
-  if (!name) return { error: "El nombre del proceso es obligatorio." };
+  if (!nombre) return { error: "El nombre del proceso es obligatorio." };
 
-  const { error } = await supabase.from("electoral_processes").insert({
-    name,
-    election_date: electionDate || null,
+  const { error } = await supabase.from("procesos_electorales").insert({
+    nombre,
+    fecha_eleccion: fechaEleccion || null,
   });
 
   if (error) return { error: error.message };
@@ -44,20 +48,20 @@ export async function createElectoralProcessAction(formData: FormData) {
 
 export async function createCampaignAction(formData: FormData) {
   const supabase = await createClient();
-  const name = String(formData.get("name") ?? "").trim();
-  const clientId = String(formData.get("client_id") ?? "");
-  const processId = String(formData.get("electoral_process_id") ?? "");
+  const nombre = String(formData.get("nombre") ?? formData.get("name") ?? "").trim();
+  const idCliente = String(formData.get("id_cliente") ?? formData.get("client_id") ?? "");
+  const idProceso = String(formData.get("id_proceso_electoral") ?? formData.get("electoral_process_id") ?? "");
 
-  if (!name || !clientId || !processId) {
+  if (!nombre || !idCliente || !idProceso) {
     return { error: "Nombre, cliente y proceso electoral son obligatorios." };
   }
 
-  const { error } = await supabase.from("campaigns").insert({
-    name,
-    client_id: clientId,
-    electoral_process_id: processId,
-    status: "active",
-    started_at: new Date().toISOString(),
+  const { error } = await supabase.from("campanas").insert({
+    nombre,
+    id_cliente: idCliente,
+    id_proceso_electoral: idProceso,
+    estado: "activa",
+    iniciado_en: new Date().toISOString(),
   });
 
   if (error) return { error: error.message };
@@ -66,55 +70,55 @@ export async function createCampaignAction(formData: FormData) {
   return { ok: true };
 }
 
-export type CampaignStatus = "active" | "paused" | "ended" | "purged";
+export type EstadoCampana = "activa" | "pausada" | "finalizada" | "purgada";
 
-const STATUS_TRANSITIONS: Record<CampaignStatus, CampaignStatus[]> = {
-  active: ["paused", "ended"],
-  paused: ["active", "ended"],
-  ended: ["purged"],
-  purged: [],
+const TRANSICIONES_ESTADO: Record<EstadoCampana, EstadoCampana[]> = {
+  activa: ["pausada", "finalizada"],
+  pausada: ["activa", "finalizada"],
+  finalizada: ["purgada"],
+  purgada: [],
 };
 
 export async function updateCampaignStatusAction(
   campaignId: string,
-  newStatus: CampaignStatus
+  nuevoEstado: EstadoCampana
 ) {
   const supabase = await createClient();
 
-  const { data: campaign, error: fetchError } = await supabase
-    .from("campaigns")
-    .select("status")
+  const { data: campana, error: fetchError } = await supabase
+    .from("campanas")
+    .select("estado")
     .eq("id", campaignId)
     .single();
 
-  if (fetchError || !campaign) {
+  if (fetchError || !campana) {
     return { error: fetchError?.message ?? "Campaña no encontrada." };
   }
 
-  const current = campaign.status as CampaignStatus;
-  if (!STATUS_TRANSITIONS[current]?.includes(newStatus)) {
+  const actual = campana.estado as EstadoCampana;
+  if (!TRANSICIONES_ESTADO[actual]?.includes(nuevoEstado)) {
     return {
-      error: `No se puede pasar de ${current} a ${newStatus}.`,
+      error: `No se puede pasar de ${actual} a ${nuevoEstado}.`,
     };
   }
 
-  const patch: Record<string, string | null> = { status: newStatus };
-  if (newStatus === "ended") patch.ended_at = new Date().toISOString();
-  if (newStatus === "purged") patch.purged_at = new Date().toISOString();
+  const patch: Record<string, string | null> = { estado: nuevoEstado };
+  if (nuevoEstado === "finalizada") patch.finalizado_en = new Date().toISOString();
+  if (nuevoEstado === "purgada") patch.purgado_en = new Date().toISOString();
 
   const { error } = await supabase
-    .from("campaigns")
+    .from("campanas")
     .update(patch)
     .eq("id", campaignId);
 
   if (error) return { error: error.message };
 
-  await supabase.from("audit_log").insert({
-    action: `campaign.status.${newStatus}`,
-    entity_type: "campaign",
-    entity_id: campaignId,
-    campaign_id: campaignId,
-    metadata: { from: current, to: newStatus },
+  await supabase.from("registro_auditoria").insert({
+    accion: `campana.estado.${nuevoEstado}`,
+    tipo_entidad: "campana",
+    id_entidad: campaignId,
+    id_campana: campaignId,
+    metadatos: { desde: actual, hacia: nuevoEstado },
   });
 
   revalidatePath("/platform/campaigns");
@@ -124,23 +128,23 @@ export async function updateCampaignStatusAction(
 
 export async function assignCampaignMemberAction(formData: FormData) {
   const supabase = await createClient();
-  const campaignId = String(formData.get("campaign_id") ?? "");
-  const userId = String(formData.get("user_id") ?? "").trim();
-  const role = String(formData.get("role") ?? "collector");
+  const idCampana = String(formData.get("id_campana") ?? formData.get("campaign_id") ?? "");
+  const idUsuario = String(formData.get("id_usuario") ?? formData.get("user_id") ?? "").trim();
+  const rol = String(formData.get("rol") ?? formData.get("role") ?? "lector");
 
-  if (!campaignId || !userId) {
+  if (!idCampana || !idUsuario) {
     return { error: "Campaña y usuario son obligatorios." };
   }
 
-  const { error } = await supabase.from("campaign_members").insert({
-    campaign_id: campaignId,
-    user_id: userId,
-    role,
+  const { error } = await supabase.from("miembros_campana").insert({
+    id_campana: idCampana,
+    id_usuario: idUsuario,
+    rol,
   });
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/platform/campaigns/${campaignId}`);
+  revalidatePath(`/platform/campaigns/${idCampana}`);
   return { ok: true };
 }
 
@@ -166,9 +170,9 @@ export async function assignCampaignMemberFormAction(
 
 export async function submitCampaignStatusUpdate(
   campaignId: string,
-  newStatus: CampaignStatus
+  nuevoEstado: EstadoCampana
 ): Promise<void> {
-  await updateCampaignStatusAction(campaignId, newStatus);
+  await updateCampaignStatusAction(campaignId, nuevoEstado);
 }
 
 export async function signOutAction(): Promise<void> {
@@ -176,3 +180,6 @@ export async function signOutAction(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+// Alias para compatibilidad en páginas
+export type CampaignStatus = EstadoCampana;
