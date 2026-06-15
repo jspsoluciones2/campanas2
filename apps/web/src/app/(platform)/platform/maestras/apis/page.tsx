@@ -88,8 +88,8 @@ export default async function MaestrasApisPage({
       <PageHeader title="APIs" />
 
       <Card
-        title="Integraciones"
-        description="Credenciales globales de Twilio, Capsolver e IA. Solo visible para administradores de plataforma."
+        title="Integraciones globales"
+        description="Referencia o entorno de pruebas. El control de costos por cliente se configura en cada campaña: Gestionar campaña → Integraciones."
       >
         <ApisListFilter q={q} />
         <DataTable

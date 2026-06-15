@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import {
@@ -6,10 +5,12 @@ import {
   matchingCampaignIds,
 } from "@/lib/platform/campaign-list-query";
 import { MASTER_PAGE_SIZE } from "@/lib/platform/master-list";
+import { CreateCampaignForm } from "@/components/platform/create-campaign-form";
+import { CampaignMaestraRowActions } from "@/components/platform/campaign-maestra-row-actions";
 import {
   CampaignsListFilter,
   CampaignsPagination,
-  GESTION_CAMPAIGNS_LIST_PATH,
+  MAESTRAS_CAMPAIGNS_LIST_PATH,
   campaignsListHref,
 } from "@/components/platform/campaigns-list-controls";
 import {
@@ -42,7 +43,7 @@ function nombreRelacion(
   return rel.nombre;
 }
 
-export default async function GestionCampanasPage({
+export default async function MaestrasCampanasPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
@@ -72,31 +73,46 @@ export default async function GestionCampanasPage({
     campanasQuery = campanasQuery.in("id", matchingIds);
   }
 
-  const { data: campanas, count } = await campanasQuery.range(from, to);
+  const [
+    { data: campanas, count },
+    { data: clientes },
+    { data: procesos },
+  ] = await Promise.all([
+    campanasQuery.range(from, to),
+    supabase.from("clientes").select("id, nombre").order("nombre"),
+    supabase.from("procesos_electorales").select("id, nombre").order("nombre"),
+  ]);
 
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / MASTER_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(campaignsListHref(GESTION_CAMPAIGNS_LIST_PATH, filters, totalPages));
+    redirect(campaignsListHref(MAESTRAS_CAMPAIGNS_LIST_PATH, filters, totalPages));
   }
 
   const rows = (campanas ?? []) as CampanaRow[];
   const emptyMessage = q
     ? "Sin coincidencias. Prueba otro criterio de búsqueda."
-    : "Sin campañas. Créalas en Maestras → Campañas.";
+    : "Sin campañas. Crea la primera arriba (necesitas cliente y proceso en Maestras).";
 
   return (
     <>
-      <PageHeader
-        title="Gestión campañas"
-        description="Equipo, integraciones, uso de APIs y estado operativo. Alta y baja en Maestras → Campañas."
-      />
+      <PageHeader title="Campañas" />
 
-      <Card title="Campañas activas" description={`${total} campaña(s)`}>
+      <Card
+        title="Nueva campaña"
+        description="Un cliente solo puede tener una campaña por proceso electoral."
+      >
+        <CreateCampaignForm
+          clientes={clientes ?? []}
+          procesos={procesos ?? []}
+        />
+      </Card>
+
+      <Card title="Registradas" description={`${total} campaña(s)`}>
         <CampaignsListFilter
           q={q}
-          listPath={GESTION_CAMPAIGNS_LIST_PATH}
+          listPath={MAESTRAS_CAMPAIGNS_LIST_PATH}
         />
         <DataTable
           data={rows}
@@ -137,22 +153,7 @@ export default async function GestionCampanasPage({
               key: "acciones",
               header: "Acciones",
               className: "text-right",
-              cell: (c) => (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Link
-                    href={`/platform/campaigns/${c.id}`}
-                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 px-6 text-sm font-medium text-white hover:bg-neutral-800"
-                  >
-                    Gestionar
-                  </Link>
-                  <Link
-                    href={`/campaign/${c.id}`}
-                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white px-6 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
-                  >
-                    Abrir campaña
-                  </Link>
-                </div>
-              ),
+              cell: (c) => <CampaignMaestraRowActions campana={c} />,
             },
           ]}
         />
@@ -161,7 +162,7 @@ export default async function GestionCampanasPage({
           totalPages={totalPages}
           total={total}
           filters={filters}
-          listPath={GESTION_CAMPAIGNS_LIST_PATH}
+          listPath={MAESTRAS_CAMPAIGNS_LIST_PATH}
         />
       </Card>
     </>

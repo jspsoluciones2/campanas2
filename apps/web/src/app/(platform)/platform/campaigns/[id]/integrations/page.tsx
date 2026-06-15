@@ -1,18 +1,27 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
+  CampaignIntegrationRowActions,
+  type CampaignIntegrationRow,
+} from "@/components/platform/campaign-integration-row-actions";
+import {
+  configSummary,
+  parseIntegrationConfig,
+  PLATFORM_API_PROVIDERS,
+  type PlatformApiProveedor,
+} from "@/lib/platform/api-integrations";
+import {
   Card,
   DataTable,
   PageHeader,
   StatusBadge,
 } from "@/components/platform/platform-ui";
 
-const ETIQUETAS_PROVEEDOR: Record<string, string> = {
-  twilio: "Twilio / WhatsApp",
-  resolutor_captcha: "CAPTCHA Solver",
-  telegram: "Telegram",
-  ia_e14: "IA E14",
-  supabase: "Supabase",
+type IntegrationRow = {
+  proveedor: PlatformApiProveedor;
+  configuracion_cifrada: string;
+  activa: boolean;
+  actualizado_en: string;
 };
 
 export default async function CampaignIntegrationsPage({
@@ -25,59 +34,116 @@ export default async function CampaignIntegrationsPage({
 
   const { data: campana } = await supabase
     .from("campanas")
-    .select("id, nombre")
+    .select("id, nombre, clientes(nombre)")
     .eq("id", id)
     .single();
 
   if (!campana) notFound();
 
+  const nombreCliente =
+    (Array.isArray(campana.clientes)
+      ? campana.clientes[0]?.nombre
+      : (campana.clientes as { nombre: string } | null)?.nombre) ?? "—";
+
   const { data: integraciones } = await supabase
     .from("integraciones_campana")
-    .select("id, proveedor, activa, actualizado_en")
-    .eq("id_campana", id)
-    .order("proveedor");
+    .select("proveedor, configuracion_cifrada, activa, actualizado_en")
+    .eq("id_campana", id);
 
-  const rows = integraciones ?? [];
+  const byProveedor = new Map(
+    (integraciones ?? []).map((row) => [row.proveedor, row as IntegrationRow])
+  );
+
+  const rows: (CampaignIntegrationRow & {
+    resumen: string;
+    actualizado_en: string | null;
+  })[] = PLATFORM_API_PROVIDERS.map((p) => {
+    const saved = byProveedor.get(p.id);
+    const configuracion = parseIntegrationConfig(saved?.configuracion_cifrada);
+    return {
+      idCampana: id,
+      proveedor: p.id,
+      label: p.label,
+      description: p.description,
+      activa: saved?.activa ?? false,
+      configured: Boolean(saved),
+      configuracion,
+      resumen: configSummary(p.id, configuracion),
+      actualizado_en: saved?.actualizado_en ?? null,
+    };
+  });
 
   return (
     <>
       <PageHeader
         title="Integraciones"
-        description="Credenciales por campaña — solo visible para dueños de plataforma."
+        description={`${campana.nombre} · ${nombreCliente} — cada campaña usa APIs propias para atribuir costos al cliente.`}
         backHref={`/platform/campaigns/${id}`}
         backLabel={campana.nombre}
       />
 
-      <Card title="Proveedores configurados">
+      <Card
+        title="APIs de la campaña"
+        description="Twilio, Capsolver e IA con credenciales independientes. El consumo registrado en Uso se asocia a esta campaña."
+      >
         <DataTable
           data={rows}
-          rowKey={(i) => i.id}
-          emptyMessage="Sin integraciones configuradas."
+          rowKey={(r) => r.proveedor}
+          emptyMessage="Sin proveedores disponibles."
           columns={[
             {
               key: "proveedor",
               header: "Proveedor",
-              cell: (i) => (
-                <span className="font-medium text-neutral-900">
-                  {ETIQUETAS_PROVEEDOR[i.proveedor] ?? i.proveedor}
-                </span>
+              cell: (r) => (
+                <div>
+                  <span className="font-medium text-neutral-900">{r.label}</span>
+                  <p className="mt-0.5 text-xs text-neutral-500">{r.description}</p>
+                </div>
+              ),
+            },
+            {
+              key: "resumen",
+              header: "Configuración",
+              cell: (r) => (
+                <span className="text-sm text-neutral-600">{r.resumen}</span>
               ),
             },
             {
               key: "estado",
               header: "Estado",
-              cell: (i) => (
-                <StatusBadge variant={i.activa ? "activa" : "default"}>
-                  {i.activa ? "Activa" : "Inactiva"}
+              className: "text-center",
+              cell: (r) => (
+                <StatusBadge
+                  variant={
+                    r.configured && r.activa
+                      ? "activa"
+                      : r.configured
+                        ? "default"
+                        : "default"
+                  }
+                >
+                  {!r.configured
+                    ? "Sin configurar"
+                    : r.activa
+                      ? "Activa"
+                      : "Inactiva"}
                 </StatusBadge>
               ),
             },
             {
-              key: "fecha",
+              key: "actualizado",
               header: "Actualizado",
-              cell: (i) =>
-                new Date(i.actualizado_en).toLocaleDateString("es-CO"),
+              cell: (r) =>
+                r.actualizado_en
+                  ? new Date(r.actualizado_en).toLocaleDateString("es-CO")
+                  : "—",
               className: "text-neutral-500",
+            },
+            {
+              key: "acciones",
+              header: "Acciones",
+              className: "text-center",
+              cell: (r) => <CampaignIntegrationRowActions row={r} />,
             },
           ]}
         />

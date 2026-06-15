@@ -16,6 +16,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/app/(platform)/platform/actions";
 
+const CAMPAIGNS_NAV = {
+  href: "/platform/campaigns",
+  label: "Gestión campañas",
+} as const;
+
 const NAV = [
   { href: "/platform", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/platform/e14-runs", label: "E14", icon: FileSearch },
@@ -24,7 +29,7 @@ const NAV = [
 
 const MAESTRAS_MENU = [
   { href: "/platform/maestras/apis", label: "APIs" },
-  { href: "/platform/campaigns", label: "Campañas" },
+  { href: "/platform/maestras/campanas", label: "Campañas" },
   { href: "/platform/maestras/clientes", label: "Clientes" },
   {
     href: "/platform/maestras/proceso-electoral",
@@ -35,9 +40,9 @@ const MAESTRAS_MENU = [
 const MAESTRAS_PATHS = [
   "/platform/maestras",
   "/platform/maestras/apis",
+  "/platform/maestras/campanas",
   "/platform/maestras/proceso-electoral",
   "/platform/maestras/clientes",
-  "/platform/campaigns",
 ];
 
 type PlatformSidebarProps = {
@@ -55,6 +60,11 @@ export function PlatformSidebar({
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function isCampaignsActive() {
+    const { href } = CAMPAIGNS_NAV;
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
@@ -117,6 +127,15 @@ export function PlatformSidebar({
         >
           <LayoutDashboard className="size-4 shrink-0 opacity-80" />
           Inicio
+        </Link>
+
+        <Link
+          href={CAMPAIGNS_NAV.href}
+          data-active={isCampaignsActive()}
+          className="platform-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+        >
+          <Megaphone className="size-4 shrink-0 opacity-80" />
+          {CAMPAIGNS_NAV.label}
         </Link>
 
         <div>

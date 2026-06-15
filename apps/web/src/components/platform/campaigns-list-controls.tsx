@@ -7,28 +7,36 @@ import {
   MasterListSearch,
 } from "@/components/platform/master-list-controls";
 
-export const CAMPAIGNS_LIST_PATH = "/platform/campaigns";
+export const MAESTRAS_CAMPAIGNS_LIST_PATH = "/platform/maestras/campanas";
+export const GESTION_CAMPAIGNS_LIST_PATH = "/platform/campaigns";
+
+/** @deprecated Usar MAESTRAS_CAMPAIGNS_LIST_PATH o GESTION_CAMPAIGNS_LIST_PATH */
+export const CAMPAIGNS_LIST_PATH = GESTION_CAMPAIGNS_LIST_PATH;
 
 export type CampaignListFilters = {
   q: string;
 };
 
 export function campaignsListHref(
+  listPath: string,
   filters: CampaignListFilters,
   page: number
 ): string {
-  return masterListHref(CAMPAIGNS_LIST_PATH, filters, page, ["q"]);
+  return masterListHref(listPath, filters, page, ["q"]);
 }
 
-export function CampaignsListFilter({ q }: CampaignListFilters) {
+export function CampaignsListFilter({
+  q,
+  listPath = GESTION_CAMPAIGNS_LIST_PATH,
+}: CampaignListFilters & { listPath?: string }) {
   const hasFilters = Boolean(q.trim());
 
   return (
     <MasterListSearch
-      action={CAMPAIGNS_LIST_PATH}
+      action={listPath}
       q={q}
       placeholder="Campaña, cliente o proceso electoral"
-      clearHref={CAMPAIGNS_LIST_PATH}
+      clearHref={listPath}
       hasFilters={hasFilters}
     />
   );
@@ -39,15 +47,17 @@ export function CampaignsPagination({
   totalPages,
   total,
   filters,
+  listPath = GESTION_CAMPAIGNS_LIST_PATH,
 }: {
   page: number;
   totalPages: number;
   total: number;
   filters: CampaignListFilters;
+  listPath?: string;
 }) {
   return (
     <MasterListPagination
-      basePath={CAMPAIGNS_LIST_PATH}
+      basePath={listPath}
       filterKeys={["q"]}
       filters={filters}
       page={page}

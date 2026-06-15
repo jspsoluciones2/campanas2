@@ -76,7 +76,7 @@ export default async function PlatformHomePage() {
         <DataTable
           data={filas}
           rowKey={(c) => c.id}
-          emptyMessage="Sin campañas. Créalas en Campañas (cliente y proceso en Maestras)."
+          emptyMessage="Sin campañas. Créalas en Maestras → Campañas."
           columns={[
             {
               key: "cliente",

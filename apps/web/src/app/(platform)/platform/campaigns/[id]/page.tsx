@@ -160,7 +160,7 @@ export default async function CampaignDetailPage({
               href={`/platform/campaigns/${id}/integrations`}
               className="font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
             >
-              Integraciones
+              Integraciones (APIs y costos)
             </Link>
             <Link
               href={`/platform/campaigns/${id}/usage`}

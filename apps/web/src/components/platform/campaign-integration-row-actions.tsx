@@ -2,21 +2,30 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
-  deleteCampaignAction,
-  updateCampaignAction,
+  deleteCampaignIntegrationAction,
+  saveCampaignIntegrationAction,
 } from "@/app/(platform)/platform/actions";
-import { FormField, platformInputClass } from "@/components/platform/platform-ui";
+import { ApiIntegrationFormFields } from "@/components/platform/api-integration-form-fields";
+import { Button } from "@/components/ui/button";
+import type { PlatformApiProveedor } from "@/lib/platform/api-integrations";
 
-export type CampanaActionsRow = {
-  id: string;
-  nombre: string;
+export type CampaignIntegrationRow = {
+  idCampana: string;
+  proveedor: PlatformApiProveedor;
+  label: string;
+  description: string;
+  activa: boolean;
+  configured: boolean;
+  configuracion: Record<string, unknown>;
 };
 
-export function CampaignRowActions({ campana }: { campana: CampanaActionsRow }) {
+export function CampaignIntegrationRowActions({
+  row,
+}: {
+  row: CampaignIntegrationRow;
+}) {
   const [editing, setEditing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -41,13 +50,17 @@ export function CampaignRowActions({ campana }: { campana: CampanaActionsRow }) 
   }, [editing]);
 
   const handleDelete = () => {
+    if (!row.configured) return;
     const ok = window.confirm(
-      `¿Eliminar la campaña "${campana.nombre}"? Se borrarán todos sus datos (votantes, catálogos, etc.). Esta acción no se puede deshacer.`
+      `¿Eliminar la configuración de ${row.label} para esta campaña? El consumo dejará de atribuirse a estas credenciales.`
     );
     if (!ok) return;
 
     startTransition(async () => {
-      const result = await deleteCampaignAction(campana.id);
+      const result = await deleteCampaignIntegrationAction(
+        row.idCampana,
+        row.proveedor
+      );
       if (result?.error) {
         window.alert(result.error);
         return;
@@ -69,13 +82,12 @@ export function CampaignRowActions({ campana }: { campana: CampanaActionsRow }) 
             <div
               role="dialog"
               aria-modal="true"
-              aria-labelledby={`edit-campana-${campana.id}`}
-              className="w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"
+              className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <form
                 action={async (formData) => {
-                  const result = await updateCampaignAction(formData);
+                  const result = await saveCampaignIntegrationAction(formData);
                   if (result?.error) {
                     window.alert(result.error);
                     return;
@@ -85,25 +97,32 @@ export function CampaignRowActions({ campana }: { campana: CampanaActionsRow }) 
                 }}
                 className="p-6"
               >
-                <input type="hidden" name="id" value={campana.id} />
-                <h3
-                  id={`edit-campana-${campana.id}`}
-                  className="text-base font-semibold text-neutral-900"
-                >
-                  Editar campaña
+                <input type="hidden" name="id_campana" value={row.idCampana} />
+                <input type="hidden" name="proveedor" value={row.proveedor} />
+                <h3 className="text-base font-semibold text-neutral-900">
+                  Configurar {row.label}
                 </h3>
-                <p className="mt-1 text-sm text-neutral-500">{campana.nombre}</p>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Credenciales exclusivas de esta campaña para control de costos.
+                </p>
 
-                <div className="mt-5">
-                  <FormField label="Nombre de campaña">
-                    <input
-                      name="nombre"
-                      defaultValue={campana.nombre}
-                      required
-                      className={platformInputClass}
-                    />
-                  </FormField>
+                <div className="mt-5 space-y-3">
+                  <ApiIntegrationFormFields
+                    proveedor={row.proveedor}
+                    configuracion={row.configuracion}
+                    configured={row.configured}
+                  />
                 </div>
+
+                <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    name="activa"
+                    defaultChecked={row.activa}
+                    className="size-4 rounded border-neutral-300"
+                  />
+                  Integración activa
+                </label>
 
                 <div className="mt-6 flex justify-end gap-2">
                   <Button
@@ -127,30 +146,26 @@ export function CampaignRowActions({ campana }: { campana: CampanaActionsRow }) 
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Link
-          href={`/platform/campaigns/${campana.id}`}
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
-        >
-          Gestionar
-        </Link>
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <Button
           type="button"
           onClick={() => setEditing(true)}
           disabled={pending}
           className="h-10 shrink-0 px-6"
         >
-          Editar
+          {row.configured ? "Editar" : "Configurar"}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleDelete}
-          disabled={pending}
-          className="h-10 shrink-0 px-6"
-        >
-          Eliminar
-        </Button>
+        {row.configured ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDelete}
+            disabled={pending}
+            className="h-10 shrink-0 px-6"
+          >
+            Eliminar
+          </Button>
+        ) : null}
       </div>
       {editModal}
     </>
