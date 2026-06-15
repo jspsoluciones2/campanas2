@@ -22,36 +22,62 @@ export default async function CampaignVotantesPage({
   const { id } = await params;
   const { supabase } = await requireCampaignAccess(id);
 
-  const [{ data: votantes }, { data: roles }, { data: puestos }, { data: lideres }] =
-    await Promise.all([
-      supabase
-        .from("votantes")
-        .select(
-          "id, nombres, apellidos, documento, tipo_documento, sexo, telefono, estado, creado_en, roles(nombre)"
-        )
-        .eq("id_campana", id)
-        .order("creado_en", { ascending: false })
-        .limit(100),
-      supabase
-        .from("roles")
-        .select("id, nombre, nivel_jerarquia")
-        .eq("id_campana", id)
-        .order("nivel_jerarquia"),
-      supabase
-        .from("puestos_votacion")
-        .select("id, nombre")
-        .eq("id_campana", id)
-        .order("nombre"),
-      supabase
-        .from("votantes")
-        .select("id, nombres, apellidos, documento")
-        .eq("id_campana", id)
-        .in("estado", ["activo", "pendiente_verificacion"])
-        .order("apellidos")
-        .limit(200),
-    ]);
+  const [
+    { data: votantes },
+    { data: roles },
+    { data: puestos },
+    { data: lugaresTrabajo },
+    { data: zonas },
+    { data: lideres },
+  ] = await Promise.all([
+    supabase
+      .from("votantes")
+      .select(
+        `id, nombres, apellidos, documento, tipo_documento, sexo, telefono,
+         fecha_nacimiento, direccion, estado, creado_en,
+         roles(nombre), zonas(nombre), lugares_trabajo(nombre)`
+      )
+      .eq("id_campana", id)
+      .order("creado_en", { ascending: false })
+      .limit(100),
+    supabase
+      .from("roles")
+      .select("id, nombre, nivel_jerarquia")
+      .eq("id_campana", id)
+      .order("nivel_jerarquia"),
+    supabase
+      .from("puestos_votacion")
+      .select("id, nombre")
+      .eq("id_campana", id)
+      .order("nombre"),
+    supabase
+      .from("lugares_trabajo")
+      .select("id, nombre")
+      .eq("id_campana", id)
+      .order("nombre"),
+    supabase
+      .from("zonas")
+      .select("id, nombre")
+      .eq("id_campana", id)
+      .order("nombre"),
+    supabase
+      .from("votantes")
+      .select("id, nombres, apellidos, documento")
+      .eq("id_campana", id)
+      .in("estado", ["activo", "pendiente_verificacion"])
+      .order("apellidos")
+      .limit(200),
+  ]);
 
   const rows = votantes ?? [];
+
+  function nombreRelacion(
+    rel: { nombre: string } | { nombre: string }[] | null | undefined
+  ) {
+    if (!rel) return "—";
+    if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
+    return rel.nombre;
+  }
 
   return (
     <>
@@ -66,6 +92,8 @@ export default async function CampaignVotantesPage({
         campaignId={id}
         roles={roles ?? []}
         puestos={puestos ?? []}
+        lugaresTrabajo={lugaresTrabajo ?? []}
+        zonas={zonas ?? []}
         lideres={lideres ?? []}
       />
 
@@ -90,14 +118,24 @@ export default async function CampaignVotantesPage({
               cell: (v) => `${v.tipo_documento} ${v.documento}`,
             },
             {
+              key: "zona",
+              header: "Zona",
+              cell: (v) => nombreRelacion(v.zonas),
+            },
+            {
+              key: "trabajo",
+              header: "Trabajo",
+              cell: (v) => nombreRelacion(v.lugares_trabajo),
+            },
+            {
+              key: "direccion",
+              header: "Dirección",
+              cell: (v) => v.direccion ?? "—",
+            },
+            {
               key: "rol",
               header: "Rol",
-              cell: (v) => {
-                const rol = Array.isArray(v.roles)
-                  ? v.roles[0]?.nombre
-                  : (v.roles as { nombre: string } | null)?.nombre;
-                return rol ?? "—";
-              },
+              cell: (v) => nombreRelacion(v.roles),
             },
             {
               key: "estado",

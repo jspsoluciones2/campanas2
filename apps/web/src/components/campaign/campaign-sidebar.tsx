@@ -83,8 +83,8 @@ export function CampaignSidebar({
   }
 
   return (
-    <aside className="platform-sidebar flex w-64 shrink-0 flex-col border-r border-white/5">
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+    <aside className="platform-sidebar flex h-svh w-64 shrink-0 flex-col border-r border-white/5">
+      <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-5 py-5">
         <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
           {logoUrl ? (
             <Image
@@ -108,7 +108,7 @@ export function CampaignSidebar({
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         <Link
           href={`/campaign/${campaignId}`}
           data-active={isActive(`/campaign/${campaignId}`, true)}
@@ -190,27 +190,36 @@ export function CampaignSidebar({
         ))}
       </nav>
 
-      <div className="space-y-2 border-t border-white/10 p-4">
-        {isPlatformOwner && (
-          <Link
-            href={`/platform/campaigns/${campaignId}`}
-            className="flex items-center gap-2 text-xs text-neutral-400 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="size-3.5" />
-            Administración plataforma
-          </Link>
-        )}
-        <p className="truncate text-xs text-neutral-500">{userEmail}</p>
-        <form action={signOutAction}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="w-full border-white/20 bg-transparent text-neutral-200 hover:bg-white/10 hover:text-white"
-          >
-            Cerrar sesión
-          </Button>
-        </form>
+      <div className="shrink-0 border-t border-white/10 p-4 pb-10">
+        <div className="flex flex-col gap-4">
+          {isPlatformOwner && (
+            <Link
+              href={`/platform/campaigns/${campaignId}`}
+              className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <ArrowLeft className="size-3.5 shrink-0" />
+              <span>Administración plataforma</span>
+            </Link>
+          )}
+          <div className="space-y-3">
+            <p
+              className="break-all text-xs leading-relaxed text-neutral-400"
+              title={userEmail}
+            >
+              {userEmail}
+            </p>
+            <form action={signOutAction}>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="h-9 w-full border-white/20 bg-transparent text-neutral-200 hover:bg-white/10 hover:text-white"
+              >
+                Cerrar sesión
+              </Button>
+            </form>
+          </div>
+        </div>
       </div>
     </aside>
   );

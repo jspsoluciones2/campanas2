@@ -4,6 +4,7 @@ import path from "path";
 const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   turbopack: {
     // Evita que Turbopack infiera un workspace root incorrecto (varios lockfiles).
     root: monorepoRoot,

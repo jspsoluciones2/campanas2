@@ -16,12 +16,16 @@ const TIPOS_DOCUMENTO = ["CC", "TI", "CE", "PA", "PEP", "PPT"] as const;
 
 type Rol = { id: string; nombre: string; nivel_jerarquia: number };
 type Puesto = { id: string; nombre: string };
+type LugarTrabajo = { id: string; nombre: string };
+type Zona = { id: string; nombre: string };
 type Lider = { id: string; nombres: string; apellidos: string; documento: string };
 
 type Props = {
   campaignId: string;
   roles: Rol[];
   puestos: Puesto[];
+  lugaresTrabajo: LugarTrabajo[];
+  zonas: Zona[];
   lideres: Lider[];
 };
 
@@ -44,6 +48,8 @@ export function VotanteRegisterForm({
   campaignId,
   roles,
   puestos,
+  lugaresTrabajo,
+  zonas,
   lideres,
 }: Props) {
   const [state, formAction, pending] = useActionState(
@@ -101,6 +107,9 @@ export function VotanteRegisterForm({
           <FormField label="Documento">
             <input name="documento" required className={platformInputClass} />
           </FormField>
+          <FormField label="Fecha de nacimiento">
+            <input name="fecha_nacimiento" type="date" className={platformInputClass} />
+          </FormField>
           <FormField label="Sexo">
             <select name="sexo" className={platformSelectClass} defaultValue="">
               <option value="">—</option>
@@ -110,6 +119,39 @@ export function VotanteRegisterForm({
           </FormField>
           <FormField label="Teléfono">
             <input name="telefono" className={platformInputClass} />
+          </FormField>
+          <FormField label="Dirección">
+            <input name="direccion" className={platformInputClass} />
+          </FormField>
+          <FormField label="Zona asignada">
+            <select name="id_zona" className={platformSelectClass} defaultValue="">
+              <option value="">
+                {zonas.length === 0 ? "Sin zonas (crea en Catálogos)" : "—"}
+              </option>
+              {zonas.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="Lugar de trabajo">
+            <select
+              name="id_lugar_trabajo"
+              className={platformSelectClass}
+              defaultValue=""
+            >
+              <option value="">
+                {lugaresTrabajo.length === 0
+                  ? "Sin lugares (crea en Catálogos)"
+                  : "—"}
+              </option>
+              {lugaresTrabajo.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.nombre}
+                </option>
+              ))}
+            </select>
           </FormField>
           <FormField label="Rol organizacional">
             <select name="id_rol" className={platformSelectClass} defaultValue="">

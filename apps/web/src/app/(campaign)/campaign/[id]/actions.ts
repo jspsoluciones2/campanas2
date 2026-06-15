@@ -11,8 +11,9 @@ import {
   catalogSaveError,
   isActionError,
 } from "@/lib/campaign/catalog-codigo";
+import { userCanEditCampaign } from "@/lib/campaign/access";
 import { insertPuestoRow, updatePuestoRow } from "@/lib/campaign/puestos";
-import { flaskRegisterVoter } from "@/lib/flask/client";
+import { registerVoter } from "@/lib/campaign/voter-registry";
 import {
   textoTitulo,
   textoTituloOpcional,
@@ -139,8 +140,35 @@ export async function createTipoNovedadAction(
   return { ok: true };
 }
 
+export async function createZonaAction(campaignId: string, formData: FormData) {
+  const { supabase } = await requireCampaignAccess(campaignId);
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const descripcion = textoTituloOpcional(String(formData.get("descripcion") ?? ""));
+
+  if (!nombre) return { error: "El nombre de la zona es obligatorio." };
+
+  const { error } = await supabase.from("zonas").insert({
+    id_campana: campaignId,
+    nombre,
+    descripcion,
+  });
+
+  const saveError = catalogSaveError(error, "zona");
+  if (saveError) return saveError;
+  revalidateCampaign(campaignId);
+  return { ok: true };
+}
+
 export async function createVotanteAction(campaignId: string, formData: FormData) {
   const { supabase, user } = await requireCampaignAccess(campaignId);
+
+  const puedeEditar = await userCanEditCampaign(user.id, campaignId);
+  if (!puedeEditar) {
+    return {
+      error:
+        "No tienes permiso para registrar votantes. Se requiere rol editor o administrador de campaña.",
+    };
+  }
 
   const nombres = textoTitulo(String(formData.get("nombres") ?? ""));
   const apellidos = textoTitulo(String(formData.get("apellidos") ?? ""));
@@ -152,43 +180,42 @@ export async function createVotanteAction(campaignId: string, formData: FormData
   const idLider = String(formData.get("id_lider_directo") ?? "").trim();
   const idPuesto = String(formData.get("id_puesto_votacion") ?? "").trim();
   const mesa = textoTituloOpcional(String(formData.get("mesa") ?? ""));
+  const fechaNacimiento = String(formData.get("fecha_nacimiento") ?? "").trim();
+  const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
+  const idLugarTrabajo = String(formData.get("id_lugar_trabajo") ?? "").trim();
+  const idZona = String(formData.get("id_zona") ?? "").trim();
 
   if (!nombres || !apellidos || !documento) {
     return { error: "Nombres, apellidos y documento son obligatorios." };
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    return { error: "Sesión inválida. Vuelve a iniciar sesión." };
-  }
-
-  const result = await flaskRegisterVoter(campaignId, session.access_token, {
+  const result = await registerVoter(supabase, campaignId, user.id, {
     nombres,
     apellidos,
     documento,
     tipo_documento: tipoDocumento,
     sexo: sexo === "Masculino" || sexo === "Femenino" ? sexo : null,
     telefono,
+    fecha_nacimiento: fechaNacimiento || null,
+    direccion,
     id_rol: idRol || null,
     id_lider_directo: idLider || null,
     id_puesto_votacion: idPuesto || null,
+    id_lugar_trabajo: idLugarTrabajo || null,
+    id_zona: idZona || null,
     mesa,
     canal_origen: "manual",
-    creado_por: user.id,
   });
 
-  if (!result.ok) {
-    return { error: result.message };
+  if (result.outcome === "validation_error") {
+    return { error: result.errors.join(" ") };
   }
 
   revalidateCampaign(campaignId);
 
-  if (result.data.outcome === "quarantined") {
+  if (result.outcome === "quarantined") {
     const etiqueta =
-      result.data.match_type === "cedula_exacta"
+      result.match_type === "cedula_exacta"
         ? "cédula duplicada"
         : "teléfono y nombre similares";
     return {
@@ -196,10 +223,6 @@ export async function createVotanteAction(campaignId: string, formData: FormData
       quarantined: true,
       message: `Registro enviado a cuarentena (${etiqueta}). Un supervisor debe resolverlo.`,
     };
-  }
-
-  if (result.data.outcome === "validation_error") {
-    return { error: result.data.errors.join(" ") };
   }
 
   return {
@@ -449,6 +472,54 @@ export async function deleteRolAction(campaignId: string, rolId: string) {
   return { ok: true };
 }
 
+export async function updateZonaAction(campaignId: string, formData: FormData) {
+  const { supabase } = await requireCampaignAccess(campaignId);
+  const id = String(formData.get("id") ?? "").trim();
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const descripcion = textoTituloOpcional(String(formData.get("descripcion") ?? ""));
+
+  if (!id) return { error: "Zona no identificada." };
+  if (!nombre) return { error: "El nombre de la zona es obligatorio." };
+
+  const { error } = await supabase
+    .from("zonas")
+    .update({ nombre, descripcion })
+    .eq("id", id)
+    .eq("id_campana", campaignId);
+
+  const saveError = catalogSaveError(error, "zona");
+  if (saveError) return saveError;
+  revalidateCampaign(campaignId);
+  return { ok: true };
+}
+
+export async function deleteZonaAction(campaignId: string, zonaId: string) {
+  const { supabase } = await requireCampaignAccess(campaignId);
+  const id = zonaId.trim();
+  if (!id) return { error: "Zona no identificada." };
+
+  const { count } = await supabase
+    .from("votantes")
+    .select("*", { count: "exact", head: true })
+    .eq("id_zona", id);
+
+  if (count && count > 0) {
+    return {
+      error: "No se puede eliminar: hay votantes asignados a esta zona.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("zonas")
+    .delete()
+    .eq("id", id)
+    .eq("id_campana", campaignId);
+
+  if (error) return { error: error.message };
+  revalidateCampaign(campaignId);
+  return { ok: true };
+}
+
 export async function updateTipoNovedadAction(
   campaignId: string,
   formData: FormData
@@ -659,6 +730,13 @@ export async function createRolFormAction(
   formData: FormData
 ): Promise<void> {
   await createRolAction(campaignId, formData);
+}
+
+export async function createZonaFormAction(
+  campaignId: string,
+  formData: FormData
+): Promise<void> {
+  await createZonaAction(campaignId, formData);
 }
 
 export async function createPuestoFormAction(

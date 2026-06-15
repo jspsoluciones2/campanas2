@@ -93,8 +93,8 @@ export function PlatformSidebar({
   }
 
   return (
-    <aside className="platform-sidebar flex w-64 shrink-0 flex-col border-r border-white/5">
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+    <aside className="platform-sidebar flex h-svh w-64 shrink-0 flex-col border-r border-white/5">
+      <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-5 py-5">
         <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
           {logoUrl ? (
             <Image
@@ -116,7 +116,7 @@ export function PlatformSidebar({
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         <Link
           href="/platform"
           data-active={isActive("/platform", true)}
@@ -206,14 +206,19 @@ export function PlatformSidebar({
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
-        <p className="truncate text-xs text-neutral-400">{userEmail}</p>
-        <form action={signOutAction} className="mt-3">
+      <div className="shrink-0 border-t border-white/10 p-4 pb-10">
+        <p
+          className="break-all text-xs leading-relaxed text-neutral-400"
+          title={userEmail}
+        >
+          {userEmail}
+        </p>
+        <form action={signOutAction} className="mt-4">
           <Button
             type="submit"
             variant="outline"
             size="sm"
-            className="w-full border-white/20 bg-transparent text-neutral-200 hover:bg-white/10 hover:text-white"
+            className="h-9 w-full border-white/20 bg-transparent text-neutral-200 hover:bg-white/10 hover:text-white"
           >
             Cerrar sesión
           </Button>

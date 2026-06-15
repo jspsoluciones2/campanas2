@@ -11,6 +11,7 @@ export function catalogSegmentPath(campaignId: string, segment: string) {
 export const CATALOG_MENU = [
   { segment: "comunas", label: "Comunas" },
   { segment: "barrios", label: "Barrios" },
+  { segment: "zonas", label: "Zonas asignadas" },
   { segment: "puestos", label: "Puestos de votación" },
   { segment: "roles", label: "Roles" },
   { segment: "tipos-novedad", label: "Tipos de novedad" },
