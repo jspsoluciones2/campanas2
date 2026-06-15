@@ -11,6 +11,8 @@ import {
   catalogListHref,
 } from "@/components/campaign/catalog-list-controls";
 import { PuestoRowActions } from "@/components/campaign/catalog-row-actions";
+import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
+import { ComunaBarrioFields } from "@/components/campaign/comuna-barrio-fields";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,8 +21,15 @@ import {
   FormRow,
   PageHeader,
   platformInputClass,
-  platformSelectClass,
 } from "@/components/platform/platform-ui";
+
+function nombreRelacion(
+  rel: { nombre: string } | { nombre: string }[] | null | undefined
+) {
+  if (!rel) return "—";
+  if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
+  return rel.nombre;
+}
 
 export default async function CatalogPuestosPage({
   params,
@@ -50,7 +59,18 @@ export default async function CatalogPuestosPage({
     .eq("id_campana", id)
     .order("nombre");
 
+  const { data: barrios } = await supabase
+    .from("barrios")
+    .select("id, nombre, id_comuna, comunas!inner(id_campana)")
+    .eq("comunas.id_campana", id)
+    .order("nombre");
+
   const comunasList = comunas ?? [];
+  const barriosList = (barrios ?? []).map((barrio) => ({
+    id: barrio.id,
+    nombre: barrio.nombre,
+    id_comuna: barrio.id_comuna,
+  }));
 
   const term = escapeIlikeTerm(q);
   const { rows, count: total, error: listError } = await fetchPuestosList(
@@ -69,13 +89,15 @@ export default async function CatalogPuestosPage({
     ? "Sin coincidencias. Prueba otro criterio de búsqueda."
     : listError
       ? "No se pudo cargar el listado. Revisa el aviso arriba."
+      : comunasList.length === 0 || barriosList.length === 0
+      ? "Crea comunas y barrios primero, luego agrega puestos."
       : "Sin puestos. Crea el primero arriba.";
 
   return (
     <>
       <PageHeader
         title="Puestos de votación"
-        description="Cupos H/M por puesto. El ID se asigna automáticamente."
+        description="Cupos H/M por puesto. Comuna y barrio obligatorios y deben coincidir."
         backHref={`/campaign/${id}`}
         backLabel="Inicio campaña"
       />
@@ -98,6 +120,8 @@ export default async function CatalogPuestosPage({
         </div>
       ) : null}
 
+      <CatalogBulkUpload campaignId={id} segment="puestos" />
+
       <Card title="Nuevo puesto de votación">
         <form action={createPuestoFormAction.bind(null, id)}>
           <FormRow className="flex-col items-stretch lg:flex-row lg:flex-wrap">
@@ -110,16 +134,11 @@ export default async function CatalogPuestosPage({
             <FormField label="Dirección">
               <input name="direccion" className={platformInputClass} />
             </FormField>
-            <FormField label="Comuna">
-              <select name="id_comuna" className={platformSelectClass} defaultValue="">
-                <option value="">—</option>
-                {comunasList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </FormField>
+            <ComunaBarrioFields
+              comunas={comunasList}
+              barrios={barriosList}
+              disabled={comunasList.length === 0 || barriosList.length === 0}
+            />
             <FormField label="Cupos H">
               <input
                 name="votantes_hombres_admite"
@@ -147,7 +166,11 @@ export default async function CatalogPuestosPage({
                 className={platformInputClass}
               />
             </FormField>
-            <Button type="submit" className="h-10 shrink-0 self-end px-6">
+            <Button
+              type="submit"
+              disabled={comunasList.length === 0 || barriosList.length === 0}
+              className="h-10 shrink-0 self-end px-6"
+            >
               Crear puesto
             </Button>
           </FormRow>
@@ -184,6 +207,16 @@ export default async function CatalogPuestosPage({
               cell: (p) => p.municipio ?? "—",
             },
             {
+              key: "comuna",
+              header: "Comuna",
+              cell: (p) => nombreRelacion(p.comunas),
+            },
+            {
+              key: "barrio",
+              header: "Barrio",
+              cell: (p) => nombreRelacion(p.barrios),
+            },
+            {
               key: "h",
               header: "Cupos H",
               cell: (p) => p.votantes_hombres_admite,
@@ -207,6 +240,7 @@ export default async function CatalogPuestosPage({
                   campaignId={id}
                   puesto={p}
                   comunas={comunasList}
+                  barrios={barriosList}
                 />
               ),
             },

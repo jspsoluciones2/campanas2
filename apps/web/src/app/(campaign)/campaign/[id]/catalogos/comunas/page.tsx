@@ -10,6 +10,7 @@ import {
   catalogListHref,
 } from "@/components/campaign/catalog-list-controls";
 import { ComunaRowActions } from "@/components/campaign/catalog-row-actions";
+import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -87,6 +88,8 @@ export default async function CatalogComunasPage({
           </p>
         </div>
       ) : null}
+
+      <CatalogBulkUpload campaignId={id} segment="comunas" />
 
       <Card
         title={`Nueva ${COMUNA_LABEL_CREACION.toLowerCase()}`}

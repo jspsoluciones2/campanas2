@@ -10,6 +10,7 @@ import {
   catalogListHref,
 } from "@/components/campaign/catalog-list-controls";
 import { BarrioRowActions } from "@/components/campaign/catalog-row-actions";
+import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -87,6 +88,8 @@ export default async function CatalogBarriosPage({
         backHref={`/campaign/${id}`}
         backLabel="Inicio campaña"
       />
+
+      <CatalogBulkUpload campaignId={id} segment="barrios" />
 
       <Card title="Nuevo barrio">
         <form action={createBarrioFormAction.bind(null, id)}>

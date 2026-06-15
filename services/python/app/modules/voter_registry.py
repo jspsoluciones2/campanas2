@@ -10,7 +10,7 @@ from app.modules.voter_normalize import (
     similitud_nombre,
 )
 
-ESTADOS_ACTIVOS = ("activo", "pendiente_verificacion")
+ESTADOS_ACTIVOS = ("activo", "registrado", "pendiente_verificacion")
 UMBRAL_SIMILITUD_NOMBRE = 0.85
 
 
@@ -243,7 +243,7 @@ def _insertar_votante(
         "id_lider_directo": payload.get("id_lider_directo"),
         "canal_origen": canal,
         "creado_por": user_id,
-        "estado": "pendiente_verificacion",
+        "estado": "registrado",
     }
     result = client.table("votantes").insert(row).execute()
     if not result.data:

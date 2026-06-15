@@ -10,6 +10,7 @@ import {
   catalogListHref,
 } from "@/components/campaign/catalog-list-controls";
 import { LugarTrabajoRowActions } from "@/components/campaign/catalog-row-actions";
+import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -85,6 +86,8 @@ export default async function CatalogLugaresTrabajoPage({
         backHref={`/campaign/${id}`}
         backLabel="Inicio campaña"
       />
+
+      <CatalogBulkUpload campaignId={id} segment="lugares-trabajo" />
 
       <Card title="Nuevo lugar de trabajo">
         <form action={createLugarTrabajoFormAction.bind(null, id)}>

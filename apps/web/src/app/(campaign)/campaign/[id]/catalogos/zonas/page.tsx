@@ -10,6 +10,7 @@ import {
   catalogListHref,
 } from "@/components/campaign/catalog-list-controls";
 import { ZonaRowActions } from "@/components/campaign/catalog-row-actions";
+import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -73,6 +74,8 @@ export default async function CatalogZonasPage({
         backHref={`/campaign/${id}`}
         backLabel="Inicio campaña"
       />
+
+      <CatalogBulkUpload campaignId={id} segment="zonas" />
 
       <Card title="Nueva zona">
         <form action={createZonaFormAction.bind(null, id)}>

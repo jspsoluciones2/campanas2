@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { createVotanteAction } from "@/app/(campaign)/campaign/[id]/actions";
+import { etiquetaJerarquia } from "@/lib/campaign/roles";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -58,7 +59,7 @@ export function VotanteRegisterForm({
   );
 
   return (
-    <Card title="Nuevo votante" description="Estado inicial: pendiente de verificación.">
+    <Card title="Nuevo votante" description="Estado inicial: registrado. Duplicados van a cuarentena.">
       {state.message ? (
         <p
           className={`mb-4 rounded-lg px-3 py-2 text-sm ${
@@ -158,7 +159,7 @@ export function VotanteRegisterForm({
               <option value="">—</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.nombre} (nivel {r.nivel_jerarquia})
+                  {r.nombre} ({etiquetaJerarquia(r.nivel_jerarquia)})
                 </option>
               ))}
             </select>

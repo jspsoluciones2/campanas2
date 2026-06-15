@@ -5,7 +5,7 @@ import {
   similitudNombre,
 } from "@/lib/campaign/voter-normalize";
 
-const ESTADOS_ACTIVOS = ["activo", "pendiente_verificacion"] as const;
+const ESTADOS_ACTIVOS = ["activo", "registrado", "pendiente_verificacion"] as const;
 const UMBRAL_SIMILITUD_NOMBRE = 0.85;
 
 export type RegisterVoterInput = {
@@ -279,7 +279,7 @@ async function insertarVotante(
       id_lider_directo: options.payload.id_lider_directo || null,
       canal_origen: options.canal,
       creado_por: options.userId,
-      estado: "pendiente_verificacion",
+      estado: "registrado",
     })
     .select("id")
     .single();

@@ -6,13 +6,18 @@ import { requireCampaignAccess } from "@/lib/campaign/access";
 import {
   catalogPathsForCampaign,
   catalogSegmentPath,
+  type CatalogSegment,
 } from "@/lib/campaign/catalog-nav";
 import {
   catalogSaveError,
   isActionError,
 } from "@/lib/campaign/catalog-codigo";
+import { isBulkCatalogSegment } from "@/lib/campaign/catalog-bulk-config";
+import { importCatalogRows } from "@/lib/campaign/catalog-bulk-import";
+import { parseCatalogWorkbook } from "@/lib/campaign/catalog-bulk-xlsx";
 import { userCanEditCampaign } from "@/lib/campaign/access";
 import { insertPuestoRow, updatePuestoRow } from "@/lib/campaign/puestos";
+import { validarComunaBarrioPuesto } from "@/lib/campaign/comuna-barrio";
 import { registerVoter } from "@/lib/campaign/voter-registry";
 import {
   textoTitulo,
@@ -77,7 +82,7 @@ export async function createRolAction(campaignId: string, formData: FormData) {
   const nivel = Number(formData.get("nivel_jerarquia") ?? 1);
 
   if (!nombre) return { error: "El nombre del rol es obligatorio." };
-  if (nivel < 1 || nivel > 3) return { error: "El nivel debe ser 1, 2 o 3." };
+  if (nivel < 1 || nivel > 3) return { error: "La jerarquía debe ser 1, 2 o 3." };
 
   const { error } = await supabase.from("roles").insert({
     id_campana: campaignId,
@@ -97,18 +102,28 @@ export async function createPuestoAction(campaignId: string, formData: FormData)
   const municipio = textoTituloOpcional(String(formData.get("municipio") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
   const idComuna = String(formData.get("id_comuna") ?? "").trim();
+  const idBarrio = String(formData.get("id_barrio") ?? "").trim();
   const cuposH = Number(formData.get("votantes_hombres_admite") ?? 0);
   const cuposM = Number(formData.get("votantes_mujeres_admite") ?? 0);
   const mesas = Number(formData.get("cantidad_mesas") ?? 0);
 
   if (!nombre) return { error: "El nombre del puesto es obligatorio." };
 
+  const ubicacion = await validarComunaBarrioPuesto(
+    supabase,
+    campaignId,
+    idComuna,
+    idBarrio
+  );
+  if ("error" in ubicacion) return ubicacion;
+
   const error = await insertPuestoRow(supabase, {
     id_campana: campaignId,
     nombre,
     municipio,
     direccion,
-    id_comuna: idComuna || null,
+    id_comuna: ubicacion.idComuna,
+    id_barrio: ubicacion.idBarrio,
     votantes_hombres_admite: cuposH,
     votantes_mujeres_admite: cuposM,
     cantidad_mesas: mesas,
@@ -227,7 +242,7 @@ export async function createVotanteAction(campaignId: string, formData: FormData
 
   return {
     ok: true,
-    message: "Votante registrado. Estado: pendiente de verificación.",
+    message: "Votante registrado correctamente.",
   };
 }
 
@@ -431,7 +446,7 @@ export async function updateRolAction(campaignId: string, formData: FormData) {
 
   if (!id) return { error: "Rol no identificado." };
   if (!nombre) return { error: "El nombre del rol es obligatorio." };
-  if (nivel < 1 || nivel > 3) return { error: "El nivel debe ser 1, 2 o 3." };
+  if (nivel < 1 || nivel > 3) return { error: "La jerarquía debe ser 1, 2 o 3." };
 
   const { error } = await supabase
     .from("roles")
@@ -580,6 +595,7 @@ export async function updatePuestoAction(campaignId: string, formData: FormData)
   const municipio = textoTituloOpcional(String(formData.get("municipio") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
   const idComuna = String(formData.get("id_comuna") ?? "").trim();
+  const idBarrio = String(formData.get("id_barrio") ?? "").trim();
   const cuposH = Number(formData.get("votantes_hombres_admite") ?? 0);
   const cuposM = Number(formData.get("votantes_mujeres_admite") ?? 0);
   const mesas = Number(formData.get("cantidad_mesas") ?? 0);
@@ -587,11 +603,20 @@ export async function updatePuestoAction(campaignId: string, formData: FormData)
   if (!id) return { error: "Puesto no identificado." };
   if (!nombre) return { error: "El nombre del puesto es obligatorio." };
 
+  const ubicacion = await validarComunaBarrioPuesto(
+    supabase,
+    campaignId,
+    idComuna,
+    idBarrio
+  );
+  if ("error" in ubicacion) return ubicacion;
+
   const error = await updatePuestoRow(supabase, campaignId, id, {
     nombre,
     municipio,
     direccion,
-    id_comuna: idComuna || null,
+    id_comuna: ubicacion.idComuna,
+    id_barrio: ubicacion.idBarrio,
     votantes_hombres_admite: cuposH,
     votantes_mujeres_admite: cuposM,
     cantidad_mesas: mesas,
@@ -704,6 +729,59 @@ export async function deleteLugarTrabajoAction(
   if (error) return { error: error.message };
   revalidateCampaign(campaignId);
   return { ok: true };
+}
+
+export async function bulkUploadCatalogAction(
+  campaignId: string,
+  segment: CatalogSegment,
+  formData: FormData
+) {
+  if (!isBulkCatalogSegment(segment)) {
+    return { error: "Catálogo no soportado para carga masiva." };
+  }
+
+  const { supabase, user } = await requireCampaignAccess(campaignId);
+  const puedeEditar = await userCanEditCampaign(user.id, campaignId);
+  if (!puedeEditar) {
+    return {
+      error:
+        "No tienes permiso para importar catálogos. Se requiere rol editor o administrador.",
+    };
+  }
+
+  const archivo = formData.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { error: "Selecciona un archivo Excel (.xlsx)." };
+  }
+
+  if (archivo.size > 5 * 1024 * 1024) {
+    return { error: "El archivo no puede superar 5 MB." };
+  }
+
+  const parsed = parseCatalogWorkbook(await archivo.arrayBuffer(), segment);
+  if ("error" in parsed) {
+    return { error: parsed.error };
+  }
+
+  const result = await importCatalogRows(
+    supabase,
+    campaignId,
+    segment,
+    parsed.rows
+  );
+
+  if (result.created > 0) {
+    revalidateCampaign(campaignId);
+  }
+
+  return {
+    ok: result.ok,
+    message: result.message,
+    created: result.created,
+    skipped: result.skipped,
+    errors: result.errors,
+    error: result.created === 0 && result.errors.length > 0 ? result.message : undefined,
+  };
 }
 
 export async function createComunaFormAction(

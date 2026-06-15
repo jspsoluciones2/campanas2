@@ -27,6 +27,14 @@ import {
   platformSelectClass,
 } from "@/components/platform/platform-ui";
 import { formatCatalogId, isActionError } from "@/lib/campaign/catalog-codigo";
+import {
+  ComunaBarrioFields,
+  type BarrioOption,
+} from "@/components/campaign/comuna-barrio-fields";
+import {
+  etiquetaJerarquia,
+  JERARQUIA_OPCIONES,
+} from "@/lib/campaign/roles";
 
 type ComunaOption = { id: string; nombre: string };
 
@@ -497,15 +505,17 @@ export function RolRowActions({
                       className={platformInputClass}
                     />
                   </FormField>
-                  <FormField label="Nivel">
+                  <FormField label="Jerarquía">
                     <select
                       name="nivel_jerarquia"
                       defaultValue={String(rol.nivel_jerarquia)}
                       className={platformSelectClass}
                     >
-                      <option value="1">1 — Líder principal</option>
-                      <option value="2">2 — Coordinador</option>
-                      <option value="3">3 — Base</option>
+                      {JERARQUIA_OPCIONES.map((nivel) => (
+                        <option key={nivel} value={nivel}>
+                          {etiquetaJerarquia(nivel)}
+                        </option>
+                      ))}
                     </select>
                   </FormField>
                 </div>
@@ -759,6 +769,7 @@ export function PuestoRowActions({
   campaignId,
   puesto,
   comunas,
+  barrios,
 }: {
   campaignId: string;
   puesto: {
@@ -768,11 +779,13 @@ export function PuestoRowActions({
     direccion: string | null;
     codigo: number | null;
     id_comuna: string | null;
+    id_barrio: string | null;
     votantes_hombres_admite: number;
     votantes_mujeres_admite: number;
     cantidad_mesas: number;
   };
   comunas: ComunaOption[];
+  barrios: BarrioOption[];
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -847,20 +860,12 @@ export function PuestoRowActions({
                       className={platformInputClass}
                     />
                   </FormField>
-                  <FormField label="Comuna">
-                    <select
-                      name="id_comuna"
-                      defaultValue={puesto.id_comuna ?? ""}
-                      className={platformSelectClass}
-                    >
-                      <option value="">—</option>
-                      {comunas.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </FormField>
+                  <ComunaBarrioFields
+                    comunas={comunas}
+                    barrios={barrios}
+                    defaultComunaId={puesto.id_comuna ?? ""}
+                    defaultBarrioId={puesto.id_barrio ?? ""}
+                  />
                   <FormField label="Cupos H">
                     <input
                       name="votantes_hombres_admite"

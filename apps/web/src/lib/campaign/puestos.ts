@@ -8,14 +8,17 @@ export type PuestoListRow = {
   direccion: string | null;
   codigo: number | null;
   id_comuna: string | null;
+  id_barrio: string | null;
   votantes_hombres_admite: number;
   votantes_mujeres_admite: number;
   cantidad_mesas: number;
   creado_en: string;
+  comunas: { nombre: string } | { nombre: string }[] | null;
+  barrios: { nombre: string } | { nombre: string }[] | null;
 };
 
 const PUESTO_SELECT =
-  "id, nombre, municipio, direccion, codigo, id_comuna, votantes_hombres_admite, votantes_mujeres_admite, cantidad_mesas, creado_en";
+  "id, nombre, municipio, direccion, codigo, id_comuna, id_barrio, votantes_hombres_admite, votantes_mujeres_admite, cantidad_mesas, creado_en, comunas(nombre), barrios(nombre)";
 
 export async function fetchPuestosList(
   supabase: SupabaseClient,

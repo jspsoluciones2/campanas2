@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
 import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
+import {
+  etiquetaJerarquia,
+  JERARQUIA_OPCIONES,
+} from "@/lib/campaign/roles";
 import { createRolFormAction } from "../../actions";
 import {
   CatalogListFilter,
@@ -10,6 +14,7 @@ import {
   catalogListHref,
 } from "@/components/campaign/catalog-list-controls";
 import { RolRowActions } from "@/components/campaign/catalog-row-actions";
+import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -75,21 +80,25 @@ export default async function CatalogRolesPage({
         backLabel="Inicio campaña"
       />
 
+      <CatalogBulkUpload campaignId={id} segment="roles" />
+
       <Card title="Nuevo rol">
         <form action={createRolFormAction.bind(null, id)}>
           <FormRow>
             <FormField label="Nombre">
               <input name="nombre" required className={platformInputClass} />
             </FormField>
-            <FormField label="Nivel">
+            <FormField label="Jerarquía">
               <select
                 name="nivel_jerarquia"
                 className={platformSelectClass}
                 defaultValue="1"
               >
-                <option value="1">1 — Líder principal</option>
-                <option value="2">2 — Coordinador</option>
-                <option value="3">3 — Base</option>
+                {JERARQUIA_OPCIONES.map((nivel) => (
+                  <option key={nivel} value={nivel}>
+                    {etiquetaJerarquia(nivel)}
+                  </option>
+                ))}
               </select>
             </FormField>
             <Button type="submit" className="h-10 shrink-0 px-6">
@@ -125,8 +134,8 @@ export default async function CatalogRolesPage({
             },
             {
               key: "nivel",
-              header: "Nivel",
-              cell: (r) => r.nivel_jerarquia,
+              header: "Jerarquía",
+              cell: (r) => etiquetaJerarquia(r.nivel_jerarquia),
             },
             {
               key: "creado",

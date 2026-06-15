@@ -9,7 +9,8 @@ import {
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
   activo: "Activo",
-  pendiente_verificacion: "Pendiente",
+  registrado: "Registrado",
+  pendiente_verificacion: "Pendiente verificación",
   en_cuarentena: "Cuarentena",
   rechazado: "Rechazado",
 };
@@ -64,7 +65,7 @@ export default async function CampaignVotantesPage({
       .from("votantes")
       .select("id, nombres, apellidos, documento")
       .eq("id_campana", id)
-      .in("estado", ["activo", "pendiente_verificacion"])
+      .in("estado", ["activo", "registrado", "pendiente_verificacion"])
       .order("apellidos")
       .limit(200),
   ]);
@@ -105,10 +106,10 @@ export default async function CampaignVotantesPage({
           columns={[
             {
               key: "nombre",
-              header: "Nombre",
+              header: "Nombre Completo",
               cell: (v) => (
                 <span className="font-medium text-neutral-900">
-                  {v.apellidos} {v.nombres}
+                  {v.nombres} {v.apellidos}
                 </span>
               ),
             },
