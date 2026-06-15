@@ -468,9 +468,21 @@ erDiagram
 
 | Tabla futura | Función |
 |--------------|---------|
-| `cuarentena_votantes` | Duplicados pendientes de resolver por supervisor |
 | `historial_votante` | Cambios campo a campo en votantes |
 | `cola_trabajos` | Jobs async (CAPTCHA, E14, export) |
+
+### `cuarentena_votantes` (migración 010)
+
+Duplicados pendientes de resolver por supervisor dentro de cada campaña.
+
+| Campo | Tipo | Obl. | Función |
+|-------|------|------|---------|
+| `id` | uuid | Sí | Identificador |
+| `id_campana` | uuid | Sí | Silo de campaña |
+| `nombres`, `apellidos`, `documento` | text | Sí | Datos del registro propuesto |
+| `tipo_coincidencia` | enum | Sí | `cedula_exacta` o `telefono_similitud_nombre` |
+| `id_votante_conflicto` | uuid | Cond. | Votante existente en conflicto |
+| `estado` | enum | Sí | `pendiente`, `resuelto`, `descartado`, `escalado` |
 
 ---
 

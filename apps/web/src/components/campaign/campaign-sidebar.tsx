@@ -3,11 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   ArrowLeft,
   BookOpen,
+  ChevronDown,
   FileSearch,
   LayoutDashboard,
   Megaphone,
@@ -16,6 +18,12 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/app/(platform)/platform/actions";
+import {
+  CATALOG_DEFAULT_SEGMENT,
+  CATALOG_MENU,
+  catalogSegmentPath,
+  isCatalogPath,
+} from "@/lib/campaign/catalog-nav";
 
 type CampaignSidebarProps = {
   campaignId: string;
@@ -33,10 +41,8 @@ type CampaignNavItem = {
   exact?: boolean;
 };
 
-const navItems = (id: string): CampaignNavItem[] => [
-  { href: `/campaign/${id}`, label: "Inicio", icon: LayoutDashboard, exact: true },
+const otherNavItems = (id: string): CampaignNavItem[] => [
   { href: `/campaign/${id}/votantes`, label: "Votantes", icon: Users },
-  { href: `/campaign/${id}/catalogos`, label: "Catálogos", icon: BookOpen },
   { href: `/campaign/${id}/quarantine`, label: "Cuarentena", icon: AlertTriangle },
   { href: `/campaign/${id}/e14`, label: "E14", icon: FileSearch },
 ];
@@ -50,11 +56,28 @@ export function CampaignSidebar({
   isPlatformOwner,
 }: CampaignSidebarProps) {
   const pathname = usePathname();
-  const items = navItems(campaignId);
+  const catalogDefaultHref = catalogSegmentPath(
+    campaignId,
+    CATALOG_DEFAULT_SEGMENT
+  );
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  const catalogActive = isCatalogPath(pathname, campaignId);
+  const [menuState, setMenuState] = useState<{
+    forPath: string;
+    open: boolean;
+  } | null>(null);
+  const catalogOpen =
+    menuState?.forPath === pathname ? menuState.open : catalogActive;
+
+  function toggleCatalogMenu() {
+    const current =
+      menuState?.forPath === pathname ? menuState.open : catalogActive;
+    setMenuState({ forPath: pathname, open: !current });
   }
 
   return (
@@ -82,14 +105,80 @@ export function CampaignSidebar({
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        {items.map(({ href, label, icon: Icon, exact }) => (
+        <Link
+          href={`/campaign/${campaignId}`}
+          data-active={isActive(`/campaign/${campaignId}`, true)}
+          className="platform-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+        >
+          <LayoutDashboard className="size-4 shrink-0 opacity-80" />
+          Inicio
+        </Link>
+
+        <div>
+          <div
+            data-active={catalogActive}
+            className="platform-nav-link flex items-center gap-1 rounded-lg py-1 pr-1 pl-0 text-sm font-medium transition-colors"
+          >
+            <Link
+              href={catalogDefaultHref}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-1.5 transition-colors hover:bg-transparent"
+            >
+              <BookOpen className="size-4 shrink-0 opacity-80" />
+              <span className="flex-1">Catálogos</span>
+            </Link>
+            <button
+              type="button"
+              onClick={toggleCatalogMenu}
+              aria-expanded={catalogOpen}
+              aria-label={
+                catalogOpen ? "Cerrar menú Catálogos" : "Abrir menú Catálogos"
+              }
+              className="flex size-9 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <ChevronDown
+                className={cn(
+                  "size-4 transition-transform duration-200",
+                  catalogOpen && "rotate-180"
+                )}
+              />
+            </button>
+          </div>
+
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+              catalogOpen
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0"
+            )}
+          >
+            <div className="overflow-hidden">
+              <ul className="platform-nav-submenu mt-1 mb-0.5 space-y-0.5 pl-4">
+                {CATALOG_MENU.map(({ segment, label }) => {
+                  const href = catalogSegmentPath(campaignId, segment);
+                  return (
+                    <li key={segment}>
+                      <Link
+                        href={href}
+                        data-active={isActive(href)}
+                        className="platform-nav-sublink block rounded-md px-3 py-2 text-[13px] font-medium transition-colors"
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {otherNavItems(campaignId).map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            data-active={isActive(href, exact)}
-            className={cn(
-              "platform-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-            )}
+            data-active={isActive(href)}
+            className="platform-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
           >
             <Icon className="size-4 shrink-0 opacity-80" />
             {label}

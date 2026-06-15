@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
+import path from "path";
+
+const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    // Evita que Turbopack infiera un workspace root incorrecto (varios lockfiles).
+    root: monorepoRoot,
+  },
   images: {
     remotePatterns: [
       {

@@ -72,7 +72,7 @@ export default async function CampaignDashboardPage({
         <StatCard
           label="Comunas"
           value={totalComunas ?? 0}
-          href={`/campaign/${id}/catalogos`}
+          href={`/campaign/${id}/catalogos/comunas`}
         />
         <StatCard label="Roles" value={totalRoles ?? 0} />
         <StatCard
@@ -89,15 +89,12 @@ export default async function CampaignDashboardPage({
               1
             </span>
             <div>
-              <p className="font-medium text-neutral-900">
-                Configura catálogos territoriales
-              </p>
-              <p className="mt-0.5">Comunas, barrios, puestos, roles y tipos de novedad.</p>
+              <p className="font-medium text-neutral-900">Comunas</p>
               <Link
-                href={`/campaign/${id}/catalogos`}
+                href={`/campaign/${id}/catalogos/comunas`}
                 className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
               >
-                Ir a catálogos
+                Ir a comunas
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
@@ -107,8 +104,83 @@ export default async function CampaignDashboardPage({
               2
             </span>
             <div>
+              <p className="font-medium text-neutral-900">Barrios</p>
+              <Link
+                href={`/campaign/${id}/catalogos/barrios`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
+              >
+                Ir a barrios
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
+              3
+            </span>
+            <div>
+              <p className="font-medium text-neutral-900">Puestos de votación</p>
+              <Link
+                href={`/campaign/${id}/catalogos/puestos`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
+              >
+                Ir a puestos
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
+              4
+            </span>
+            <div>
+              <p className="font-medium text-neutral-900">Roles</p>
+              <Link
+                href={`/campaign/${id}/catalogos/roles`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
+              >
+                Ir a roles
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
+              5
+            </span>
+            <div>
+              <p className="font-medium text-neutral-900">Tipos de novedad</p>
+              <Link
+                href={`/campaign/${id}/catalogos/tipos-novedad`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
+              >
+                Ir a tipos de novedad
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
+              6
+            </span>
+            <div>
+              <p className="font-medium text-neutral-900">Lugares de trabajo</p>
+              <Link
+                href={`/campaign/${id}/catalogos/lugares-trabajo`}
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
+              >
+                Ir a lugares de trabajo
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
+              7
+            </span>
+            <div>
               <p className="font-medium text-neutral-900">Registra votantes</p>
-              <p className="mt-0.5">Carga manual desde el panel (captura web en Fase 3).</p>
+              <p className="mt-0.5">Cuando los catálogos estén listos.</p>
               <Link
                 href={`/campaign/${id}/votantes`}
                 className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
