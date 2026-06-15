@@ -10,6 +10,10 @@ import {
 } from "@/lib/normalize-text";
 import { isValidHexColor } from "@/lib/platform/brand";
 import {
+  isPlatformApiProveedor,
+  type PlatformApiProveedor,
+} from "@/lib/platform/api-integrations";
+import {
   deleteAuthUser,
   generateTemporaryPassword,
   linkClientToUser,
@@ -567,6 +571,129 @@ export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+function mergeApiConfig(
+  proveedor: PlatformApiProveedor,
+  existing: Record<string, unknown>,
+  formData: FormData
+): Record<string, unknown> {
+  const next = { ...existing };
+  const str = (key: string) => String(formData.get(key) ?? "").trim();
+
+  if (proveedor === "twilio") {
+    const accountSid = str("account_sid");
+    const authToken = str("auth_token");
+    const messagingSid = str("messaging_service_sid");
+    const whatsappFrom = str("whatsapp_from");
+    if (accountSid) next.account_sid = accountSid;
+    if (authToken) next.auth_token = authToken;
+    next.messaging_service_sid = messagingSid || undefined;
+    next.whatsapp_from = whatsappFrom || undefined;
+  }
+
+  if (proveedor === "resolutor_captcha") {
+    const apiKey = str("api_key");
+    const baseUrl = str("base_url");
+    if (apiKey) next.api_key = apiKey;
+    next.base_url = baseUrl || undefined;
+  }
+
+  if (proveedor === "ia_e14") {
+    const apiKey = str("api_key");
+    const modelo = str("modelo");
+    const baseUrl = str("base_url");
+    if (apiKey) next.api_key = apiKey;
+    next.modelo = modelo || undefined;
+    next.base_url = baseUrl || undefined;
+  }
+
+  for (const key of Object.keys(next)) {
+    if (next[key] === undefined) delete next[key];
+  }
+
+  return next;
+}
+
+function validateApiConfig(
+  proveedor: PlatformApiProveedor,
+  config: Record<string, unknown>
+): string | null {
+  if (proveedor === "twilio") {
+    if (!config.account_sid) return "El Account SID es obligatorio.";
+    if (!config.auth_token) return "El Auth Token es obligatorio.";
+  }
+  if (
+    (proveedor === "resolutor_captcha" || proveedor === "ia_e14") &&
+    !config.api_key
+  ) {
+    return "La API key es obligatoria.";
+  }
+  return null;
+}
+
+export async function savePlatformApiIntegrationAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const proveedor = String(formData.get("proveedor") ?? "").trim();
+  if (!isPlatformApiProveedor(proveedor)) {
+    return { error: "Proveedor de API no válido." };
+  }
+
+  const activa = formData.get("activa") === "on";
+
+  const { data: existing } = await supabase
+    .from("configuracion_integracion_plataforma")
+    .select("configuracion")
+    .eq("proveedor", proveedor)
+    .maybeSingle();
+
+  const prevConfig = (existing?.configuracion ?? {}) as Record<string, unknown>;
+  const configuracion = mergeApiConfig(proveedor, prevConfig, formData);
+
+  const validationError = validateApiConfig(proveedor, configuracion);
+  if (validationError) return { error: validationError };
+
+  const { error } = await supabase
+    .from("configuracion_integracion_plataforma")
+    .upsert(
+      {
+        proveedor,
+        configuracion,
+        activa,
+      },
+      { onConflict: "proveedor" }
+    );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/platform/maestras/apis");
+  return { ok: true };
+}
+
+export async function deletePlatformApiIntegrationAction(
+  proveedorRaw: string
+) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const proveedor = proveedorRaw.trim();
+  if (!isPlatformApiProveedor(proveedor)) {
+    return { error: "Proveedor de API no válido." };
+  }
+
+  const { error } = await supabase
+    .from("configuracion_integracion_plataforma")
+    .delete()
+    .eq("proveedor", proveedor);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/platform/maestras/apis");
+  return { ok: true };
 }
 
 export async function updatePlatformBrandAction(formData: FormData) {

@@ -106,15 +106,6 @@ export default async function PlatformHomePage() {
               className: "tabular-nums text-neutral-600",
             },
             {
-              key: "supabase",
-              header: "Costo Supabase",
-              cell: (c) => {
-                const v = costosPorCampana(c.id, uso).supabase;
-                return v === 0 ? "—" : formatCosto(v);
-              },
-              className: "tabular-nums text-neutral-600",
-            },
-            {
               key: "ia",
               header: "Costo IA",
               cell: (c) => formatCosto(costosPorCampana(c.id, uso).ia),

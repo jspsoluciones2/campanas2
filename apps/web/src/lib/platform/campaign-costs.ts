@@ -7,7 +7,6 @@ type UsoRow = {
 
 export type CostosCampana = {
   twilio: number;
-  supabase: number;
   ia: number;
   capsolver: number;
   total: number;
@@ -32,16 +31,14 @@ export function costosPorCampana(
     sumarCosto(rows.filter((r) => r.proveedor === proveedor));
 
   const twilio = porProveedor("twilio");
-  const supabase = porProveedor("supabase");
   const ia = porProveedor("ia_e14");
   const capsolver = porProveedor("resolutor_captcha");
 
   return {
     twilio,
-    supabase,
     ia,
     capsolver,
-    total: twilio + supabase + ia + capsolver,
+    total: twilio + ia + capsolver,
   };
 }
 
