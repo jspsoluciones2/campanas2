@@ -356,8 +356,8 @@ Puestos de votación según **registraduría** para el proceso de esa campaña. 
 | `id_campana` | uuid | Sí | Campaña |
 | `id_comuna` | uuid | No | Comuna donde queda el puesto |
 | `id_barrio` | uuid | No | Barrio referencia |
-| `codigo_registraduria` | text | No | Código oficial del puesto en registraduría |
-| `nombre` | text | Sí | Nombre del puesto de votación |
+| `id_puesto` | text | No | Identificador del puesto de votación en la campaña |
+| `nombre` | text | Sí | Nombre del puesto de votación (único por campaña) |
 | `municipio` | text | No | Ciudad/municipio |
 | `direccion` | text | No | Dirección física del puesto |
 | `votantes_hombres_admite` | integer | Sí | Cupo habilitado hombres (dato registraduría) |

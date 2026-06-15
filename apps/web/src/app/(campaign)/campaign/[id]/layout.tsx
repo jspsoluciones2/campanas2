@@ -42,6 +42,7 @@ export default async function CampaignLayout({
       <CampaignSidebar
         campaignId={id}
         campaignName={campana.nombre}
+        clientName={campana.nombreCliente}
         userEmail={user.email ?? "Usuario"}
         logoUrl={platformBrand.logoUrl}
         logoAlt={platformBrand.textoAltLogo}

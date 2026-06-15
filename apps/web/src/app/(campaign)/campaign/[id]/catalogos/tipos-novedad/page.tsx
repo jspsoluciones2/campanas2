@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import { createTipoNovedadFormAction } from "../../actions";
 import {
   CatalogListFilter,
@@ -38,13 +39,17 @@ export default async function CatalogTiposNovedadPage({
 
   let query = supabase
     .from("tipos_novedad")
-    .select("id, novedad, creado_en", { count: "exact" })
+    .select("id, novedad, codigo, creado_en", { count: "exact" })
     .eq("id_campana", id)
-    .order("novedad");
+    .order("codigo");
 
   const term = escapeIlikeTerm(q);
   if (term) {
-    query = query.ilike("novedad", `%${term}%`);
+    if (isNumericSearchTerm(term)) {
+      query = query.eq("codigo", Number(term));
+    } else {
+      query = query.ilike("novedad", `%${term}%`);
+    }
   }
 
   const { data: rows, count } = await query.range(from, to);
@@ -87,13 +92,18 @@ export default async function CatalogTiposNovedadPage({
           campaignId={id}
           segment="tipos-novedad"
           q={q}
-          placeholder="Descripción de la novedad"
+          placeholder="ID o descripción de la novedad"
         />
         <DataTable
           data={list}
           rowKey={(t) => t.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (t) => formatCatalogId(t.codigo),
+            },
             {
               key: "novedad",
               header: "Novedad",

@@ -1,8 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
-import { catalogPathsForCampaign } from "@/lib/campaign/catalog-nav";
+import {
+  catalogPathsForCampaign,
+  catalogSegmentPath,
+} from "@/lib/campaign/catalog-nav";
+import {
+  catalogSaveError,
+  isActionError,
+} from "@/lib/campaign/catalog-codigo";
+import { insertPuestoRow, updatePuestoRow } from "@/lib/campaign/puestos";
 import { flaskRegisterVoter } from "@/lib/flask/client";
 import {
   textoTitulo,
@@ -27,17 +36,16 @@ function revalidateCampaign(id: string) {
 export async function createComunaAction(campaignId: string, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const numero = textoTituloOpcional(String(formData.get("numero") ?? ""));
 
   if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
 
   const { error } = await supabase.from("comunas").insert({
     id_campana: campaignId,
     nombre,
-    numero,
   });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "comuna");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -56,7 +64,8 @@ export async function createBarrioAction(campaignId: string, formData: FormData)
     nombre,
   });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "barrio");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -75,7 +84,8 @@ export async function createRolAction(campaignId: string, formData: FormData) {
     nivel_jerarquia: nivel,
   });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "rol");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -85,9 +95,6 @@ export async function createPuestoAction(campaignId: string, formData: FormData)
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const municipio = textoTituloOpcional(String(formData.get("municipio") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const codigo = textoTituloOpcional(
-    String(formData.get("codigo_registraduria") ?? "")
-  );
   const idComuna = String(formData.get("id_comuna") ?? "").trim();
   const cuposH = Number(formData.get("votantes_hombres_admite") ?? 0);
   const cuposM = Number(formData.get("votantes_mujeres_admite") ?? 0);
@@ -95,19 +102,19 @@ export async function createPuestoAction(campaignId: string, formData: FormData)
 
   if (!nombre) return { error: "El nombre del puesto es obligatorio." };
 
-  const { error } = await supabase.from("puestos_votacion").insert({
+  const error = await insertPuestoRow(supabase, {
     id_campana: campaignId,
     nombre,
     municipio,
     direccion,
-    codigo_registraduria: codigo,
     id_comuna: idComuna || null,
     votantes_hombres_admite: cuposH,
     votantes_mujeres_admite: cuposM,
     cantidad_mesas: mesas,
   });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "puesto de votación");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -126,7 +133,8 @@ export async function createTipoNovedadAction(
     novedad,
   });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "tipo de novedad");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -307,18 +315,18 @@ export async function updateComunaAction(campaignId: string, formData: FormData)
   const { supabase } = await requireCampaignAccess(campaignId);
   const id = String(formData.get("id") ?? "").trim();
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const numero = textoTituloOpcional(String(formData.get("numero") ?? ""));
 
   if (!id) return { error: "Comuna no identificada." };
   if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
 
   const { error } = await supabase
     .from("comunas")
-    .update({ nombre, numero })
+    .update({ nombre })
     .eq("id", id)
     .eq("id_campana", campaignId);
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "comuna");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -375,7 +383,8 @@ export async function updateBarrioAction(campaignId: string, formData: FormData)
     .update({ id_comuna: idComuna, nombre })
     .eq("id", id);
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "barrio");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -407,7 +416,8 @@ export async function updateRolAction(campaignId: string, formData: FormData) {
     .eq("id", id)
     .eq("id_campana", campaignId);
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "rol");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -456,7 +466,8 @@ export async function updateTipoNovedadAction(
     .eq("id", id)
     .eq("id_campana", campaignId);
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "tipo de novedad");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -497,9 +508,6 @@ export async function updatePuestoAction(campaignId: string, formData: FormData)
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const municipio = textoTituloOpcional(String(formData.get("municipio") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const codigo = textoTituloOpcional(
-    String(formData.get("codigo_registraduria") ?? "")
-  );
   const idComuna = String(formData.get("id_comuna") ?? "").trim();
   const cuposH = Number(formData.get("votantes_hombres_admite") ?? 0);
   const cuposM = Number(formData.get("votantes_mujeres_admite") ?? 0);
@@ -508,22 +516,18 @@ export async function updatePuestoAction(campaignId: string, formData: FormData)
   if (!id) return { error: "Puesto no identificado." };
   if (!nombre) return { error: "El nombre del puesto es obligatorio." };
 
-  const { error } = await supabase
-    .from("puestos_votacion")
-    .update({
-      nombre,
-      municipio,
-      direccion,
-      codigo_registraduria: codigo,
-      id_comuna: idComuna || null,
-      votantes_hombres_admite: cuposH,
-      votantes_mujeres_admite: cuposM,
-      cantidad_mesas: mesas,
-    })
-    .eq("id", id)
-    .eq("id_campana", campaignId);
+  const error = await updatePuestoRow(supabase, campaignId, id, {
+    nombre,
+    municipio,
+    direccion,
+    id_comuna: idComuna || null,
+    votantes_hombres_admite: cuposH,
+    votantes_mujeres_admite: cuposM,
+    cantidad_mesas: mesas,
+  });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "puesto de votación");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -575,7 +579,8 @@ export async function createLugarTrabajoAction(
     id_barrio: idBarrio || null,
   });
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "lugar de trabajo");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -605,7 +610,8 @@ export async function updateLugarTrabajoAction(
     .eq("id", id)
     .eq("id_campana", campaignId);
 
-  if (error) return { error: error.message };
+  const saveError = catalogSaveError(error, "lugar de trabajo");
+  if (saveError) return saveError;
   revalidateCampaign(campaignId);
   return { ok: true };
 }
@@ -633,7 +639,12 @@ export async function createComunaFormAction(
   campaignId: string,
   formData: FormData
 ): Promise<void> {
-  await createComunaAction(campaignId, formData);
+  const result = await createComunaAction(campaignId, formData);
+  if (isActionError(result)) {
+    redirect(
+      `${catalogSegmentPath(campaignId, "comunas")}?error=${encodeURIComponent(result.error)}`
+    );
+  }
 }
 
 export async function createBarrioFormAction(
@@ -654,7 +665,12 @@ export async function createPuestoFormAction(
   campaignId: string,
   formData: FormData
 ): Promise<void> {
-  await createPuestoAction(campaignId, formData);
+  const result = await createPuestoAction(campaignId, formData);
+  if (isActionError(result)) {
+    redirect(
+      `${catalogSegmentPath(campaignId, "puestos")}?error=${encodeURIComponent(result.error)}`
+    );
+  }
 }
 
 export async function createTipoNovedadFormAction(

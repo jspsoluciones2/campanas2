@@ -5,7 +5,16 @@ export type CampanaBasica = {
   id: string;
   nombre: string;
   estado: string;
+  nombreCliente: string | null;
 };
+
+function nombreClienteRelacion(
+  rel: { nombre: string } | { nombre: string }[] | null | undefined
+) {
+  if (!rel) return null;
+  if (Array.isArray(rel)) return rel[0]?.nombre ?? null;
+  return rel.nombre ?? null;
+}
 
 export async function requireCampaignAccess(campaignId: string) {
   const supabase = await createClient();
@@ -17,13 +26,22 @@ export async function requireCampaignAccess(campaignId: string) {
 
   const { data: campana, error } = await supabase
     .from("campanas")
-    .select("id, nombre, estado")
+    .select("id, nombre, estado, clientes(nombre)")
     .eq("id", campaignId)
     .single();
 
   if (error || !campana) notFound();
 
-  return { supabase, user, campana: campana as CampanaBasica };
+  const basica: CampanaBasica = {
+    id: campana.id,
+    nombre: campana.nombre,
+    estado: campana.estado,
+    nombreCliente: nombreClienteRelacion(
+      campana.clientes as { nombre: string } | { nombre: string }[] | null
+    ),
+  };
+
+  return { supabase, user, campana: basica };
 }
 
 export async function userCanAccessCampaign(

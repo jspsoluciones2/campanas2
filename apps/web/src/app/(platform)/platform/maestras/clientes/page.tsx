@@ -9,6 +9,7 @@ import {
   clientsListHref,
 } from "@/components/platform/clients-list-controls";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import {
   Card,
   DataTable,
@@ -38,17 +39,21 @@ export default async function MaestrasClientesPage({
   let query = supabase
     .from("clientes")
     .select(
-      "id, nombre, documento, telefono, correo_contacto, id_usuario, creado_en",
+      "id, codigo, nombre, documento, telefono, correo_contacto, id_usuario, creado_en",
       { count: "exact" }
     )
-    .order("creado_en", { ascending: false });
+    .order("codigo", { ascending: true });
 
   const term = escapeIlikeTerm(q);
   if (term) {
-    const pattern = `%${term}%`;
-    query = query.or(
-      `nombre.ilike.${pattern},correo_contacto.ilike.${pattern},telefono.ilike.${pattern}`
-    );
+    if (isNumericSearchTerm(term)) {
+      query = query.eq("codigo", Number(term));
+    } else {
+      const pattern = `%${term}%`;
+      query = query.or(
+        `nombre.ilike.${pattern},correo_contacto.ilike.${pattern},telefono.ilike.${pattern}`
+      );
+    }
   }
 
   const docTerm = escapeIlikeTerm(documento);
@@ -90,6 +95,11 @@ export default async function MaestrasClientesPage({
           rowKey={(c) => c.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (c) => formatCatalogId(c.codigo),
+            },
             {
               key: "nombre",
               header: "Nombre",

@@ -24,6 +24,7 @@ import {
   platformInputClass,
   platformSelectClass,
 } from "@/components/platform/platform-ui";
+import { formatCatalogId, isActionError } from "@/lib/campaign/catalog-codigo";
 
 type ComunaOption = { id: string; nombre: string };
 
@@ -87,7 +88,7 @@ export function ComunaRowActions({
   comuna,
 }: {
   campaignId: string;
-  comuna: { id: string; nombre: string; numero: string | null };
+  comuna: { id: string; nombre: string; codigo?: number | null };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -99,7 +100,7 @@ export function ComunaRowActions({
     if (!ok) return;
     startTransition(async () => {
       const result = await deleteComunaAction(campaignId, comuna.id);
-      if (result?.error) window.alert(result.error);
+      if (isActionError(result)) window.alert(result.error);
       else router.refresh();
     });
   };
@@ -123,7 +124,7 @@ export function ComunaRowActions({
               <form
                 action={async (formData) => {
                   const result = await updateComunaAction(campaignId, formData);
-                  if (result?.error) {
+                  if (isActionError(result)) {
                     window.alert(result.error);
                     return;
                   }
@@ -137,18 +138,14 @@ export function ComunaRowActions({
                   Editar comuna
                 </h3>
                 <div className="mt-5 space-y-3">
+                  <p className="text-sm text-neutral-500">
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(comuna.codigo)}</span>
+                  </p>
                   <FormField label="Nombre">
                     <input
                       name="nombre"
                       defaultValue={comuna.nombre}
                       required
-                      className={platformInputClass}
-                    />
-                  </FormField>
-                  <FormField label="Número">
-                    <input
-                      name="numero"
-                      defaultValue={comuna.numero ?? ""}
                       className={platformInputClass}
                     />
                   </FormField>
@@ -194,6 +191,7 @@ export function LugarTrabajoRowActions({
   lugar: {
     id: string;
     nombre: string;
+    codigo: number | null;
     direccion: string | null;
     id_comuna: string | null;
     id_barrio: string | null;
@@ -210,7 +208,7 @@ export function LugarTrabajoRowActions({
     if (!ok) return;
     startTransition(async () => {
       const result = await deleteLugarTrabajoAction(campaignId, lugar.id);
-      if (result?.error) window.alert(result.error);
+      if (isActionError(result)) window.alert(result.error);
       else router.refresh();
     });
   };
@@ -237,7 +235,7 @@ export function LugarTrabajoRowActions({
                     campaignId,
                     formData
                   );
-                  if (result?.error) {
+                  if (isActionError(result)) {
                     window.alert(result.error);
                     return;
                   }
@@ -251,6 +249,9 @@ export function LugarTrabajoRowActions({
                   Editar lugar de trabajo
                 </h3>
                 <div className="mt-5 space-y-3">
+                  <p className="text-sm text-neutral-500">
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(lugar.codigo)}</span>
+                  </p>
                   <FormField label="Nombre">
                     <input
                       name="nombre"
@@ -319,7 +320,7 @@ export function BarrioRowActions({
   comunas,
 }: {
   campaignId: string;
-  barrio: { id: string; nombre: string; id_comuna: string };
+  barrio: { id: string; nombre: string; codigo: number | null; id_comuna: string };
   comunas: ComunaOption[];
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
@@ -332,7 +333,7 @@ export function BarrioRowActions({
     if (!ok) return;
     startTransition(async () => {
       const result = await deleteBarrioAction(campaignId, barrio.id);
-      if (result?.error) window.alert(result.error);
+      if (isActionError(result)) window.alert(result.error);
       else router.refresh();
     });
   };
@@ -356,7 +357,7 @@ export function BarrioRowActions({
               <form
                 action={async (formData) => {
                   const result = await updateBarrioAction(campaignId, formData);
-                  if (result?.error) {
+                  if (isActionError(result)) {
                     window.alert(result.error);
                     return;
                   }
@@ -370,6 +371,9 @@ export function BarrioRowActions({
                   Editar barrio
                 </h3>
                 <div className="mt-5 space-y-3">
+                  <p className="text-sm text-neutral-500">
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(barrio.codigo)}</span>
+                  </p>
                   <FormField label="Comuna">
                     <select
                       name="id_comuna"
@@ -430,7 +434,7 @@ export function RolRowActions({
   rol,
 }: {
   campaignId: string;
-  rol: { id: string; nombre: string; nivel_jerarquia: number };
+  rol: { id: string; nombre: string; codigo: number | null; nivel_jerarquia: number };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -442,7 +446,7 @@ export function RolRowActions({
     if (!ok) return;
     startTransition(async () => {
       const result = await deleteRolAction(campaignId, rol.id);
-      if (result?.error) window.alert(result.error);
+      if (isActionError(result)) window.alert(result.error);
       else router.refresh();
     });
   };
@@ -466,7 +470,7 @@ export function RolRowActions({
               <form
                 action={async (formData) => {
                   const result = await updateRolAction(campaignId, formData);
-                  if (result?.error) {
+                  if (isActionError(result)) {
                     window.alert(result.error);
                     return;
                   }
@@ -480,6 +484,9 @@ export function RolRowActions({
                   Editar rol
                 </h3>
                 <div className="mt-5 space-y-3">
+                  <p className="text-sm text-neutral-500">
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(rol.codigo)}</span>
+                  </p>
                   <FormField label="Nombre">
                     <input
                       name="nombre"
@@ -537,7 +544,7 @@ export function TipoNovedadRowActions({
   tipo,
 }: {
   campaignId: string;
-  tipo: { id: string; novedad: string };
+  tipo: { id: string; novedad: string; codigo: number | null };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -549,7 +556,7 @@ export function TipoNovedadRowActions({
     if (!ok) return;
     startTransition(async () => {
       const result = await deleteTipoNovedadAction(campaignId, tipo.id);
-      if (result?.error) window.alert(result.error);
+      if (isActionError(result)) window.alert(result.error);
       else router.refresh();
     });
   };
@@ -576,7 +583,7 @@ export function TipoNovedadRowActions({
                     campaignId,
                     formData
                   );
-                  if (result?.error) {
+                  if (isActionError(result)) {
                     window.alert(result.error);
                     return;
                   }
@@ -589,7 +596,10 @@ export function TipoNovedadRowActions({
                 <h3 className="text-base font-semibold text-neutral-900">
                   Editar tipo de novedad
                 </h3>
-                <FormField label="Descripción" className="mt-5">
+                <p className="mt-5 text-sm text-neutral-500">
+                  ID: <span className="font-medium text-neutral-900">{formatCatalogId(tipo.codigo)}</span>
+                </p>
+                <FormField label="Descripción" className="mt-3">
                   <input
                     name="novedad"
                     defaultValue={tipo.novedad}
@@ -640,7 +650,7 @@ export function PuestoRowActions({
     nombre: string;
     municipio: string | null;
     direccion: string | null;
-    codigo_registraduria: string | null;
+    codigo: number | null;
     id_comuna: string | null;
     votantes_hombres_admite: number;
     votantes_mujeres_admite: number;
@@ -658,7 +668,7 @@ export function PuestoRowActions({
     if (!ok) return;
     startTransition(async () => {
       const result = await deletePuestoAction(campaignId, puesto.id);
-      if (result?.error) window.alert(result.error);
+      if (isActionError(result)) window.alert(result.error);
       else router.refresh();
     });
   };
@@ -682,7 +692,7 @@ export function PuestoRowActions({
               <form
                 action={async (formData) => {
                   const result = await updatePuestoAction(campaignId, formData);
-                  if (result?.error) {
+                  if (isActionError(result)) {
                     window.alert(result.error);
                     return;
                   }
@@ -696,6 +706,9 @@ export function PuestoRowActions({
                   Editar puesto de votación
                 </h3>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <p className="text-sm text-neutral-500 sm:col-span-2">
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(puesto.codigo)}</span>
+                  </p>
                   <FormField label="Nombre">
                     <input
                       name="nombre"
@@ -715,13 +728,6 @@ export function PuestoRowActions({
                     <input
                       name="direccion"
                       defaultValue={puesto.direccion ?? ""}
-                      className={platformInputClass}
-                    />
-                  </FormField>
-                  <FormField label="Código registraduría">
-                    <input
-                      name="codigo_registraduria"
-                      defaultValue={puesto.codigo_registraduria ?? ""}
                       className={platformInputClass}
                     />
                   </FormField>

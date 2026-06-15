@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
+import { fetchComunasList, renderComunaCodigo, COMUNA_LABEL_CREACION } from "@/lib/campaign/comunas";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
 import { createComunaFormAction } from "../../actions";
 import {
@@ -24,11 +25,16 @@ export default async function CatalogComunasPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; error?: string }>;
 }) {
   const { id } = await params;
-  const { q: qRaw = "", page: pageRaw = "1" } = await searchParams;
+  const {
+    q: qRaw = "",
+    page: pageRaw = "1",
+    error: errorRaw,
+  } = await searchParams;
   const q = qRaw.trim();
+  const formError = errorRaw ? decodeURIComponent(errorRaw) : null;
   const filters = { q };
   const page = Math.max(1, Number.parseInt(pageRaw, 10) || 1);
   const from = (page - 1) * CATALOG_PAGE_SIZE;
@@ -36,29 +42,24 @@ export default async function CatalogComunasPage({
 
   const { supabase } = await requireCampaignAccess(id);
 
-  let query = supabase
-    .from("comunas")
-    .select("id, nombre, numero, creado_en", { count: "exact" })
-    .eq("id_campana", id)
-    .order("nombre");
-
   const term = escapeIlikeTerm(q);
-  if (term) {
-    query = query.or(`nombre.ilike.%${term}%,numero.ilike.%${term}%`);
-  }
-
-  const { data: rows, count } = await query.range(from, to);
-  const total = count ?? 0;
+  const { rows, count: total, error: listError } = await fetchComunasList(
+    supabase,
+    id,
+    { q: term, from, to }
+  );
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
     redirect(catalogListHref(id, "comunas", filters, totalPages));
   }
 
-  const list = rows ?? [];
+  const list = rows;
   const emptyMessage = q
     ? "Sin coincidencias. Prueba otro criterio de búsqueda."
-    : "Sin comunas. Crea la primera arriba.";
+    : listError
+      ? "No se pudo cargar el listado. Revisa el aviso arriba."
+      : "Sin comunas. Crea la primera arriba.";
 
   return (
     <>
@@ -69,17 +70,40 @@ export default async function CatalogComunasPage({
         backLabel="Inicio campaña"
       />
 
-      <Card title="Nueva comuna">
+      {formError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {formError}
+        </div>
+      ) : null}
+
+      {listError ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">No se pudo leer las comunas guardadas.</p>
+          <p className="mt-1">{listError}</p>
+          <p className="mt-2">
+            Si acabas de activar IDs autoincrementales, ejecuta la migración{" "}
+            <code className="text-xs">015_codigo_autoincremental.sql</code> en Supabase
+            y recarga esta página.
+          </p>
+        </div>
+      ) : null}
+
+      <Card
+        title={`Nueva ${COMUNA_LABEL_CREACION.toLowerCase()}`}
+        description="En algunos municipios no aplica el término comuna; registra aquí la subdivisión territorial que use tu campaña (localidad, corregimiento, etc.)."
+      >
         <form action={createComunaFormAction.bind(null, id)}>
           <FormRow>
-            <FormField label="Nombre">
-              <input name="nombre" required className={platformInputClass} />
-            </FormField>
-            <FormField label="Número">
-              <input name="numero" className={platformInputClass} />
+            <FormField label={COMUNA_LABEL_CREACION}>
+              <input
+                name="nombre"
+                required
+                placeholder="Nombre de la subdivisión"
+                className={platformInputClass}
+              />
             </FormField>
             <Button type="submit" className="h-10 shrink-0 px-6">
-              Crear comuna
+              Crear subdivisión
             </Button>
           </FormRow>
         </form>
@@ -90,7 +114,7 @@ export default async function CatalogComunasPage({
           campaignId={id}
           segment="comunas"
           q={q}
-          placeholder="Nombre o número de comuna"
+          placeholder="ID o nombre de comuna"
         />
         <DataTable
           data={list}
@@ -98,16 +122,16 @@ export default async function CatalogComunasPage({
           emptyMessage={emptyMessage}
           columns={[
             {
+              key: "codigo",
+              header: "ID",
+              cell: (c) => renderComunaCodigo(c),
+            },
+            {
               key: "nombre",
               header: "Nombre",
               cell: (c) => (
                 <span className="font-medium text-neutral-900">{c.nombre}</span>
               ),
-            },
-            {
-              key: "numero",
-              header: "Nº",
-              cell: (c) => c.numero ?? "—",
             },
             {
               key: "creado",

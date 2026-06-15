@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import { createRolFormAction } from "../../actions";
 import {
   CatalogListFilter,
@@ -39,13 +40,17 @@ export default async function CatalogRolesPage({
 
   let query = supabase
     .from("roles")
-    .select("id, nombre, nivel_jerarquia, creado_en", { count: "exact" })
+    .select("id, nombre, codigo, nivel_jerarquia, creado_en", { count: "exact" })
     .eq("id_campana", id)
-    .order("nivel_jerarquia");
+    .order("codigo");
 
   const term = escapeIlikeTerm(q);
   if (term) {
-    query = query.ilike("nombre", `%${term}%`);
+    if (isNumericSearchTerm(term)) {
+      query = query.eq("codigo", Number(term));
+    } else {
+      query = query.ilike("nombre", `%${term}%`);
+    }
   }
 
   const { data: rows, count } = await query.range(from, to);
@@ -99,13 +104,18 @@ export default async function CatalogRolesPage({
           campaignId={id}
           segment="roles"
           q={q}
-          placeholder="Nombre del rol"
+          placeholder="ID o nombre del rol"
         />
         <DataTable
           data={list}
           rowKey={(r) => r.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (r) => formatCatalogId(r.codigo),
+            },
             {
               key: "nombre",
               header: "Rol",

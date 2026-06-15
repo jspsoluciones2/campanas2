@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import { isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 
 const EMPTY_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -10,6 +11,15 @@ export async function matchingCampaignIds(
 ): Promise<string[] | null> {
   const term = escapeIlikeTerm(q);
   if (!term) return null;
+
+  if (isNumericSearchTerm(term)) {
+    const codigo = Number(term);
+    const { data: byCodigo } = await supabase
+      .from("campanas")
+      .select("id")
+      .eq("codigo", codigo);
+    return (byCodigo ?? []).map((row) => row.id);
+  }
 
   const pattern = `%${term}%`;
 

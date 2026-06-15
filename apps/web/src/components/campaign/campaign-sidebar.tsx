@@ -28,6 +28,7 @@ import {
 type CampaignSidebarProps = {
   campaignId: string;
   campaignName: string;
+  clientName: string | null;
   userEmail: string;
   logoUrl: string | null;
   logoAlt: string;
@@ -50,6 +51,7 @@ const otherNavItems = (id: string): CampaignNavItem[] => [
 export function CampaignSidebar({
   campaignId,
   campaignName,
+  clientName,
   userEmail,
   logoUrl,
   logoAlt,
@@ -100,7 +102,9 @@ export function CampaignSidebar({
           <p className="truncate text-sm font-semibold text-white">
             {campaignName}
           </p>
-          <p className="truncate text-xs text-neutral-400">Campaña</p>
+          <p className="truncate text-xs text-neutral-400">
+            {clientName ?? "—"}
+          </p>
         </div>
       </div>
 

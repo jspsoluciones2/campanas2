@@ -19,6 +19,7 @@ import {
   PageHeader,
   StatusBadge,
 } from "@/components/platform/platform-ui";
+import { formatCatalogId } from "@/lib/campaign/catalog-codigo";
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
   activa: "Activa",
@@ -29,6 +30,7 @@ const ETIQUETAS_ESTADO: Record<string, string> = {
 
 type CampanaRow = {
   id: string;
+  codigo: number | null;
   nombre: string;
   estado: string;
   clientes: { nombre: string } | { nombre: string }[] | null;
@@ -64,10 +66,10 @@ export default async function MaestrasCampanasPage({
   let campanasQuery = supabase
     .from("campanas")
     .select(
-      "id, nombre, estado, creado_en, clientes(nombre), procesos_electorales(nombre)",
+      "id, codigo, nombre, estado, creado_en, clientes(nombre), procesos_electorales(nombre)",
       { count: "exact" }
     )
-    .order("creado_en", { ascending: false });
+    .order("codigo", { ascending: true });
 
   if (matchingIds) {
     campanasQuery = campanasQuery.in("id", matchingIds);
@@ -119,6 +121,11 @@ export default async function MaestrasCampanasPage({
           rowKey={(c) => c.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (c) => formatCatalogId(c.codigo),
+            },
             {
               key: "nombre",
               header: "Campaña",

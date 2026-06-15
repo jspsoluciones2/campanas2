@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import { createBarrioFormAction } from "../../actions";
 import {
   CatalogListFilter,
@@ -48,15 +49,19 @@ export default async function CatalogBarriosPage({
   let query = supabase
     .from("barrios")
     .select(
-      "id, nombre, id_comuna, creado_en, comunas!inner(nombre, id_campana)",
+      "id, nombre, codigo, id_comuna, creado_en, comunas!inner(nombre, id_campana)",
       { count: "exact" }
     )
     .eq("comunas.id_campana", id)
-    .order("nombre");
+    .order("codigo");
 
   const term = escapeIlikeTerm(q);
   if (term) {
-    query = query.ilike("nombre", `%${term}%`);
+    if (isNumericSearchTerm(term)) {
+      query = query.eq("codigo", Number(term));
+    } else {
+      query = query.ilike("nombre", `%${term}%`);
+    }
   }
 
   const { data: rows, count } = await query.range(from, to);
@@ -123,13 +128,18 @@ export default async function CatalogBarriosPage({
           campaignId={id}
           segment="barrios"
           q={q}
-          placeholder="Nombre del barrio"
+          placeholder="ID o nombre del barrio"
         />
         <DataTable
           data={list}
           rowKey={(b) => b.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (b) => formatCatalogId(b.codigo),
+            },
             {
               key: "nombre",
               header: "Barrio",

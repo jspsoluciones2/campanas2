@@ -32,7 +32,7 @@
 | `roles` | `nombre`, `nivel_jerarquia` (1–3) — por `id_campana` |
 | `comunas` | `nombre`, `numero` |
 | `barrios` | `nombre`, `id_comuna` |
-| `puestos_votacion` | `nombre`, `municipio`, `direccion`, cupos H/M, `cantidad_mesas`, `codigo_registraduria` |
+| `puestos_votacion` | `nombre` (único/campaña), `municipio`, `direccion`, cupos H/M, `cantidad_mesas`, `id_puesto` |
 | `tipos_novedad` | `novedad` |
 | `votantes` | datos personales + `id_puesto_votacion`, `mesa`, `id_rol`, `id_lider_directo` |
 | `datos_trabajador_votante` | trabajo, dirección, comuna/barrio |

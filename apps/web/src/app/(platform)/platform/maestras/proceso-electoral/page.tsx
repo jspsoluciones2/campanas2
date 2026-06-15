@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { escapeIlikeTerm, MASTER_PAGE_SIZE } from "@/lib/platform/master-list";
+import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import { CreateElectoralProcessForm } from "@/components/platform/create-electoral-process-form";
 import { ElectoralProcessRowActions } from "@/components/platform/electoral-process-row-actions";
 import {
@@ -26,12 +27,16 @@ export default async function MaestrasProcesoElectoralPage({
 
   let query = supabase
     .from("procesos_electorales")
-    .select("id, nombre, fecha_eleccion, creado_en", { count: "exact" })
-    .order("creado_en", { ascending: false });
+    .select("id, codigo, nombre, fecha_eleccion, creado_en", { count: "exact" })
+    .order("codigo", { ascending: true });
 
   const term = escapeIlikeTerm(q);
   if (term) {
-    query = query.ilike("nombre", `%${term}%`);
+    if (isNumericSearchTerm(term)) {
+      query = query.eq("codigo", Number(term));
+    } else {
+      query = query.ilike("nombre", `%${term}%`);
+    }
   }
 
   const { data: procesos, count } = await query.range(from, to);
@@ -66,6 +71,11 @@ export default async function MaestrasProcesoElectoralPage({
           rowKey={(p) => p.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (p) => formatCatalogId(p.codigo),
+            },
             {
               key: "nombre",
               header: "Nombre",

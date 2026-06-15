@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import { createLugarTrabajoFormAction } from "../../actions";
 import {
   CatalogListFilter,
@@ -48,15 +49,19 @@ export default async function CatalogLugaresTrabajoPage({
   let query = supabase
     .from("lugares_trabajo")
     .select(
-      "id, nombre, direccion, id_comuna, id_barrio, creado_en, comunas(nombre), barrios(nombre)",
+      "id, nombre, codigo, direccion, id_comuna, id_barrio, creado_en, comunas(nombre), barrios(nombre)",
       { count: "exact" }
     )
     .eq("id_campana", id)
-    .order("nombre");
+    .order("codigo");
 
   const term = escapeIlikeTerm(q);
   if (term) {
-    query = query.or(`nombre.ilike.%${term}%,direccion.ilike.%${term}%`);
+    if (isNumericSearchTerm(term)) {
+      query = query.eq("codigo", Number(term));
+    } else {
+      query = query.or(`nombre.ilike.%${term}%,direccion.ilike.%${term}%`);
+    }
   }
 
   const { data: rows, count } = await query.range(from, to);
@@ -112,13 +117,18 @@ export default async function CatalogLugaresTrabajoPage({
           campaignId={id}
           segment="lugares-trabajo"
           q={q}
-          placeholder="Nombre o dirección"
+          placeholder="ID, nombre o dirección"
         />
         <DataTable
           data={list}
           rowKey={(l) => l.id}
           emptyMessage={emptyMessage}
           columns={[
+            {
+              key: "codigo",
+              header: "ID",
+              cell: (l) => formatCatalogId(l.codigo),
+            },
             {
               key: "nombre",
               header: "Lugar",
