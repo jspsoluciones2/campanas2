@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { createVotanteAction } from "@/app/(campaign)/campaign/[id]/actions";
-import { etiquetaJerarquia } from "@/lib/campaign/roles";
+import { etiquetaJerarquia, JERARQUIA_MIN } from "@/lib/campaign/roles";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,9 +16,13 @@ import {
 const TIPOS_DOCUMENTO = ["CC", "TI", "CE", "PA", "PEP", "PPT"] as const;
 
 type Rol = { id: string; nombre: string; nivel_jerarquia: number };
-type Puesto = { id: string; nombre: string };
+type Puesto = {
+  id: string;
+  nombre: string;
+  municipio: string | null;
+  comunas: { nombre: string } | { nombre: string }[] | null;
+};
 type LugarTrabajo = { id: string; nombre: string };
-type Zona = { id: string; nombre: string };
 type Lider = { id: string; nombres: string; apellidos: string; documento: string };
 
 type Props = {
@@ -26,7 +30,6 @@ type Props = {
   roles: Rol[];
   puestos: Puesto[];
   lugaresTrabajo: LugarTrabajo[];
-  zonas: Zona[];
   lideres: Lider[];
 };
 
@@ -50,13 +53,44 @@ export function VotanteRegisterForm({
   roles,
   puestos,
   lugaresTrabajo,
-  zonas,
   lideres,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     submitVotante.bind(null, campaignId),
     {}
   );
+  const [rolId, setRolId] = useState("");
+  const [municipio, setMunicipio] = useState("");
+  const [puestoId, setPuestoId] = useState("");
+  const municipios = useMemo(() => {
+    const vistos = new Set<string>();
+    const lista: string[] = [];
+    for (const puesto of puestos) {
+      const nombre = puesto.municipio?.trim();
+      if (!nombre) continue;
+      const clave = nombre.toLowerCase();
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
+      lista.push(nombre);
+    }
+    return lista.sort((a, b) => a.localeCompare(b, "es"));
+  }, [puestos]);
+  const puestosFiltrados = useMemo(
+    () =>
+      municipio ? puestos.filter((p) => p.municipio === municipio) : [],
+    [municipio, puestos]
+  );
+  const comunaPuesto = useMemo(() => {
+    const puesto = puestos.find((p) => p.id === puestoId);
+    if (!puesto?.comunas) return null;
+    const rel = puesto.comunas;
+    if (Array.isArray(rel)) return rel[0]?.nombre ?? null;
+    return rel.nombre;
+  }, [puestoId, puestos]);
+  const sinLiderDirecto = useMemo(() => {
+    const rol = roles.find((r) => r.id === rolId);
+    return rol?.nivel_jerarquia === JERARQUIA_MIN;
+  }, [rolId, roles]);
 
   return (
     <Card title="Nuevo votante" description="Estado inicial: registrado. Duplicados van a cuarentena.">
@@ -119,22 +153,19 @@ export function VotanteRegisterForm({
             </select>
           </FormField>
           <FormField label="Teléfono">
-            <input name="telefono" className={platformInputClass} />
+            <input
+              name="telefono"
+              type="tel"
+              inputMode="numeric"
+              className={platformInputClass}
+              placeholder="3001234567"
+              pattern="3[0-9]{9}"
+              title="Celular colombiano de 10 dígitos que empiece por 3"
+              required
+            />
           </FormField>
           <FormField label="Dirección">
             <input name="direccion" className={platformInputClass} />
-          </FormField>
-          <FormField label="Zona asignada">
-            <select name="id_zona" className={platformSelectClass} defaultValue="">
-              <option value="">
-                {zonas.length === 0 ? "Sin zonas (crea en Catálogos)" : "—"}
-              </option>
-              {zonas.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.nombre}
-                </option>
-              ))}
-            </select>
           </FormField>
           <FormField label="Lugar de trabajo">
             <select
@@ -155,7 +186,12 @@ export function VotanteRegisterForm({
             </select>
           </FormField>
           <FormField label="Rol organizacional">
-            <select name="id_rol" className={platformSelectClass} defaultValue="">
+            <select
+              name="id_rol"
+              className={platformSelectClass}
+              defaultValue=""
+              onChange={(e) => setRolId(e.target.value)}
+            >
               <option value="">—</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -164,6 +200,7 @@ export function VotanteRegisterForm({
               ))}
             </select>
           </FormField>
+          {!sinLiderDirecto ? (
           <FormField label="Líder directo">
             <select name="id_lider_directo" className={platformSelectClass} defaultValue="">
               <option value="">—</option>
@@ -174,19 +211,54 @@ export function VotanteRegisterForm({
               ))}
             </select>
           </FormField>
+          ) : null}
+          <FormField label="Municipio de votación">
+            <select
+              className={platformSelectClass}
+              value={municipio}
+              onChange={(e) => {
+                setMunicipio(e.target.value);
+                setPuestoId("");
+              }}
+            >
+              <option value="">
+                {municipios.length === 0
+                  ? "Sin municipios (carga puestos en Catálogos)"
+                  : "—"}
+              </option>
+              {municipios.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </FormField>
           <FormField label="Puesto de votación">
             <select
               name="id_puesto_votacion"
               className={platformSelectClass}
-              defaultValue=""
+              value={puestoId}
+              disabled={!municipio}
+              onChange={(e) => setPuestoId(e.target.value)}
             >
-              <option value="">—</option>
-              {puestos.map((p) => (
+              <option value="">
+                {!municipio
+                  ? "Primero elige municipio"
+                  : puestosFiltrados.length === 0
+                    ? "Sin puestos en este municipio"
+                    : "—"}
+              </option>
+              {puestosFiltrados.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre}
                 </option>
               ))}
             </select>
+            {comunaPuesto ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Comuna del puesto: {comunaPuesto}
+              </p>
+            ) : null}
           </FormField>
           <FormField label="Mesa">
             <input name="mesa" className={platformInputClass} />

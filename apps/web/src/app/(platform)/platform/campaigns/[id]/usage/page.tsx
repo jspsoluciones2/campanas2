@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { providerLabel, isBillableIntegrationProvider } from "@/lib/platform/api-integrations";
 import { Card, DataTable, PageHeader } from "@/components/platform/platform-ui";
 
 export default async function CampaignUsagePage({
@@ -25,7 +26,9 @@ export default async function CampaignUsagePage({
     .order("registrado_en", { ascending: false })
     .limit(50);
 
-  const rows = uso ?? [];
+  const rows = (uso ?? []).filter((u) =>
+    isBillableIntegrationProvider(u.proveedor)
+  );
 
   return (
     <>
@@ -36,7 +39,10 @@ export default async function CampaignUsagePage({
         backLabel={campana.nombre}
       />
 
-      <Card title="Consumo reciente" description="Últimos 50 registros">
+      <Card
+        title="Consumo reciente"
+        description="Solo Twilio, Capsolver e IA E14. Telegram no genera costos medibles aquí."
+      >
         <DataTable
           data={rows}
           rowKey={(u) => `${u.proveedor}-${u.metrica}-${u.registrado_en}`}
@@ -46,7 +52,9 @@ export default async function CampaignUsagePage({
               key: "proveedor",
               header: "Proveedor",
               cell: (u) => (
-                <span className="font-medium text-neutral-900">{u.proveedor}</span>
+                <span className="font-medium text-neutral-900">
+                  {providerLabel(u.proveedor)}
+                </span>
               ),
             },
             { key: "metrica", header: "Métrica", cell: (u) => u.metrica },

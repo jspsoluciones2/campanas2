@@ -152,6 +152,24 @@ export default async function CampaignDetailPage({
       </div>
 
       <Card
+        title="APIs con costo"
+        description="Twilio, Capsolver e IA E14. El gasto de esta campaña se ve en Uso."
+        action={
+          <Link
+            href={`/platform/campaigns/${id}/integrations`}
+            className="inline-flex h-9 items-center rounded-lg bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
+          >
+            Configurar APIs
+          </Link>
+        }
+      >
+        <p className="text-sm text-neutral-600">
+          Telegram se configura en la misma pantalla de integraciones, en la
+          sección aparte «Telegram». Es un canal de captura y no suma costos.
+        </p>
+      </Card>
+
+      <Card
         title="Equipo asignado"
         description="Usuarios con acceso a esta campaña."
         action={
@@ -160,13 +178,13 @@ export default async function CampaignDetailPage({
               href={`/platform/campaigns/${id}/integrations`}
               className="font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
             >
-              Integraciones (APIs y costos)
+              Integraciones
             </Link>
             <Link
               href={`/platform/campaigns/${id}/usage`}
               className="font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
             >
-              Uso
+              Uso y gastos (APIs)
             </Link>
           </div>
         }

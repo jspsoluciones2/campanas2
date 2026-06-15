@@ -53,25 +53,6 @@ export const CATALOG_BULK_DEFS: Record<CatalogSegment, BulkCatalogDef> = {
       },
     ],
   },
-  zonas: {
-    label: "Zonas asignadas",
-    fileName: "plantilla-zonas",
-    instructions: "Una fila por zona operativa de la campaña.",
-    columns: [
-      {
-        key: "nombre",
-        header: "nombre",
-        required: true,
-        example: "Zona Norte",
-      },
-      {
-        key: "descripcion",
-        header: "descripcion",
-        example: "Sector norte del municipio",
-        aliases: ["descripción"],
-      },
-    ],
-  },
   puestos: {
     label: "Puestos de votación",
     fileName: "plantilla-puestos",

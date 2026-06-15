@@ -4,6 +4,8 @@ import {
   platformInputClass,
   platformSelectClass,
 } from "@/components/platform/platform-ui";
+import { ConfiguredSecretInput } from "@/components/platform/configured-secret-input";
+import { TelegramIntegrationFormFields } from "@/components/platform/telegram-integration-form-fields";
 import {
   CAPSOLVER_DEFAULT_WEBSITE_URL,
   CAPSOLVER_PROXY_TYPES,
@@ -14,13 +16,14 @@ export function ApiIntegrationFormFields({
   proveedor,
   configuracion,
   configured,
+  idCampana,
 }: {
   proveedor: PlatformApiProveedor;
   configuracion: Record<string, unknown>;
   configured: boolean;
+  idCampana?: string;
 }) {
   const c = configuracion;
-  const secretPlaceholder = configured ? "Dejar vacío para no cambiar" : "";
 
   switch (proveedor) {
     case "twilio":
@@ -35,13 +38,7 @@ export function ApiIntegrationFormFields({
             />
           </FormField>
           <FormField label="Auth Token">
-            <input
-              name="auth_token"
-              type="password"
-              placeholder={secretPlaceholder}
-              autoComplete="off"
-              className={platformInputClass}
-            />
+            <ConfiguredSecretInput name="auth_token" configured={configured} />
           </FormField>
           <FormRow>
             <FormField label="Messaging Service SID">
@@ -71,13 +68,7 @@ export function ApiIntegrationFormFields({
         <>
           <p className="text-sm font-medium text-neutral-800">CapSolver</p>
           <FormField label="API Key (clientKey)">
-            <input
-              name="api_key"
-              type="password"
-              placeholder={secretPlaceholder}
-              autoComplete="off"
-              className={platformInputClass}
-            />
+            <ConfiguredSecretInput name="api_key" configured={configured} />
           </FormField>
           <FormField label="URL base API">
             <input
@@ -169,12 +160,9 @@ export function ApiIntegrationFormFields({
               />
             </FormField>
             <FormField label="Contraseña (proxyPassword)">
-              <input
+              <ConfiguredSecretInput
                 name="proxy_password"
-                type="password"
-                placeholder={secretPlaceholder}
-                autoComplete="off"
-                className={platformInputClass}
+                configured={configured}
               />
             </FormField>
           </FormRow>
@@ -185,13 +173,7 @@ export function ApiIntegrationFormFields({
       return (
         <>
           <FormField label="API Key">
-            <input
-              name="api_key"
-              type="password"
-              placeholder={secretPlaceholder}
-              autoComplete="off"
-              className={platformInputClass}
-            />
+            <ConfiguredSecretInput name="api_key" configured={configured} />
           </FormField>
           <FormRow>
             <FormField label="Modelo">
@@ -212,6 +194,14 @@ export function ApiIntegrationFormFields({
             </FormField>
           </FormRow>
         </>
+      );
+    case "telegram":
+      return (
+        <TelegramIntegrationFormFields
+          configuracion={c}
+          configured={configured}
+          idCampana={idCampana}
+        />
       );
     default:
       return null;

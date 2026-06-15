@@ -5,6 +5,8 @@ from typing import Any, Literal, TypedDict
 from supabase import Client
 
 from app.modules.voter_normalize import (
+    error_cc_menor_edad,
+    error_telefono_invalido,
     normalizar_documento,
     normalizar_telefono,
     similitud_nombre,
@@ -13,6 +15,35 @@ from app.modules.voter_normalize import (
 ESTADOS_ACTIVOS = ("activo", "registrado", "pendiente_verificacion")
 UMBRAL_SIMILITUD_NOMBRE = 0.85
 
+_estados_consulta_cache: list[str] | None = None
+_estado_insert_cache: str | None = None
+
+
+def estados_votante_para_consulta(client: Client) -> list[str]:
+    """Lista de estados válidos en la BD (sin 'registrado' si falta migración 017)."""
+    global _estados_consulta_cache
+    if _estados_consulta_cache is not None:
+        return _estados_consulta_cache
+    candidatos = list(ESTADOS_ACTIVOS)
+    try:
+        client.table("votantes").select("id").in_("estado", candidatos).limit(1).execute()
+        _estados_consulta_cache = candidatos
+    except Exception:
+        _estados_consulta_cache = ["activo", "pendiente_verificacion"]
+    return _estados_consulta_cache
+
+
+def estado_inicial_votante(client: Client) -> str:
+    global _estado_insert_cache
+    if _estado_insert_cache is not None:
+        return _estado_insert_cache
+    try:
+        client.table("votantes").select("id").eq("estado", "registrado").limit(1).execute()
+        _estado_insert_cache = "registrado"
+    except Exception:
+        _estado_insert_cache = "pendiente_verificacion"
+    return _estado_insert_cache
+
 
 class RegisterVoterInput(TypedDict, total=False):
     nombres: str
@@ -20,8 +51,10 @@ class RegisterVoterInput(TypedDict, total=False):
     documento: str
     tipo_documento: str
     sexo: str | None
+    fecha_nacimiento: str | None
     telefono: str | None
     direccion: str | None
+    id_lugar_trabajo: str | None
     id_puesto_votacion: str | None
     mesa: str | None
     id_rol: str | None
@@ -40,17 +73,31 @@ class RegisterVoterResult(TypedDict, total=False):
 def register_voter(
     client: Client,
     campaign_id: str,
-    user_id: str,
+    user_id: str | None,
     payload: RegisterVoterInput,
 ) -> RegisterVoterResult:
     errors = _validar_campos(payload)
     if errors:
         return {"outcome": "validation_error", "errors": errors}
 
+    canal = payload.get("canal_origen") or "manual"
+    obligatorio_lider = canal == "telegram" and not _rol_sin_lider_directo(
+        client, campaign_id, payload.get("id_rol")
+    )
+    error_lider = _validar_lider_directo(
+        client,
+        campaign_id,
+        payload.get("id_lider_directo"),
+        id_rol=payload.get("id_rol"),
+        documento_votante=payload.get("documento"),
+        obligatorio=obligatorio_lider,
+    )
+    if error_lider:
+        return {"outcome": "validation_error", "errors": [error_lider]}
+
     documento = normalizar_documento(payload["documento"])
     telefono = normalizar_telefono(payload.get("telefono"))
     tipo_documento = payload.get("tipo_documento") or "CC"
-    canal = payload.get("canal_origen") or "manual"
 
     if len(documento) < 5:
         return {
@@ -130,10 +177,86 @@ def _validar_campos(payload: RegisterVoterInput) -> list[str]:
         errors.append("Apellidos es obligatorio.")
     if not (payload.get("documento") or "").strip():
         errors.append("Documento es obligatorio.")
+    if not (payload.get("fecha_nacimiento") or "").strip():
+        errors.append("Fecha de nacimiento es obligatoria.")
     sexo = payload.get("sexo")
-    if sexo and sexo not in ("Masculino", "Femenino"):
+    if not sexo:
+        errors.append("Sexo es obligatorio.")
+    elif sexo not in ("Masculino", "Femenino"):
         errors.append("Sexo inválido.")
+    error_tel = error_telefono_invalido(payload.get("telefono"))
+    if error_tel:
+        errors.append(error_tel)
+    if not (payload.get("direccion") or "").strip():
+        errors.append("Dirección es obligatoria.")
+    if not (payload.get("mesa") or "").strip():
+        errors.append("Mesa es obligatoria.")
+    error_cc = error_cc_menor_edad(
+        payload.get("tipo_documento") or "CC",
+        payload.get("fecha_nacimiento"),
+    )
+    if error_cc:
+        errors.append(error_cc)
     return errors
+
+
+def _rol_sin_lider_directo(
+    client: Client, campaign_id: str, id_rol: str | None
+) -> bool:
+    if not id_rol:
+        return False
+    result = (
+        client.table("roles")
+        .select("nivel_jerarquia")
+        .eq("id", id_rol)
+        .eq("id_campana", campaign_id)
+        .limit(1)
+        .execute()
+    )
+    row = (result.data or [None])[0]
+    if not row or row.get("nivel_jerarquia") is None:
+        return False
+    return int(row["nivel_jerarquia"]) == 1
+
+
+def _validar_lider_directo(
+    client: Client,
+    campaign_id: str,
+    id_lider: str | None,
+    *,
+    id_rol: str | None = None,
+    documento_votante: str | None = None,
+    obligatorio: bool = False,
+) -> str | None:
+    if id_rol and _rol_sin_lider_directo(client, campaign_id, id_rol):
+        if id_lider:
+            return "Los votantes de jerarquía 1 no tienen líder directo."
+        return None
+
+    if not id_lider:
+        if obligatorio:
+            return "Líder directo es obligatorio."
+        return None
+
+    result = (
+        client.table("votantes")
+        .select("id, documento")
+        .eq("id", id_lider)
+        .eq("id_campana", campaign_id)
+        .in_("estado", estados_votante_para_consulta(client))
+        .limit(1)
+        .execute()
+    )
+    lider = (result.data or [None])[0]
+    if not lider:
+        return "El líder directo debe estar registrado en la campaña."
+
+    if documento_votante and normalizar_documento(lider["documento"]) == normalizar_documento(
+        documento_votante
+    ):
+        return "El líder directo no puede ser la misma persona."
+
+    return None
 
 
 def _buscar_por_documento(
@@ -145,7 +268,7 @@ def _buscar_por_documento(
         .eq("id_campana", campaign_id)
         .eq("documento", documento)
         .eq("tipo_documento", tipo_documento)
-        .in_("estado", list(ESTADOS_ACTIVOS))
+        .in_("estado", estados_votante_para_consulta(client))
         .limit(1)
         .execute()
     )
@@ -165,7 +288,7 @@ def _buscar_por_telefono_y_nombre(
         .select("id, nombres, apellidos, telefono")
         .eq("id_campana", campaign_id)
         .eq("telefono", telefono)
-        .in_("estado", list(ESTADOS_ACTIVOS))
+        .in_("estado", estados_votante_para_consulta(client))
         .execute()
     )
     for row in result.data or []:
@@ -181,7 +304,7 @@ def _crear_cuarentena(
     client: Client,
     *,
     campaign_id: str,
-    user_id: str,
+    user_id: str | None,
     payload: RegisterVoterInput,
     documento: str,
     telefono: str | None,
@@ -198,8 +321,10 @@ def _crear_cuarentena(
         "documento": documento,
         "tipo_documento": tipo_documento,
         "sexo": payload.get("sexo"),
+        "fecha_nacimiento": payload.get("fecha_nacimiento"),
         "telefono": telefono,
         "direccion": payload.get("direccion"),
+        "id_lugar_trabajo": payload.get("id_lugar_trabajo"),
         "id_puesto_votacion": payload.get("id_puesto_votacion"),
         "mesa": payload.get("mesa"),
         "id_rol": payload.get("id_rol"),
@@ -221,7 +346,7 @@ def _insertar_votante(
     client: Client,
     *,
     campaign_id: str,
-    user_id: str,
+    user_id: str | None,
     payload: RegisterVoterInput,
     documento: str,
     telefono: str | None,
@@ -235,15 +360,17 @@ def _insertar_votante(
         "documento": documento,
         "tipo_documento": tipo_documento,
         "sexo": payload.get("sexo"),
+        "fecha_nacimiento": payload.get("fecha_nacimiento"),
         "telefono": telefono,
         "direccion": payload.get("direccion"),
+        "id_lugar_trabajo": payload.get("id_lugar_trabajo"),
         "id_puesto_votacion": payload.get("id_puesto_votacion"),
         "mesa": payload.get("mesa"),
         "id_rol": payload.get("id_rol"),
         "id_lider_directo": payload.get("id_lider_directo"),
         "canal_origen": canal,
         "creado_por": user_id,
-        "estado": "registrado",
+        "estado": estado_inicial_votante(client),
     }
     result = client.table("votantes").insert(row).execute()
     if not result.data:

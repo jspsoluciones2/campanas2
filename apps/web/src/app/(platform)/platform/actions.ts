@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -20,12 +21,23 @@ import {
   validateBrandAssetFile,
 } from "@/lib/platform/brand-assets";
 import {
+  campaignFeatureFlagForProvider,
+  isConfiguredSecretPlaceholder,
   isPlatformApiProveedor,
   mergeApiConfig,
   parseIntegrationConfig,
   serializeIntegrationConfig,
   validateApiConfig,
+  type PlatformApiProveedor,
+  type TelegramConfig,
 } from "@/lib/platform/api-integrations";
+import {
+  isHttpsAppOrigin,
+  obtenerUsuarioBotTelegram,
+  registrarWebhookTelegram,
+  resolveAppPublicUrl,
+  telegramWebhookUrl,
+} from "@/lib/platform/telegram-integration";
 import {
   deleteAuthUser,
   generateTemporaryPassword,
@@ -36,6 +48,42 @@ import {
   updateClientAuthUser,
   validateInitialPassword,
 } from "@/lib/platform/client-auth";
+
+async function appOriginFromRequest(): Promise<string> {
+  const requestHeaders = await headers();
+  return resolveAppPublicUrl({ headers: requestHeaders });
+}
+
+async function syncCampaignFeatureFlag(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  idCampana: string,
+  proveedor: PlatformApiProveedor,
+  activa: boolean
+): Promise<string | null> {
+  const field = campaignFeatureFlagForProvider(proveedor);
+  if (!field) return null;
+
+  const { data: existing } = await supabase
+    .from("caracteristicas_campana")
+    .select("id_campana")
+    .eq("id_campana", idCampana)
+    .maybeSingle();
+
+  if (!existing) {
+    const { error } = await supabase.from("caracteristicas_campana").insert({
+      id_campana: idCampana,
+      [field]: activa,
+    });
+    return error?.message ?? null;
+  }
+
+  const { error } = await supabase
+    .from("caracteristicas_campana")
+    .update({ [field]: activa })
+    .eq("id_campana", idCampana);
+
+  return error?.message ?? null;
+}
 
 export async function createClientAction(formData: FormData) {
   const supabase = await createClient();
@@ -589,70 +637,6 @@ export async function signOutAction(): Promise<void> {
   redirect("/login");
 }
 
-export async function savePlatformApiIntegrationAction(formData: FormData) {
-  const supabase = await createClient();
-  const auth = await requirePlatformOwner(supabase);
-  if ("error" in auth && auth.error) return { error: auth.error };
-
-  const proveedor = String(formData.get("proveedor") ?? "").trim();
-  if (!isPlatformApiProveedor(proveedor)) {
-    return { error: "Proveedor de API no válido." };
-  }
-
-  const activa = formData.get("activa") === "on";
-
-  const { data: existing } = await supabase
-    .from("configuracion_integracion_plataforma")
-    .select("configuracion")
-    .eq("proveedor", proveedor)
-    .maybeSingle();
-
-  const prevConfig = (existing?.configuracion ?? {}) as Record<string, unknown>;
-  const configuracion = mergeApiConfig(proveedor, prevConfig, formData);
-
-  const validationError = validateApiConfig(proveedor, configuracion);
-  if (validationError) return { error: validationError };
-
-  const { error } = await supabase
-    .from("configuracion_integracion_plataforma")
-    .upsert(
-      {
-        proveedor,
-        configuracion,
-        activa,
-      },
-      { onConflict: "proveedor" }
-    );
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/platform/maestras/apis");
-  return { ok: true };
-}
-
-export async function deletePlatformApiIntegrationAction(
-  proveedorRaw: string
-) {
-  const supabase = await createClient();
-  const auth = await requirePlatformOwner(supabase);
-  if ("error" in auth && auth.error) return { error: auth.error };
-
-  const proveedor = proveedorRaw.trim();
-  if (!isPlatformApiProveedor(proveedor)) {
-    return { error: "Proveedor de API no válido." };
-  }
-
-  const { error } = await supabase
-    .from("configuracion_integracion_plataforma")
-    .delete()
-    .eq("proveedor", proveedor);
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/platform/maestras/apis");
-  return { ok: true };
-}
-
 export async function saveCampaignIntegrationAction(formData: FormData) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
@@ -689,6 +673,21 @@ export async function saveCampaignIntegrationAction(formData: FormData) {
   const validationError = validateApiConfig(proveedor, configuracion);
   if (validationError) return { error: validationError };
 
+  if (proveedor === "telegram") {
+    const botToken = String(configuracion.bot_token ?? "");
+    if (isConfiguredSecretPlaceholder(botToken)) {
+      return { error: "Pega el token real del bot (no los asteriscos) y guarda." };
+    }
+    const botInfo = await obtenerUsuarioBotTelegram(botToken);
+    if (!botInfo) {
+      return {
+        error:
+          "Token del bot inválido. Copia el token completo desde @BotFather y guarda de nuevo.",
+      };
+    }
+    configuracion.bot_username = botInfo.username;
+  }
+
   const { error } = await supabase.from("integraciones_campana").upsert(
     {
       id_campana: idCampana,
@@ -701,10 +700,159 @@ export async function saveCampaignIntegrationAction(formData: FormData) {
 
   if (error) return { error: error.message };
 
+  const featureError = await syncCampaignFeatureFlag(
+    supabase,
+    idCampana,
+    proveedor,
+    activa
+  );
+  if (featureError) {
+    return {
+      error: `Integración guardada, pero no se pudo sincronizar módulos: ${featureError}`,
+    };
+  }
+
+  if (proveedor === "telegram") {
+    const tgConfig = configuracion as TelegramConfig;
+    const shouldRegister =
+      activa &&
+      formData.get("registrar_webhook") === "on" &&
+      tgConfig.bot_token &&
+      tgConfig.webhook_secret;
+
+    if (shouldRegister) {
+      const appOrigin = await appOriginFromRequest();
+      const webhook = telegramWebhookUrl(idCampana, appOrigin);
+      if (!isHttpsAppOrigin(appOrigin)) {
+        return {
+          ok: true,
+          warning:
+            "Configuración guardada. Abre la app por HTTPS para registrar el webhook.",
+        };
+      }
+      const webhookResult = await registrarWebhookTelegram(
+        tgConfig.bot_token!,
+        webhook,
+        tgConfig.webhook_secret!
+      );
+      if ("error" in webhookResult) {
+        return {
+          ok: true,
+          warning: `Configuración guardada, pero el webhook falló: ${webhookResult.error}`,
+        };
+      }
+
+      const updatedConfig = {
+        ...tgConfig,
+        webhook_registrado_en: new Date().toISOString(),
+      };
+      await supabase
+        .from("integraciones_campana")
+        .update({
+          configuracion_cifrada: serializeIntegrationConfig(updatedConfig),
+        })
+        .eq("id_campana", idCampana)
+        .eq("proveedor", "telegram");
+    }
+  }
+
   revalidatePath(`/platform/campaigns/${idCampana}/integrations`);
   revalidatePath(`/platform/campaigns/${idCampana}`);
+  revalidatePath("/platform/maestras/apis");
   revalidatePath("/platform");
   return { ok: true };
+}
+
+export async function registerCampaignTelegramWebhookAction(idCampanaRaw: string) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const idCampana = idCampanaRaw.trim();
+  if (!idCampana) return { error: "Campaña no indicada." };
+
+  const { data: row } = await supabase
+    .from("integraciones_campana")
+    .select("configuracion_cifrada, activa")
+    .eq("id_campana", idCampana)
+    .eq("proveedor", "telegram")
+    .maybeSingle();
+
+  if (!row) {
+    return { error: "Configura primero el token del bot de Telegram." };
+  }
+
+  const configuracion = parseIntegrationConfig(
+    row.configuracion_cifrada
+  ) as TelegramConfig;
+
+  if (!row.activa) {
+    return { error: "La integración de Telegram está inactiva." };
+  }
+  if (!configuracion.bot_token || !configuracion.webhook_secret) {
+    return { error: "Falta el token del bot o el secreto del webhook." };
+  }
+  if (isConfiguredSecretPlaceholder(configuracion.bot_token)) {
+    return {
+      error:
+        "Pega el token real del bot (reemplaza los asteriscos) y guarda antes de registrar el webhook.",
+    };
+  }
+
+  const botInfo = await obtenerUsuarioBotTelegram(configuracion.bot_token);
+  if (!botInfo) {
+    const storedInvalid =
+      isConfiguredSecretPlaceholder(configuracion.bot_token) ||
+      configuracion.bot_token.length < 30;
+    return {
+      error: storedInvalid
+        ? "El token guardado no es válido. Pégalo en el campo «Pega el token aquí solo para cambiarlo», pulsa Guardar y luego Registrar webhook."
+        : "Token del bot inválido. Abre @BotFather → tu bot → API Token, pégalo en el formulario y guarda.",
+    };
+  }
+
+  const appOrigin = await appOriginFromRequest();
+  const webhook = telegramWebhookUrl(idCampana, appOrigin);
+  if (!isHttpsAppOrigin(appOrigin)) {
+    return {
+      error: "La app debe estar accesible por HTTPS para registrar el webhook.",
+    };
+  }
+
+  const webhookResult = await registrarWebhookTelegram(
+    configuracion.bot_token,
+    webhook,
+    configuracion.webhook_secret
+  );
+
+  if ("error" in webhookResult) {
+    return { error: webhookResult.error };
+  }
+
+  const updatedConfig = {
+    ...configuracion,
+    webhook_registrado_en: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("integraciones_campana")
+    .update({
+      configuracion_cifrada: serializeIntegrationConfig(updatedConfig),
+    })
+    .eq("id_campana", idCampana)
+    .eq("proveedor", "telegram");
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/platform/campaigns/${idCampana}/integrations`);
+  revalidatePath(`/platform/campaigns/${idCampana}`);
+  revalidatePath("/platform/maestras/apis");
+  revalidatePath("/platform");
+
+  return {
+    ok: true,
+    message: `Webhook registrado: ${webhook}`,
+  };
 }
 
 export async function deleteCampaignIntegrationAction(
@@ -730,8 +878,21 @@ export async function deleteCampaignIntegrationAction(
 
   if (error) return { error: error.message };
 
+  const featureError = await syncCampaignFeatureFlag(
+    supabase,
+    idCampana,
+    proveedor,
+    false
+  );
+  if (featureError) {
+    return {
+      error: `Integración eliminada, pero no se pudo actualizar módulos: ${featureError}`,
+    };
+  }
+
   revalidatePath(`/platform/campaigns/${idCampana}/integrations`);
   revalidatePath(`/platform/campaigns/${idCampana}`);
+  revalidatePath("/platform/maestras/apis");
   revalidatePath("/platform");
   return { ok: true };
 }

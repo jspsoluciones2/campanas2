@@ -5,10 +5,11 @@ import {
   type CampaignIntegrationRow,
 } from "@/components/platform/campaign-integration-row-actions";
 import {
-  configSummary,
-  parseIntegrationConfig,
-  PLATFORM_API_PROVIDERS,
+  buildCampaignIntegrationRows,
+  CAMPAIGN_BILLABLE_API_PROVIDERS,
+  CAMPAIGN_TELEGRAM_INTEGRATION,
   type PlatformApiProveedor,
+  type SavedCampaignIntegration,
 } from "@/lib/platform/api-integrations";
 import {
   Card,
@@ -23,6 +24,66 @@ type IntegrationRow = {
   activa: boolean;
   actualizado_en: string;
 };
+
+function integrationTableColumns() {
+  return [
+    {
+      key: "proveedor",
+      header: "Proveedor",
+      cell: (r: CampaignIntegrationRow & { resumen: string }) => (
+        <div>
+          <span className="font-medium text-neutral-900">{r.label}</span>
+          <p className="mt-0.5 text-xs text-neutral-500">{r.description}</p>
+        </div>
+      ),
+    },
+    {
+      key: "resumen",
+      header: "Configuración",
+      cell: (r: CampaignIntegrationRow & { resumen: string }) => (
+        <span className="text-sm text-neutral-600">{r.resumen}</span>
+      ),
+    },
+    {
+      key: "estado",
+      header: "Estado",
+      className: "text-center",
+      cell: (r: CampaignIntegrationRow & { resumen: string }) => (
+        <StatusBadge
+          variant={
+            r.configured && r.activa ? "activa" : "default"
+          }
+        >
+          {!r.configured
+            ? "Sin configurar"
+            : r.activa
+              ? "Activa"
+              : "Inactiva"}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "actualizado",
+      header: "Actualizado",
+      cell: (r: CampaignIntegrationRow & {
+        resumen: string;
+        actualizado_en: string | null;
+      }) =>
+        r.actualizado_en
+          ? new Date(r.actualizado_en).toLocaleDateString("es-CO")
+          : "—",
+      className: "text-neutral-500",
+    },
+    {
+      key: "acciones",
+      header: "Acciones",
+      className: "text-center",
+      cell: (r: CampaignIntegrationRow & { resumen: string }) => (
+        <CampaignIntegrationRowActions row={r} />
+      ),
+    },
+  ] as const;
+}
 
 export default async function CampaignIntegrationsPage({
   params,
@@ -50,102 +111,64 @@ export default async function CampaignIntegrationsPage({
     .select("proveedor, configuracion_cifrada, activa, actualizado_en")
     .eq("id_campana", id);
 
+  const savedRows = (integraciones ?? []).map((row) => {
+    const r = row as IntegrationRow;
+    return {
+      proveedor: r.proveedor,
+      configuracion_cifrada: r.configuracion_cifrada,
+      activa: r.activa,
+    } satisfies SavedCampaignIntegration;
+  });
+
   const byProveedor = new Map(
     (integraciones ?? []).map((row) => [row.proveedor, row as IntegrationRow])
   );
 
-  const rows: (CampaignIntegrationRow & {
-    resumen: string;
-    actualizado_en: string | null;
-  })[] = PLATFORM_API_PROVIDERS.map((p) => {
-    const saved = byProveedor.get(p.id);
-    const configuracion = parseIntegrationConfig(saved?.configuracion_cifrada);
-    return {
-      idCampana: id,
-      proveedor: p.id,
-      label: p.label,
-      description: p.description,
-      activa: saved?.activa ?? false,
-      configured: Boolean(saved),
-      configuracion,
-      resumen: configSummary(p.id, configuracion),
-      actualizado_en: saved?.actualizado_en ?? null,
-    };
-  });
+  const mapRows = (
+    providers: ReadonlyArray<{
+      id: PlatformApiProveedor;
+      label: string;
+      description: string;
+    }>
+  ) =>
+    buildCampaignIntegrationRows(id, savedRows, providers).map((row) => ({
+      ...row,
+      actualizado_en: byProveedor.get(row.proveedor)?.actualizado_en ?? null,
+    }));
+
+  const apiRows = mapRows(CAMPAIGN_BILLABLE_API_PROVIDERS);
+  const telegramRows = mapRows([CAMPAIGN_TELEGRAM_INTEGRATION]);
 
   return (
     <>
       <PageHeader
         title="Integraciones"
-        description={`${campana.nombre} · ${nombreCliente} — cada campaña usa APIs propias para atribuir costos al cliente.`}
+        description={`${campana.nombre} · ${nombreCliente} — APIs de pago por campaña; Telegram es canal de captura sin costo medible.`}
         backHref={`/platform/campaigns/${id}`}
         backLabel={campana.nombre}
       />
 
       <Card
-        title="APIs de la campaña"
-        description="Twilio, Capsolver e IA con credenciales independientes. El consumo registrado en Uso se asocia a esta campaña."
+        title="APIs con costo"
+        description="Twilio, Capsolver e IA E14. El consumo se registra en Uso y gastos."
       >
         <DataTable
-          data={rows}
+          data={apiRows}
           rowKey={(r) => r.proveedor}
           emptyMessage="Sin proveedores disponibles."
-          columns={[
-            {
-              key: "proveedor",
-              header: "Proveedor",
-              cell: (r) => (
-                <div>
-                  <span className="font-medium text-neutral-900">{r.label}</span>
-                  <p className="mt-0.5 text-xs text-neutral-500">{r.description}</p>
-                </div>
-              ),
-            },
-            {
-              key: "resumen",
-              header: "Configuración",
-              cell: (r) => (
-                <span className="text-sm text-neutral-600">{r.resumen}</span>
-              ),
-            },
-            {
-              key: "estado",
-              header: "Estado",
-              className: "text-center",
-              cell: (r) => (
-                <StatusBadge
-                  variant={
-                    r.configured && r.activa
-                      ? "activa"
-                      : r.configured
-                        ? "default"
-                        : "default"
-                  }
-                >
-                  {!r.configured
-                    ? "Sin configurar"
-                    : r.activa
-                      ? "Activa"
-                      : "Inactiva"}
-                </StatusBadge>
-              ),
-            },
-            {
-              key: "actualizado",
-              header: "Actualizado",
-              cell: (r) =>
-                r.actualizado_en
-                  ? new Date(r.actualizado_en).toLocaleDateString("es-CO")
-                  : "—",
-              className: "text-neutral-500",
-            },
-            {
-              key: "acciones",
-              header: "Acciones",
-              className: "text-center",
-              cell: (r) => <CampaignIntegrationRowActions row={r} />,
-            },
-          ]}
+          columns={[...integrationTableColumns()]}
+        />
+      </Card>
+
+      <Card
+        title="Telegram"
+        description="Bot de captura por chat. No genera costos en el panel de uso."
+      >
+        <DataTable
+          data={telegramRows}
+          rowKey={(r) => r.proveedor}
+          emptyMessage="Sin configuración de Telegram."
+          columns={[...integrationTableColumns()]}
         />
       </Card>
     </>

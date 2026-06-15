@@ -22,7 +22,7 @@ export function ApisListFilter({ q }: ApisListFilters) {
     <MasterListSearch
       action={APIS_LIST_PATH}
       q={q}
-      placeholder="Twilio, Capsolver o IA"
+      placeholder="Nombre de campaña o cliente"
       clearHref={APIS_LIST_PATH}
       hasFilters={Boolean(q.trim())}
     />
@@ -48,7 +48,7 @@ export function ApisPagination({
       page={page}
       totalPages={totalPages}
       total={total}
-      entityLabel="integración(es)"
+      entityLabel="campaña(s)"
       filterLabels={{ q: "texto" }}
       ariaLabel="Paginación de integraciones API"
     />

@@ -24,10 +24,10 @@ export default async function PlatformLayout({
             y anon key.
           </p>
           <Link
-            href="/"
+            href="/login"
             className="mt-6 inline-block text-sm font-medium text-neutral-800 hover:underline"
           >
-            ← Volver al inicio
+            Ir al login
           </Link>
         </div>
       </main>

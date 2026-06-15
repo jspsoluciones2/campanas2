@@ -1,0 +1,8 @@
+# Túnel HTTPS local (ngrok). Usa la config global (~/.ngrok/ngrok.yml con authtoken).
+# npm run tunnel   o   npm run dev:public
+# Abre la plataforma por la URL https que imprime ngrok, no por localhost.
+version: "2"
+tunnels:
+  web:
+    addr: 3000
+    proto: http

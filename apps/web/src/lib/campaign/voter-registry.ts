@@ -1,9 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  errorCcMenorEdad,
+  errorTelefonoInvalido,
   normalizarDocumento,
   normalizarTelefono,
   similitudNombre,
 } from "@/lib/campaign/voter-normalize";
+import { JERARQUIA_MIN } from "@/lib/campaign/roles";
 
 const ESTADOS_ACTIVOS = ["activo", "registrado", "pendiente_verificacion"] as const;
 const UMBRAL_SIMILITUD_NOMBRE = 0.85;
@@ -19,7 +22,6 @@ export type RegisterVoterInput = {
   direccion?: string | null;
   id_puesto_votacion?: string | null;
   id_lugar_trabajo?: string | null;
-  id_zona?: string | null;
   mesa?: string | null;
   id_rol?: string | null;
   id_lider_directo?: string | null;
@@ -54,6 +56,17 @@ export async function registerVoter(
     };
   }
 
+  const idLiderDirecto = await resolverLiderDirecto(
+    supabase,
+    campaignId,
+    payload.id_rol,
+    payload.id_lider_directo
+  );
+  if (idLiderDirecto.error) {
+    return { outcome: "validation_error", errors: [idLiderDirecto.error] };
+  }
+  const payloadFinal = { ...payload, id_lider_directo: idLiderDirecto.value };
+
   const conflictoCedula = await buscarPorDocumento(
     supabase,
     campaignId,
@@ -64,7 +77,7 @@ export async function registerVoter(
     const quarantineId = await crearCuarentena(supabase, {
       campaignId,
       userId,
-      payload,
+      payload: payloadFinal,
       documento,
       telefono,
       tipoDocumento,
@@ -98,7 +111,7 @@ export async function registerVoter(
       const quarantineId = await crearCuarentena(supabase, {
         campaignId,
         userId,
-        payload,
+        payload: payloadFinal,
         documento,
         telefono,
         tipoDocumento,
@@ -124,7 +137,7 @@ export async function registerVoter(
   const voterId = await insertarVotante(supabase, {
     campaignId,
     userId,
-    payload,
+    payload: payloadFinal,
     documento,
     telefono,
     tipoDocumento,
@@ -141,6 +154,30 @@ export async function registerVoter(
   return { outcome: "created", voter_id: voterId };
 }
 
+async function resolverLiderDirecto(
+  supabase: SupabaseClient,
+  campaignId: string,
+  idRol: string | null | undefined,
+  idLider: string | null | undefined
+): Promise<{ value: string | null; error?: string }> {
+  if (!idRol) {
+    return { value: idLider || null };
+  }
+
+  const { data: rol } = await supabase
+    .from("roles")
+    .select("nivel_jerarquia")
+    .eq("id", idRol)
+    .eq("id_campana", campaignId)
+    .maybeSingle();
+
+  if (rol?.nivel_jerarquia === JERARQUIA_MIN) {
+    return { value: null };
+  }
+
+  return { value: idLider || null };
+}
+
 function validarCampos(payload: RegisterVoterInput) {
   const errors: string[] = [];
   if (!payload.nombres?.trim()) errors.push("Nombres es obligatorio.");
@@ -149,6 +186,13 @@ function validarCampos(payload: RegisterVoterInput) {
   if (payload.sexo && !["Masculino", "Femenino"].includes(payload.sexo)) {
     errors.push("Sexo inválido.");
   }
+  const errorTel = errorTelefonoInvalido(payload.telefono);
+  if (errorTel) errors.push(errorTel);
+  const errorCc = errorCcMenorEdad(
+    payload.tipo_documento,
+    payload.fecha_nacimiento
+  );
+  if (errorCc) errors.push(errorCc);
   return errors;
 }
 
@@ -229,7 +273,6 @@ async function crearCuarentena(
       direccion: options.payload.direccion || null,
       id_puesto_votacion: options.payload.id_puesto_votacion || null,
       id_lugar_trabajo: options.payload.id_lugar_trabajo || null,
-      id_zona: options.payload.id_zona || null,
       mesa: options.payload.mesa || null,
       id_rol: options.payload.id_rol || null,
       id_lider_directo: options.payload.id_lider_directo || null,
@@ -273,7 +316,6 @@ async function insertarVotante(
       direccion: options.payload.direccion || null,
       id_puesto_votacion: options.payload.id_puesto_votacion || null,
       id_lugar_trabajo: options.payload.id_lugar_trabajo || null,
-      id_zona: options.payload.id_zona || null,
       mesa: options.payload.mesa || null,
       id_rol: options.payload.id_rol || null,
       id_lider_directo: options.payload.id_lider_directo || null,

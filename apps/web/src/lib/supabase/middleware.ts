@@ -13,6 +13,11 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   if (!isSupabaseConfigured()) {
+    if (path === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
     const response = NextResponse.next({ request });
     response.headers.set("x-supabase-config", "missing");
     return response;
@@ -45,15 +50,27 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const mustChangePassword =
+    user && userMustChangePassword(user.user_metadata ?? undefined);
+
+  if (path === "/") {
+    const url = request.nextUrl.clone();
+    if (!user) {
+      url.pathname = "/login";
+    } else if (mustChangePassword) {
+      url.pathname = "/cambiar-contrasena";
+    } else {
+      url.pathname = "/platform";
+    }
+    return NextResponse.redirect(url);
+  }
+
   if (!user && (path.startsWith("/platform") || path.startsWith("/campaign"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", path);
     return NextResponse.redirect(url);
   }
-
-  const mustChangePassword =
-    user && userMustChangePassword(user.user_metadata ?? undefined);
 
   if (mustChangePassword && !path.startsWith("/cambiar-contrasena")) {
     const url = request.nextUrl.clone();

@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 
 from app.api.health import health_bp
 from app.api.platform import platform_bp
+from app.api.telegram import telegram_bp
 from app.api.voters import voters_bp
 
 
@@ -25,4 +26,5 @@ def create_app() -> Flask:
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(platform_bp, url_prefix="/api")
     app.register_blueprint(voters_bp, url_prefix="/api")
+    app.register_blueprint(telegram_bp, url_prefix="/api")
     return app

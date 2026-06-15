@@ -5,6 +5,12 @@ const monorepoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Permite cargar la app vía túnel ngrok en desarrollo (Next 16 bloquea orígenes externos por defecto).
+  allowedDevOrigins: [
+    "*.ngrok-free.dev",
+    "*.ngrok-free.app",
+    "*.ngrok.io",
+  ],
   turbopack: {
     // Evita que Turbopack infiera un workspace root incorrecto (varios lockfiles).
     root: monorepoRoot,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -51,7 +51,24 @@ export function LoginForm({ brand }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const sensitive = ["email", "password", "passwd", "pwd"];
+    let dirty = false;
+    for (const key of sensitive) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.delete(key);
+        dirty = true;
+      }
+    }
+    if (!dirty) return;
+    const query = url.searchParams.toString();
+    router.replace(query ? `${url.pathname}?${query}` : url.pathname, {
+      scroll: false,
+    });
+  }, [router]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!supabaseReady) {
       setError("Configura apps/web/.env.local con las credenciales de Supabase.");
@@ -93,8 +110,7 @@ export function LoginForm({ brand }: LoginFormProps) {
     }
 
     if (user && userMustChangePassword(user.user_metadata)) {
-      router.push("/cambiar-contrasena");
-      router.refresh();
+      window.location.assign("/cambiar-contrasena");
       return;
     }
 
@@ -105,8 +121,7 @@ export function LoginForm({ brand }: LoginFormProps) {
       .maybeSingle();
 
     if (platformMember) {
-      router.push(next.startsWith("/platform") ? next : "/platform");
-      router.refresh();
+      window.location.assign(next.startsWith("/platform") ? next : "/platform");
       return;
     }
 
@@ -119,8 +134,7 @@ export function LoginForm({ brand }: LoginFormProps) {
       .maybeSingle();
 
     if (campaignMember?.id_campana) {
-      router.push(`/campaign/${campaignMember.id_campana}`);
-      router.refresh();
+      window.location.assign(`/campaign/${campaignMember.id_campana}`);
       return;
     }
 
@@ -160,7 +174,13 @@ export function LoginForm({ brand }: LoginFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      method="post"
+      action="/api/auth/login-fallback"
+      className="space-y-4"
+      autoComplete="on"
+    >
       {!supabaseReady && (
         <div className="flex gap-2 rounded-md border border-white/20 bg-black/20 px-3 py-2 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />

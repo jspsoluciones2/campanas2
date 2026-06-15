@@ -49,8 +49,6 @@ export async function importCatalogRows(
       return importComunas(supabase, campaignId, rows);
     case "barrios":
       return importBarrios(supabase, campaignId, rows);
-    case "zonas":
-      return importZonas(supabase, campaignId, rows);
     case "puestos":
       return importPuestos(supabase, campaignId, rows);
     case "roles":
@@ -220,58 +218,6 @@ async function importBarrios(
     const { error } = await supabase.from("barrios").insert({
       id_comuna: idComuna,
       nombre,
-    });
-
-    if (error) {
-      errors.push({ row: row.rowNumber, message: error.message });
-      continue;
-    }
-
-    usados.add(clave);
-    enArchivo.add(clave);
-    created++;
-  }
-
-  return buildResult(created, skipped, errors);
-}
-
-async function importZonas(
-  supabase: SupabaseClient,
-  campaignId: string,
-  rows: ParsedBulkRow[]
-): Promise<BulkImportResult> {
-  const { data: existentes } = await supabase
-    .from("zonas")
-    .select("nombre")
-    .eq("id_campana", campaignId);
-
-  const usados = new Set(
-    (existentes ?? []).map((row) => claveNombre(row.nombre))
-  );
-  const enArchivo = new Set<string>();
-  const errors: { row: number; message: string }[] = [];
-  let created = 0;
-  let skipped = 0;
-
-  for (const row of rows) {
-    const nombre = textoTitulo(row.values.nombre ?? "");
-    const descripcion = textoTituloOpcional(row.values.descripcion ?? "");
-
-    if (!nombre) {
-      errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
-      continue;
-    }
-
-    const clave = claveNombre(nombre);
-    if (usados.has(clave) || enArchivo.has(clave)) {
-      skipped++;
-      continue;
-    }
-
-    const { error } = await supabase.from("zonas").insert({
-      id_campana: campaignId,
-      nombre,
-      descripcion,
     });
 
     if (error) {

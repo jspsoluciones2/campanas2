@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { loadLoginBrand } from "@/lib/platform/load-platform-brand";
 import { LoginBrandLogo } from "@/components/auth/login-brand-logo";
@@ -30,12 +29,6 @@ export default async function LoginPage() {
           </Suspense>
         </div>
       </div>
-
-      <p className="login-text-muted mt-6 text-center text-sm">
-        <Link href="/" className="login-link underline-offset-4 hover:underline">
-          Volver al inicio
-        </Link>
-      </p>
     </div>
   );
 }

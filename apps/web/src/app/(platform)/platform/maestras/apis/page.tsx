@@ -1,9 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import {
-  ApiIntegrationRowActions,
-  type ApiIntegrationRow,
-} from "@/components/platform/api-integration-row-actions";
+import { CampaignApisManager } from "@/components/platform/campaign-apis-manager";
 import {
   ApisListFilter,
   ApisPagination,
@@ -11,24 +8,34 @@ import {
   PAGE_SIZE,
 } from "@/components/platform/apis-list-controls";
 import {
-  configSummary,
-  PLATFORM_API_PROVIDERS,
-  type PlatformApiProveedor,
+  buildCampaignIntegrationRows,
+  CAMPAIGN_BILLABLE_API_PROVIDERS,
+  CAMPAIGN_TELEGRAM_INTEGRATION,
+  type SavedCampaignIntegration,
 } from "@/lib/platform/api-integrations";
-import { escapeIlikeTerm } from "@/lib/platform/master-list";
+import {
+  campaignIdsForQuery,
+  matchingCampaignIds,
+} from "@/lib/platform/campaign-list-query";
 import {
   Card,
   DataTable,
   PageHeader,
-  StatusBadge,
 } from "@/components/platform/platform-ui";
 
-type ConfigRow = {
-  proveedor: PlatformApiProveedor;
-  configuracion: Record<string, unknown>;
-  activa: boolean;
-  actualizado_en: string;
+type CampanaRow = {
+  id: string;
+  nombre: string;
+  clientes: { nombre: string } | { nombre: string }[] | null;
 };
+
+function nombreCliente(
+  rel: { nombre: string } | { nombre: string }[] | null
+): string {
+  if (!rel) return "—";
+  if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
+  return rel.nombre;
+}
 
 export default async function MaestrasApisPage({
   searchParams,
@@ -39,117 +46,156 @@ export default async function MaestrasApisPage({
   const q = qRaw.trim();
   const filters = { q };
   const page = Math.max(1, Number.parseInt(pageRaw, 10) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
 
   const supabase = await createClient();
-  const { data: guardadas } = await supabase
-    .from("configuracion_integracion_plataforma")
-    .select("proveedor, configuracion, activa, actualizado_en");
 
-  const byProveedor = new Map(
-    (guardadas ?? []).map((row) => [row.proveedor, row as ConfigRow])
+  const matchingIds = campaignIdsForQuery(
+    await matchingCampaignIds(supabase, q)
   );
 
-  const term = escapeIlikeTerm(q).toLowerCase();
-  const allRows: ApiIntegrationRow[] = PLATFORM_API_PROVIDERS.filter((p) => {
-    if (!term) return true;
-    const haystack = `${p.label} ${p.description} ${p.id}`.toLowerCase();
-    return haystack.includes(term);
-  }).map((p) => {
-    const saved = byProveedor.get(p.id);
-    const configuracion = (saved?.configuracion ?? {}) as Record<string, unknown>;
-    return {
-      proveedor: p.id,
-      label: p.label,
-      description: p.description,
-      activa: saved?.activa ?? false,
-      configured: Boolean(saved),
-      configuracion,
-      resumen: configSummary(p.id, configuracion),
-      actualizado_en: saved?.actualizado_en ?? null,
-    };
-  });
+  let campanasQuery = supabase
+    .from("campanas")
+    .select("id, nombre, clientes(nombre)", { count: "exact" })
+    .order("nombre", { ascending: true });
 
-  const total = allRows.length;
+  if (matchingIds) {
+    campanasQuery = campanasQuery.in("id", matchingIds);
+  }
+
+  const { data: campanas, count } = await campanasQuery.range(from, to);
+  const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
     redirect(apisListHref(filters, totalPages));
   }
 
-  const from = (page - 1) * PAGE_SIZE;
-  const rows = allRows.slice(from, from + PAGE_SIZE);
+  const campaignRows = (campanas ?? []) as CampanaRow[];
+  const campaignIds = campaignRows.map((c) => c.id);
+
+  const integracionesByCampana = new Map<string, SavedCampaignIntegration[]>();
+
+  if (campaignIds.length > 0) {
+    const { data: integraciones } = await supabase
+      .from("integraciones_campana")
+      .select("id_campana, proveedor, configuracion_cifrada, activa")
+      .in("id_campana", campaignIds);
+
+    for (const row of (integraciones ?? []) as (SavedCampaignIntegration & {
+      id_campana: string;
+    })[]) {
+      const list = integracionesByCampana.get(row.id_campana) ?? [];
+      list.push({
+        proveedor: row.proveedor,
+        configuracion_cifrada: row.configuracion_cifrada,
+        activa: row.activa,
+      });
+      integracionesByCampana.set(row.id_campana, list);
+    }
+  }
+
+  const billableRowsByCampana = new Map(
+    campaignRows.map((c) => [
+      c.id,
+      buildCampaignIntegrationRows(
+        c.id,
+        integracionesByCampana.get(c.id) ?? [],
+        CAMPAIGN_BILLABLE_API_PROVIDERS
+      ),
+    ])
+  );
+
+  const telegramRowsByCampana = new Map(
+    campaignRows.map((c) => [
+      c.id,
+      buildCampaignIntegrationRows(
+        c.id,
+        integracionesByCampana.get(c.id) ?? [],
+        [CAMPAIGN_TELEGRAM_INTEGRATION]
+      ),
+    ])
+  );
+
+  const allRowsByCampana = new Map(
+    campaignRows.map((c) => [
+      c.id,
+      buildCampaignIntegrationRows(
+        c.id,
+        integracionesByCampana.get(c.id) ?? []
+      ),
+    ])
+  );
 
   const emptyMessage = q
-    ? "Sin coincidencias. Prueba otro criterio de búsqueda."
-    : "Sin integraciones en esta página.";
+    ? "Sin campañas que coincidan con la búsqueda."
+    : "Sin campañas. Créalas en Maestras → Campañas.";
 
   return (
     <>
-      <PageHeader title="APIs" />
+      <PageHeader
+        title="APIs por campaña"
+        description="Twilio, Capsolver e IA E14 con control de gastos por campaña. Telegram se configura aparte como canal sin costo."
+      />
 
       <Card
-        title="Integraciones globales"
-        description="Referencia o entorno de pruebas. El control de costos por cliente se configura en cada campaña: Gestionar campaña → Integraciones."
+        title="APIs con costo"
+        description="Credenciales de servicios de pago. El consumo se ve en Uso y gastos."
       >
         <ApisListFilter q={q} />
         <DataTable
-          data={rows}
-          rowKey={(r) => r.proveedor}
+          data={campaignRows}
+          rowKey={(c) => c.id}
           emptyMessage={emptyMessage}
           columns={[
             {
-              key: "proveedor",
-              header: "Proveedor",
-              cell: (r) => (
+              key: "campana",
+              header: "Campaña",
+              cell: (c) => (
                 <div>
-                  <span className="font-medium text-neutral-900">{r.label}</span>
-                  <p className="mt-0.5 text-xs text-neutral-500">{r.description}</p>
+                  <span className="font-medium text-neutral-900">{c.nombre}</span>
+                  <p className="mt-0.5 text-xs text-neutral-500">
+                    {nombreCliente(c.clientes)}
+                  </p>
                 </div>
               ),
             },
-            {
-              key: "resumen",
-              header: "Configuración",
-              cell: (r) => (
-                <span className="text-sm text-neutral-600">{r.resumen}</span>
-              ),
-            },
-            {
-              key: "estado",
-              header: "Estado",
+            ...CAMPAIGN_BILLABLE_API_PROVIDERS.map((provider) => ({
+              key: provider.id,
+              header: provider.label,
               className: "text-center",
-              cell: (r) => (
-                <StatusBadge
-                  variant={
-                    r.configured && r.activa
-                      ? "activa"
-                      : r.configured
-                        ? "default"
-                        : "default"
-                  }
-                >
-                  {!r.configured
-                    ? "Sin configurar"
-                    : r.activa
-                      ? "Activa"
-                      : "Inactiva"}
-                </StatusBadge>
-              ),
-            },
-            {
-              key: "actualizado",
-              header: "Actualizado",
-              cell: (r) =>
-                r.actualizado_en
-                  ? new Date(r.actualizado_en).toLocaleDateString("es-CO")
-                  : "—",
-              className: "text-neutral-500",
-            },
+              cell: (c: CampanaRow) => {
+                const rows = billableRowsByCampana.get(c.id) ?? [];
+                const row = rows.find((r) => r.proveedor === provider.id);
+                if (!row) return "—";
+
+                return (
+                  <CampaignApisManager
+                    campaignId={c.id}
+                    campaignName={c.nombre}
+                    integrations={allRowsByCampana.get(c.id) ?? []}
+                    variant="cell"
+                    provider={provider.id}
+                    configured={row.configured}
+                    activa={row.activa}
+                  />
+                );
+              },
+            })),
             {
               key: "acciones",
               header: "Acciones",
               className: "text-center",
-              cell: (r) => <ApiIntegrationRowActions row={r} />,
+              cell: (c) => (
+                <CampaignApisManager
+                  campaignId={c.id}
+                  campaignName={c.nombre}
+                  integrations={allRowsByCampana.get(c.id) ?? []}
+                  variant="row"
+                  scope="billable"
+                />
+              ),
             },
           ]}
         />
@@ -158,6 +204,48 @@ export default async function MaestrasApisPage({
           totalPages={totalPages}
           total={total}
           filters={filters}
+        />
+      </Card>
+
+      <Card
+        title="Telegram (canal)"
+        description="Bot de captura. No participa en Uso ni en gastos."
+      >
+        <DataTable
+          data={campaignRows}
+          rowKey={(c) => `tg-${c.id}`}
+          emptyMessage={emptyMessage}
+          columns={[
+            {
+              key: "campana",
+              header: "Campaña",
+              cell: (c) => (
+                <span className="font-medium text-neutral-900">{c.nombre}</span>
+              ),
+            },
+            {
+              key: "telegram",
+              header: "Telegram",
+              className: "text-center",
+              cell: (c) => {
+                const rows = telegramRowsByCampana.get(c.id) ?? [];
+                const row = rows[0];
+                if (!row) return "—";
+
+                return (
+                  <CampaignApisManager
+                    campaignId={c.id}
+                    campaignName={c.nombre}
+                    integrations={allRowsByCampana.get(c.id) ?? []}
+                    variant="cell"
+                    provider="telegram"
+                    configured={row.configured}
+                    activa={row.activa}
+                  />
+                );
+              },
+            },
+          ]}
         />
       </Card>
     </>

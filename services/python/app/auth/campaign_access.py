@@ -1,5 +1,7 @@
 from supabase import Client
 
+from app.adapters.supabase_client import row_or_none
+
 
 def user_can_read_campaign(client: Client, user_id: str, campaign_id: str) -> bool:
     if _is_platform_owner(client, user_id):
@@ -23,7 +25,7 @@ def _is_platform_owner(client: Client, user_id: str) -> bool:
         .maybe_single()
         .execute()
     )
-    return bool(result.data)
+    return bool(row_or_none(result))
 
 
 def _has_campaign_membership(
@@ -37,7 +39,7 @@ def _has_campaign_membership(
         .maybe_single()
         .execute()
     )
-    return bool(result.data)
+    return bool(row_or_none(result))
 
 
 def _has_campaign_role(
@@ -51,6 +53,7 @@ def _has_campaign_role(
         .maybe_single()
         .execute()
     )
-    if not result.data:
+    data = row_or_none(result)
+    if not data:
         return False
-    return result.data.get("rol") in roles
+    return data.get("rol") in roles

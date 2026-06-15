@@ -28,7 +28,6 @@ export default async function CampaignVotantesPage({
     { data: roles },
     { data: puestos },
     { data: lugaresTrabajo },
-    { data: zonas },
     { data: lideres },
   ] = await Promise.all([
     supabase
@@ -36,7 +35,7 @@ export default async function CampaignVotantesPage({
       .select(
         `id, nombres, apellidos, documento, tipo_documento, sexo, telefono,
          fecha_nacimiento, direccion, estado, creado_en,
-         roles(nombre), zonas(nombre), lugares_trabajo(nombre)`
+         roles(nombre), lugares_trabajo(nombre)`
       )
       .eq("id_campana", id)
       .order("creado_en", { ascending: false })
@@ -48,16 +47,11 @@ export default async function CampaignVotantesPage({
       .order("nivel_jerarquia"),
     supabase
       .from("puestos_votacion")
-      .select("id, nombre")
+      .select("id, nombre, municipio, comunas(nombre)")
       .eq("id_campana", id)
       .order("nombre"),
     supabase
       .from("lugares_trabajo")
-      .select("id, nombre")
-      .eq("id_campana", id)
-      .order("nombre"),
-    supabase
-      .from("zonas")
       .select("id, nombre")
       .eq("id_campana", id)
       .order("nombre"),
@@ -94,7 +88,6 @@ export default async function CampaignVotantesPage({
         roles={roles ?? []}
         puestos={puestos ?? []}
         lugaresTrabajo={lugaresTrabajo ?? []}
-        zonas={zonas ?? []}
         lideres={lideres ?? []}
       />
 
@@ -117,11 +110,6 @@ export default async function CampaignVotantesPage({
               key: "doc",
               header: "Documento",
               cell: (v) => `${v.tipo_documento} ${v.documento}`,
-            },
-            {
-              key: "zona",
-              header: "Zona",
-              cell: (v) => nombreRelacion(v.zonas),
             },
             {
               key: "trabajo",

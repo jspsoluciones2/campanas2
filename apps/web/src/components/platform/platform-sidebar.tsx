@@ -28,7 +28,7 @@ const NAV = [
 ] as const;
 
 const MAESTRAS_MENU = [
-  { href: "/platform/maestras/apis", label: "APIs" },
+  { href: "/platform/maestras/apis", label: "APIs y canales" },
   { href: "/platform/maestras/campanas", label: "Campañas" },
   { href: "/platform/maestras/clientes", label: "Clientes" },
   {

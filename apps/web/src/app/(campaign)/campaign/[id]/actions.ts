@@ -155,25 +155,6 @@ export async function createTipoNovedadAction(
   return { ok: true };
 }
 
-export async function createZonaAction(campaignId: string, formData: FormData) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const descripcion = textoTituloOpcional(String(formData.get("descripcion") ?? ""));
-
-  if (!nombre) return { error: "El nombre de la zona es obligatorio." };
-
-  const { error } = await supabase.from("zonas").insert({
-    id_campana: campaignId,
-    nombre,
-    descripcion,
-  });
-
-  const saveError = catalogSaveError(error, "zona");
-  if (saveError) return saveError;
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
 export async function createVotanteAction(campaignId: string, formData: FormData) {
   const { supabase, user } = await requireCampaignAccess(campaignId);
 
@@ -198,7 +179,6 @@ export async function createVotanteAction(campaignId: string, formData: FormData
   const fechaNacimiento = String(formData.get("fecha_nacimiento") ?? "").trim();
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
   const idLugarTrabajo = String(formData.get("id_lugar_trabajo") ?? "").trim();
-  const idZona = String(formData.get("id_zona") ?? "").trim();
 
   if (!nombres || !apellidos || !documento) {
     return { error: "Nombres, apellidos y documento son obligatorios." };
@@ -217,7 +197,6 @@ export async function createVotanteAction(campaignId: string, formData: FormData
     id_lider_directo: idLider || null,
     id_puesto_votacion: idPuesto || null,
     id_lugar_trabajo: idLugarTrabajo || null,
-    id_zona: idZona || null,
     mesa,
     canal_origen: "manual",
   });
@@ -478,54 +457,6 @@ export async function deleteRolAction(campaignId: string, rolId: string) {
 
   const { error } = await supabase
     .from("roles")
-    .delete()
-    .eq("id", id)
-    .eq("id_campana", campaignId);
-
-  if (error) return { error: error.message };
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
-export async function updateZonaAction(campaignId: string, formData: FormData) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
-  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const descripcion = textoTituloOpcional(String(formData.get("descripcion") ?? ""));
-
-  if (!id) return { error: "Zona no identificada." };
-  if (!nombre) return { error: "El nombre de la zona es obligatorio." };
-
-  const { error } = await supabase
-    .from("zonas")
-    .update({ nombre, descripcion })
-    .eq("id", id)
-    .eq("id_campana", campaignId);
-
-  const saveError = catalogSaveError(error, "zona");
-  if (saveError) return saveError;
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
-export async function deleteZonaAction(campaignId: string, zonaId: string) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const id = zonaId.trim();
-  if (!id) return { error: "Zona no identificada." };
-
-  const { count } = await supabase
-    .from("votantes")
-    .select("*", { count: "exact", head: true })
-    .eq("id_zona", id);
-
-  if (count && count > 0) {
-    return {
-      error: "No se puede eliminar: hay votantes asignados a esta zona.",
-    };
-  }
-
-  const { error } = await supabase
-    .from("zonas")
     .delete()
     .eq("id", id)
     .eq("id_campana", campaignId);
@@ -808,13 +739,6 @@ export async function createRolFormAction(
   formData: FormData
 ): Promise<void> {
   await createRolAction(campaignId, formData);
-}
-
-export async function createZonaFormAction(
-  campaignId: string,
-  formData: FormData
-): Promise<void> {
-  await createZonaAction(campaignId, formData);
 }
 
 export async function createPuestoFormAction(

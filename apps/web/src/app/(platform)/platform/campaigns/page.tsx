@@ -140,6 +140,12 @@ export default async function GestionCampanasPage({
               cell: (c) => (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <Link
+                    href={`/platform/campaigns/${c.id}/integrations`}
+                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white px-6 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+                  >
+                    APIs
+                  </Link>
+                  <Link
                     href={`/platform/campaigns/${c.id}`}
                     className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 px-6 text-sm font-medium text-white hover:bg-neutral-800"
                   >

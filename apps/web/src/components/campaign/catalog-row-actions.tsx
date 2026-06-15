@@ -12,14 +12,12 @@ import {
   deleteRolAction,
   deleteTipoNovedadAction,
   deleteLugarTrabajoAction,
-  deleteZonaAction,
   updateBarrioAction,
   updateComunaAction,
   updatePuestoAction,
   updateRolAction,
   updateTipoNovedadAction,
   updateLugarTrabajoAction,
-  updateZonaAction,
 } from "@/app/(campaign)/campaign/[id]/actions";
 import {
   FormField,
@@ -517,120 +515,6 @@ export function RolRowActions({
                         </option>
                       ))}
                     </select>
-                  </FormField>
-                </div>
-                <div className="mt-6 flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 shrink-0 px-6"
-                    onClick={() => setEditing(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="h-10 shrink-0 px-6">
-                    Guardar
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
-
-  return (
-    <>
-      <ActionButtons
-        onEdit={() => setEditing(true)}
-        onDelete={handleDelete}
-        pending={pending}
-      />
-      {modal}
-    </>
-  );
-}
-
-export function ZonaRowActions({
-  campaignId,
-  zona,
-}: {
-  campaignId: string;
-  zona: {
-    id: string;
-    nombre: string;
-    codigo: number | null;
-    descripcion: string | null;
-  };
-}) {
-  const { editing, setEditing, mounted, pending, startTransition, router } =
-    useEditModal();
-
-  const handleDelete = () => {
-    const ok = window.confirm(
-      `¿Eliminar la zona "${zona.nombre}"? Esta acción no se puede deshacer.`
-    );
-    if (!ok) return;
-    startTransition(async () => {
-      const result = await deleteZonaAction(campaignId, zona.id);
-      if (isActionError(result)) window.alert(result.error);
-      else router.refresh();
-    });
-  };
-
-  const modal =
-    editing && mounted
-      ? createPortal(
-          <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-neutral-900/50 p-4 backdrop-blur-[1px]"
-            role="presentation"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setEditing(false);
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <form
-                action={async (formData) => {
-                  const result = await updateZonaAction(campaignId, formData);
-                  if (isActionError(result)) {
-                    window.alert(result.error);
-                    return;
-                  }
-                  setEditing(false);
-                  router.refresh();
-                }}
-                className="p-6"
-              >
-                <input type="hidden" name="id" value={zona.id} />
-                <h3 className="text-base font-semibold text-neutral-900">
-                  Editar zona
-                </h3>
-                <div className="mt-5 space-y-3">
-                  <p className="text-sm text-neutral-500">
-                    ID:{" "}
-                    <span className="font-medium text-neutral-900">
-                      {formatCatalogId(zona.codigo)}
-                    </span>
-                  </p>
-                  <FormField label="Nombre">
-                    <input
-                      name="nombre"
-                      defaultValue={zona.nombre}
-                      required
-                      className={platformInputClass}
-                    />
-                  </FormField>
-                  <FormField label="Descripción">
-                    <input
-                      name="descripcion"
-                      defaultValue={zona.descripcion ?? ""}
-                      className={platformInputClass}
-                    />
                   </FormField>
                 </div>
                 <div className="mt-6 flex justify-end gap-2">
