@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { getLoginBrandConfig } from "@/lib/config/login-brand";
+import { loadLoginBrand } from "@/lib/platform/load-platform-brand";
 import { LoginBrandLogo } from "@/components/auth/login-brand-logo";
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
-  const brand = getLoginBrandConfig();
+export default async function LoginPage() {
+  const brand = await loadLoginBrand();
 
   return (
     <div className="w-full max-w-[400px]">

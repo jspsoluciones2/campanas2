@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   ChevronDown,
   Database,
@@ -49,12 +49,16 @@ type PlatformSidebarProps = {
   userEmail: string;
   logoUrl: string | null;
   logoAlt: string;
+  platformName: string;
+  panelTagline: string;
 };
 
 export function PlatformSidebar({
   userEmail,
   logoUrl,
   logoAlt,
+  platformName,
+  panelTagline,
 }: PlatformSidebarProps) {
   const pathname = usePathname();
 
@@ -74,26 +78,19 @@ export function PlatformSidebar({
     );
   }
 
-  const [maestrasOpen, setMaestrasOpen] = useState(false);
-  const prevPathname = useRef(pathname);
+  const isMaestras = isMaestrasActive();
+  const [menuState, setMenuState] = useState<{
+    forPath: string;
+    open: boolean;
+  } | null>(null);
+  const maestrasOpen =
+    menuState?.forPath === pathname ? menuState.open : isMaestras;
 
-  useEffect(() => {
-    const wasMaestras = MAESTRAS_PATHS.some(
-      (href) =>
-        prevPathname.current === href ||
-        prevPathname.current.startsWith(`${href}/`)
-    );
-    const isMaestras = isMaestrasActive();
-
-    if (isMaestras && !wasMaestras) {
-      setMaestrasOpen(true);
-    }
-    if (!isMaestras) {
-      setMaestrasOpen(false);
-    }
-
-    prevPathname.current = pathname;
-  }, [pathname]);
+  function toggleMaestrasMenu() {
+    const current =
+      menuState?.forPath === pathname ? menuState.open : isMaestras;
+    setMenuState({ forPath: pathname, open: !current });
+  }
 
   return (
     <aside className="platform-sidebar flex w-64 shrink-0 flex-col border-r border-white/5">
@@ -113,9 +110,9 @@ export function PlatformSidebar({
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">
-            Plataforma
+            {platformName}
           </p>
-          <p className="truncate text-xs text-neutral-400">Panel Administrador</p>
+          <p className="truncate text-xs text-neutral-400">{panelTagline}</p>
         </div>
       </div>
 
@@ -152,7 +149,7 @@ export function PlatformSidebar({
             </Link>
             <button
               type="button"
-              onClick={() => setMaestrasOpen((open) => !open)}
+              onClick={toggleMaestrasMenu}
               aria-expanded={maestrasOpen}
               aria-label={
                 maestrasOpen

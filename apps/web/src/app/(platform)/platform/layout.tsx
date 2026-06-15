@@ -3,11 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getLoginBrandConfig } from "@/lib/config/login-brand";
-import {
-  getPlatformBrandConfig,
-  platformBrandToStyle,
-} from "@/lib/platform/brand";
+import { loadPlatformBrand } from "@/lib/platform/load-platform-brand";
+import { platformBrandToStyle } from "@/lib/platform/brand";
 import { PlatformSidebar } from "@/components/platform/platform-sidebar";
 
 export default async function PlatformLayout({
@@ -44,8 +41,7 @@ export default async function PlatformLayout({
 
   if (!user) redirect("/login");
 
-  const brand = getLoginBrandConfig();
-  const platformBrand = await getPlatformBrandConfig(supabase);
+  const platformBrand = await loadPlatformBrand();
 
   return (
     <div
@@ -54,8 +50,10 @@ export default async function PlatformLayout({
     >
       <PlatformSidebar
         userEmail={user.email ?? "Usuario"}
-        logoUrl={platformBrand.logoUrl ?? brand.logoUrl}
-        logoAlt={brand.logoAlt}
+        logoUrl={platformBrand.logoUrl}
+        logoAlt={platformBrand.textoAltLogo}
+        platformName={platformBrand.nombrePlataforma}
+        panelTagline={platformBrand.etiquetaPanel}
       />
       <div className="platform-main flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-auto p-6 md:p-8">

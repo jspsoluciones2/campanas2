@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useIsClient } from "@/hooks/use-is-client";
 import {
   deletePlatformApiIntegrationAction,
   savePlatformApiIntegrationAction,
@@ -24,13 +25,9 @@ export type ApiIntegrationRow = {
 
 export function ApiIntegrationRowActions({ row }: { row: ApiIntegrationRow }) {
   const [editing, setEditing] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!editing) return;

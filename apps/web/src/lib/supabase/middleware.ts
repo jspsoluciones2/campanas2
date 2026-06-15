@@ -55,15 +55,15 @@ export async function updateSession(request: NextRequest) {
   const mustChangePassword =
     user && userMustChangePassword(user.user_metadata ?? undefined);
 
-  if (mustChangePassword && !path.startsWith("/cambiar-contraseña")) {
+  if (mustChangePassword && !path.startsWith("/cambiar-contrasena")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/cambiar-contraseña";
+    url.pathname = "/cambiar-contrasena";
     return NextResponse.redirect(url);
   }
 
   if (user && path === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = mustChangePassword ? "/cambiar-contraseña" : "/platform";
+    url.pathname = mustChangePassword ? "/cambiar-contrasena" : "/platform";
     return NextResponse.redirect(url);
   }
 

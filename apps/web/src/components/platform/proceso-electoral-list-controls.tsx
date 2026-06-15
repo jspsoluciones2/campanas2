@@ -22,7 +22,6 @@ export function procesoElectoralListHref(
 }
 
 export function ProcesoElectoralListFilter({ q }: ProcesoElectoralListFilters) {
-  const filters = { q };
   const hasFilters = Boolean(q.trim());
 
   return (

@@ -17,11 +17,12 @@ export function LoginBrandLogo({ config }: LoginBrandLogoProps) {
           height={72}
           className="size-[4.5rem] object-contain p-1"
           priority
+          unoptimized
         />
       ) : (
         <div
           className="flex size-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-500"
-          title="Logo configurable — NEXT_PUBLIC_LOGIN_LOGO_URL"
+          title="Logo configurable en Configuración → Branding"
         >
           <Megaphone className="size-8" strokeWidth={1.5} />
         </div>

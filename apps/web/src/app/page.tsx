@@ -1,19 +1,22 @@
 import Link from "next/link";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { loadPlatformBrand } from "@/lib/platform/load-platform-brand";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function HomePage() {
+export default async function HomePage() {
   const supabaseReady = isSupabaseConfigured();
+  const brand = await loadPlatformBrand();
 
   return (
     <main className="mx-auto flex min-h-full max-w-2xl flex-col justify-center gap-8 p-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          Plataforma de campañas
+          {brand.nombrePlataforma}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Interfaz en Next.js (puerto 3000) · API Flask (puerto 5000).
+          {brand.etiquetaPanel} · Interfaz Next.js (puerto 3000) · API Flask
+          (puerto 5000).
         </p>
       </div>
 

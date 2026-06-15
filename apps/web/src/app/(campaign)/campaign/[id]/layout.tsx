@@ -1,7 +1,8 @@
 import "@/app/(platform)/platform/platform-theme.css";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getLoginBrandConfig } from "@/lib/config/login-brand";
+import { loadPlatformBrand } from "@/lib/platform/load-platform-brand";
+import { platformBrandToStyle } from "@/lib/platform/brand";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { CampaignSidebar } from "@/components/campaign/campaign-sidebar";
 
@@ -31,16 +32,19 @@ export default async function CampaignLayout({
     .eq("id_usuario", user.id)
     .maybeSingle();
 
-  const brand = getLoginBrandConfig();
+  const platformBrand = await loadPlatformBrand();
 
   return (
-    <div className="platform-shell flex min-h-svh">
+    <div
+      className="platform-shell flex min-h-svh"
+      style={platformBrandToStyle(platformBrand)}
+    >
       <CampaignSidebar
         campaignId={id}
         campaignName={campana.nombre}
         userEmail={user.email ?? "Usuario"}
-        logoUrl={brand.logoUrl}
-        logoAlt={brand.logoAlt}
+        logoUrl={platformBrand.logoUrl}
+        logoAlt={platformBrand.textoAltLogo}
         isPlatformOwner={Boolean(platformMember)}
       />
       <div className="platform-main flex min-w-0 flex-1 flex-col">

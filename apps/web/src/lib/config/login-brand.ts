@@ -1,6 +1,6 @@
 /**
- * Apariencia del login — configurable por variables de entorno.
- * Más adelante puede leerse de `configuracion_marca_plataforma` en Supabase.
+ * Apariencia del login — respaldo por variables de entorno cuando Supabase no está disponible.
+ * En producción la fuente principal es `configuracion_marca_plataforma` vía `loadLoginBrand()`.
  *
  * Variables opcionales en apps/web/.env.local:
  * - NEXT_PUBLIC_LOGIN_LOGO_URL   → URL del logo (círculo superior)

@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useIsClient } from "@/hooks/use-is-client";
 import { Button } from "@/components/ui/button";
 import {
   deleteClientAction,
@@ -27,7 +28,7 @@ export type ClienteRow = {
 
 export function ClientRowActions({ cliente }: { cliente: ClienteRow }) {
   const [editing, setEditing] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const [reveal, setReveal] = useState<{
@@ -35,10 +36,6 @@ export function ClientRowActions({ cliente }: { cliente: ClienteRow }) {
     email: string;
     password: string;
   } | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!editing) return;

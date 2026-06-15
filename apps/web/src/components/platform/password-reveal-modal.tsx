@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useIsClient } from "@/hooks/use-is-client";
 import { Button } from "@/components/ui/button";
 
 type PasswordRevealModalProps = {
@@ -21,12 +22,8 @@ export function PasswordRevealModal({
   password,
   onClose,
 }: PasswordRevealModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!open) return;

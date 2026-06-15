@@ -3,14 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
+  ArrowLeft,
   BookOpen,
   FileSearch,
   LayoutDashboard,
   Megaphone,
   Users,
-  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,14 +26,20 @@ type CampaignSidebarProps = {
   isPlatformOwner: boolean;
 };
 
-const navItems = (id: string) =>
-  [
-    { href: `/campaign/${id}`, label: "Inicio", icon: LayoutDashboard, exact: true },
-    { href: `/campaign/${id}/votantes`, label: "Votantes", icon: Users },
-    { href: `/campaign/${id}/catalogos`, label: "Catálogos", icon: BookOpen },
-    { href: `/campaign/${id}/quarantine`, label: "Cuarentena", icon: AlertTriangle },
-    { href: `/campaign/${id}/e14`, label: "E14", icon: FileSearch },
-  ] as const;
+type CampaignNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+};
+
+const navItems = (id: string): CampaignNavItem[] => [
+  { href: `/campaign/${id}`, label: "Inicio", icon: LayoutDashboard, exact: true },
+  { href: `/campaign/${id}/votantes`, label: "Votantes", icon: Users },
+  { href: `/campaign/${id}/catalogos`, label: "Catálogos", icon: BookOpen },
+  { href: `/campaign/${id}/quarantine`, label: "Cuarentena", icon: AlertTriangle },
+  { href: `/campaign/${id}/e14`, label: "E14", icon: FileSearch },
+];
 
 export function CampaignSidebar({
   campaignId,

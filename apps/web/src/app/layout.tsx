@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import {
+  BrandFont,
+  brandFontFamilyStyle,
+} from "@/components/platform/brand-font";
+import {
+  buildAppMetadata,
+} from "@/lib/platform/brand-metadata";
+import { resolveFaviconUrl } from "@/lib/platform/brand";
+import { loadPlatformBrand } from "@/lib/platform/load-platform-brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,21 +21,36 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Plataforma Campañas",
-  description: "Gestión de campañas políticas — Colombia",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await loadPlatformBrand();
+  return buildAppMetadata(brand);
+}
 
-export default function RootLayout({
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const brand = await loadPlatformBrand();
+  const faviconUrl = resolveFaviconUrl(brand);
+
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={brandFontFamilyStyle(brand.familiaFuente)}
     >
+      <head>
+        <BrandFont family={brand.familiaFuente} />
+        {faviconUrl ? (
+          <>
+            <link rel="icon" href={faviconUrl} />
+            <link rel="shortcut icon" href={faviconUrl} />
+          </>
+        ) : null}
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
       </body>

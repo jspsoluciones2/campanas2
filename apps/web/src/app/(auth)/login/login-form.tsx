@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -15,9 +15,11 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { userMustChangePassword } from "@/lib/platform/client-auth";
 import type { LoginBrandConfig } from "@/lib/config/login-brand";
 import { SplitAuthInput } from "@/components/auth/split-auth-input";
+import {
+  REMEMBER_EMAIL_KEY,
+  useRememberedEmail,
+} from "@/hooks/use-remembered-email";
 import { cn } from "@/lib/utils";
-
-const REMEMBER_EMAIL_KEY = "login_remember_email";
 
 type LoginFormProps = {
   brand: LoginBrandConfig;
@@ -30,10 +32,13 @@ export function LoginForm({ brand }: LoginFormProps) {
   const errorParam = searchParams.get("error");
 
   const supabaseReady = isSupabaseConfigured();
+  const rememberedEmail = useRememberedEmail();
 
-  const [email, setEmail] = useState("");
+  const [emailDraft, setEmailDraft] = useState<string | null>(null);
+  const [rememberDraft, setRememberDraft] = useState<boolean | null>(null);
+  const email = emailDraft ?? rememberedEmail;
+  const rememberMe = rememberDraft ?? Boolean(rememberedEmail);
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(
     errorParam === "no_platform_access"
@@ -45,18 +50,6 @@ export function LoginForm({ brand }: LoginFormProps) {
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(REMEMBER_EMAIL_KEY);
-      if (saved) {
-        setEmail(saved);
-        setRememberMe(true);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,7 +93,7 @@ export function LoginForm({ brand }: LoginFormProps) {
     }
 
     if (user && userMustChangePassword(user.user_metadata)) {
-      router.push("/cambiar-contraseña");
+      router.push("/cambiar-contrasena");
       router.refresh();
       return;
     }
@@ -203,7 +196,7 @@ export function LoginForm({ brand }: LoginFormProps) {
         autoComplete="username"
         disabled={loading}
         value={email}
-        onChange={setEmail}
+        onChange={setEmailDraft}
       />
 
       <SplitAuthInput
@@ -240,7 +233,7 @@ export function LoginForm({ brand }: LoginFormProps) {
           <input
             type="checkbox"
             checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
+            onChange={(e) => setRememberDraft(e.target.checked)}
             disabled={loading}
             className="login-checkbox size-4 rounded-sm border-0"
           />

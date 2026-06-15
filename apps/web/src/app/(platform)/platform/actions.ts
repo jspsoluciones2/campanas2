@@ -3,12 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   correoNormalizado,
   textoTitulo,
   textoTituloOpcional,
 } from "@/lib/normalize-text";
-import { isValidHexColor } from "@/lib/platform/brand";
+import {
+  configFromBrandFormInput,
+  validateBrandFormInput,
+} from "@/lib/platform/brand";
+import {
+  PLATFORM_ASSETS_BUCKET,
+  type BrandAssetKind,
+  brandAssetStoragePath,
+  validateBrandAssetFile,
+} from "@/lib/platform/brand-assets";
 import {
   isPlatformApiProveedor,
   mergeApiConfig,
@@ -728,30 +738,153 @@ export async function deleteCampaignIntegrationAction(
 
 export async function updatePlatformBrandAction(formData: FormData) {
   const supabase = await createClient();
-  const colorPrimario = String(formData.get("color_primario") ?? "").trim();
-  const colorSecundario = String(formData.get("color_secundario") ?? "").trim();
-  const urlLogo = String(formData.get("url_logo") ?? "").trim() || null;
-  const familiaFuente = String(formData.get("familia_fuente") ?? "").trim() || "Inter";
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
 
-  if (!isValidHexColor(colorPrimario) || !isValidHexColor(colorSecundario)) {
-    return { error: "Los colores deben estar en formato #RRGGBB." };
-  }
+  const input = {
+    color_primario: String(formData.get("color_primario") ?? "").trim(),
+    color_secundario: String(formData.get("color_secundario") ?? "").trim(),
+    color_acento: String(formData.get("color_acento") ?? "").trim(),
+    color_fondo_sidebar: String(formData.get("color_fondo_sidebar") ?? "").trim(),
+    color_fondo_pagina: String(formData.get("color_fondo_pagina") ?? "").trim(),
+    url_logo: String(formData.get("url_logo") ?? "").trim(),
+    url_favicon: String(formData.get("url_favicon") ?? "").trim(),
+    familia_fuente: String(formData.get("familia_fuente") ?? "").trim(),
+    nombre_plataforma: String(formData.get("nombre_plataforma") ?? "").trim(),
+    etiqueta_panel: String(formData.get("etiqueta_panel") ?? "").trim(),
+    texto_alt_logo: String(formData.get("texto_alt_logo") ?? "").trim(),
+    subtitulo_login: String(formData.get("subtitulo_login") ?? "").trim(),
+    texto_boton_login: String(formData.get("texto_boton_login") ?? "").trim(),
+    login_fondo_exterior: String(formData.get("login_fondo_exterior") ?? "").trim(),
+    login_fondo_centro: String(formData.get("login_fondo_centro") ?? "").trim(),
+    login_panel_fondo: String(formData.get("login_panel_fondo") ?? "").trim(),
+    login_boton_fondo: String(formData.get("login_boton_fondo") ?? "").trim(),
+  };
+
+  const validationError = validateBrandFormInput(input);
+  if (validationError) return { error: validationError };
+
+  const config = configFromBrandFormInput(input);
 
   const { error } = await supabase
     .from("configuracion_marca_plataforma")
     .update({
-      color_primario: colorPrimario,
-      color_secundario: colorSecundario,
-      url_logo: urlLogo,
-      familia_fuente: familiaFuente,
+      color_primario: config.colorPrimario,
+      color_secundario: config.colorSecundario,
+      color_acento: config.colorAcento,
+      color_fondo_sidebar: config.colorFondoSidebar,
+      color_fondo_pagina: config.colorFondoPagina,
+      url_logo: config.logoUrl,
+      url_favicon: config.faviconUrl,
+      familia_fuente: config.familiaFuente,
+      nombre_plataforma: config.nombrePlataforma,
+      etiqueta_panel: config.etiquetaPanel,
+      texto_alt_logo: config.textoAltLogo,
+      subtitulo_login: config.subtituloLogin,
+      texto_boton_login: config.textoBotonLogin,
+      login_fondo_exterior: config.loginFondoExterior,
+      login_fondo_centro: config.loginFondoCentro,
+      login_panel_fondo: config.loginPanelFondo,
+      login_boton_fondo: config.loginBotonFondo,
     })
     .eq("id", 1);
 
   if (error) return { error: error.message };
 
-  revalidatePath("/platform");
-  revalidatePath("/platform/settings/brand");
+  revalidateBrandPaths();
   return { ok: true };
+}
+
+function revalidateBrandPaths() {
+  revalidatePath("/", "layout");
+  revalidatePath("/brand-icon");
+  revalidatePath("/platform", "layout");
+  revalidatePath("/platform/settings/brand");
+  revalidatePath("/login", "layout");
+  revalidatePath("/cambiar-contrasena");
+  revalidatePath("/campaign", "layout");
+}
+
+async function storageClientForBrand() {
+  const admin = createAdminClient();
+  if (admin) return admin;
+  return createClient();
+}
+
+export async function uploadBrandAssetAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const kindRaw = String(formData.get("asset_type") ?? "").trim();
+  if (kindRaw !== "logo" && kindRaw !== "favicon") {
+    return { error: "Tipo de imagen no válido." };
+  }
+  const kind = kindRaw as BrandAssetKind;
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Selecciona una imagen para subir." };
+  }
+
+  const fileError = validateBrandAssetFile(file, kind);
+  if (fileError) return { error: fileError };
+
+  const storagePath = brandAssetStoragePath(kind, file.type);
+  const storage = await storageClientForBrand();
+
+  const { error: uploadError } = await storage.storage
+    .from(PLATFORM_ASSETS_BUCKET)
+    .upload(storagePath, file, {
+      upsert: true,
+      contentType: file.type,
+      cacheControl: kind === "favicon" ? "60" : "3600",
+    });
+
+  if (uploadError) {
+    return {
+      error:
+        uploadError.message.includes("Bucket not found")
+          ? "Bucket platform-assets no encontrado. Aplica la migración 008 en Supabase."
+          : uploadError.message,
+    };
+  }
+
+  const { data: publicData } = storage.storage
+    .from(PLATFORM_ASSETS_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const publicUrl = `${publicData.publicUrl}?v=${Date.now()}`;
+  const column = kind === "logo" ? "url_logo" : "url_favicon";
+
+  const { error: dbError } = await supabase
+    .from("configuracion_marca_plataforma")
+    .update({ [column]: publicUrl })
+    .eq("id", 1);
+
+  if (dbError) return { error: dbError.message };
+
+  revalidateBrandPaths();
+  return { ok: true, url: publicUrl, kind };
+}
+
+export async function removeBrandAssetAction(kindRaw: string) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const kind: BrandAssetKind = kindRaw === "favicon" ? "favicon" : "logo";
+  const column = kind === "logo" ? "url_logo" : "url_favicon";
+
+  const { error } = await supabase
+    .from("configuracion_marca_plataforma")
+    .update({ [column]: null })
+    .eq("id", 1);
+
+  if (error) return { error: error.message };
+
+  revalidateBrandPaths();
+  return { ok: true, kind };
 }
 
 export async function updatePlatformBrandFormAction(

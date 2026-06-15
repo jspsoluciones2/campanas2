@@ -1,15 +1,13 @@
 import "./login-theme.css";
-import {
-  getLoginBrandConfig,
-  loginBrandToStyle,
-} from "@/lib/config/login-brand";
+import { loginBrandToStyle } from "@/lib/config/login-brand";
+import { loadLoginBrand } from "@/lib/platform/load-platform-brand";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const brand = getLoginBrandConfig();
+  const brand = await loadLoginBrand();
 
   return (
     <div
