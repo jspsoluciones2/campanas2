@@ -44,8 +44,11 @@ Dashboard → [API Settings (proyecto prueba)](https://supabase.com/dashboard/pr
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://kadhnauhghzyhfhsomif.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...   # anon public key — NO dejar PEGA_AQUI
+SUPABASE_SERVICE_ROLE_KEY=eyJ...       # service_role secret — obligatoria para crear clientes
 FLASK_API_URL=http://localhost:5000
 ```
+
+> **Importante:** `SUPABASE_SERVICE_ROLE_KEY` va en `apps/web/.env.local` (sin prefijo `NEXT_PUBLIC_`). Solo la usa el servidor Next.js para crear usuarios cliente. **Nunca** la subas a Git ni la uses en el navegador.
 
 Opcional en raíz `.env` (Flask):
 

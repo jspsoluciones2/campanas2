@@ -12,6 +12,7 @@ const ETIQUETAS_PROVEEDOR: Record<string, string> = {
   resolutor_captcha: "CAPTCHA Solver",
   telegram: "Telegram",
   ia_e14: "IA E14",
+  supabase: "Supabase",
 };
 
 export default async function CampaignIntegrationsPage({

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { textoTitulo } from "@/lib/normalize-text";
 
 export const platformInputClass =
   "platform-input h-10 w-full rounded-lg px-3 text-sm text-neutral-800 placeholder:text-neutral-400";
@@ -53,24 +54,68 @@ type CardProps = {
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  variant?: "default" | "accent";
 };
 
-export function Card({ title, description, action, children, className }: CardProps) {
+export function Card({
+  title,
+  description,
+  action,
+  children,
+  className,
+  variant = "default",
+}: CardProps) {
+  const isAccent = variant === "accent";
+
   return (
     <section
       className={cn(
         "platform-card rounded-xl shadow-sm shadow-neutral-200/60",
+        isAccent && "platform-card-accent",
         className
       )}
     >
       {(title || action) && (
-        <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-6 py-4">
+        <div
+          className={cn(
+            "flex items-start justify-between gap-4 px-6 py-4",
+            isAccent
+              ? "platform-card-accent-header"
+              : "border-b border-neutral-100"
+          )}
+        >
           <div>
             {title && (
-              <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>
+              <h2
+                className={cn(
+                  "font-semibold",
+                  isAccent
+                    ? "platform-card-accent-title text-base tracking-tight"
+                    : "text-sm text-neutral-900"
+                )}
+              >
+                {isAccent ? (
+                  <span className="inline-flex items-center gap-2.5">
+                    <span
+                      className="platform-card-accent-marker inline-block h-2 w-2 shrink-0 rounded-full"
+                      aria-hidden
+                    />
+                    {title}
+                  </span>
+                ) : (
+                  title
+                )}
+              </h2>
             )}
             {description && (
-              <p className="mt-0.5 text-xs text-neutral-500">{description}</p>
+              <p
+                className={cn(
+                  "mt-0.5 text-xs",
+                  isAccent ? "text-neutral-600" : "text-neutral-500"
+                )}
+              >
+                {description}
+              </p>
             )}
           </div>
           {action}
@@ -169,11 +214,11 @@ export function DataTable<T>({
               <th
                 key={col.key}
                 className={cn(
-                  "px-4 py-3 text-xs font-semibold tracking-wide text-neutral-500 uppercase",
+                  "px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600",
                   col.className
                 )}
               >
-                {col.header}
+                {textoTitulo(col.header)}
               </th>
             ))}
           </tr>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { userMustChangePassword } from "@/lib/platform/client-auth";
 import type { LoginBrandConfig } from "@/lib/config/login-brand";
 import { SplitAuthInput } from "@/components/auth/split-auth-input";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,9 @@ export function LoginForm({ brand }: LoginFormProps) {
   const [error, setError] = useState(
     errorParam === "no_platform_access"
       ? "No tienes acceso al módulo de plataforma."
-      : ""
+      : errorParam === "no_campaign_access"
+        ? "No tienes acceso a esta campaña."
+        : ""
   );
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -82,6 +85,10 @@ export function LoginForm({ brand }: LoginFormProps) {
       return;
     }
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     try {
       if (rememberMe) {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
@@ -92,8 +99,41 @@ export function LoginForm({ brand }: LoginFormProps) {
       /* ignore */
     }
 
-    router.push(next);
-    router.refresh();
+    if (user && userMustChangePassword(user.user_metadata)) {
+      router.push("/cambiar-contraseña");
+      router.refresh();
+      return;
+    }
+
+    const { data: platformMember } = await supabase
+      .from("miembros_plataforma")
+      .select("rol")
+      .eq("id_usuario", user?.id ?? "")
+      .maybeSingle();
+
+    if (platformMember) {
+      router.push(next.startsWith("/platform") ? next : "/platform");
+      router.refresh();
+      return;
+    }
+
+    const { data: campaignMember } = await supabase
+      .from("miembros_campana")
+      .select("id_campana")
+      .eq("id_usuario", user?.id ?? "")
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (campaignMember?.id_campana) {
+      router.push(`/campaign/${campaignMember.id_campana}`);
+      router.refresh();
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setError("No tienes acceso a ningún módulo.");
+    setLoading(false);
   }
 
   async function handleForgotPassword() {

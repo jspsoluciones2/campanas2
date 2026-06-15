@@ -9,6 +9,11 @@
   --platform-main: #f3f4f6;
   --platform-surface: #ffffff;
   --platform-border: #e5e7eb;
+  --platform-accent: #374151;
+  --platform-accent-secondary: #6b7280;
+  --platform-accent-soft: rgb(55 65 81 / 0.12);
+  --platform-accent-border: rgb(55 65 81 / 0.24);
+  --platform-accent-muted-soft: rgb(107 114 128 / 0.1);
 }
 
 .platform-main {
@@ -34,6 +39,26 @@
   color: #fff;
 }
 
+.platform-nav-submenu {
+  margin-left: 0.625rem;
+  border-left: 1px solid rgb(255 255 255 / 0.12);
+  padding-left: 0.5rem;
+}
+
+.platform-nav-sublink {
+  color: var(--platform-sidebar-muted);
+}
+
+.platform-nav-sublink:hover {
+  background: var(--platform-sidebar-hover);
+  color: var(--platform-sidebar-text);
+}
+
+.platform-nav-sublink[data-active="true"] {
+  background: var(--platform-sidebar-active);
+  color: #fff;
+}
+
 .platform-card {
   background: var(--platform-surface);
   border: 1px solid var(--platform-border);
@@ -48,4 +73,40 @@
   outline: none;
   border-color: #6b7280;
   box-shadow: 0 0 0 3px rgb(107 114 128 / 0.15);
+}
+
+.platform-card-accent {
+  border-color: var(--platform-accent-border);
+  box-shadow:
+    0 1px 2px var(--platform-accent-soft),
+    0 4px 12px var(--platform-accent-muted-soft);
+}
+
+.platform-card-accent-header {
+  border-bottom: 1px solid var(--platform-accent-border);
+  border-left: 4px solid var(--platform-accent);
+  background: linear-gradient(
+    120deg,
+    var(--platform-accent-soft) 0%,
+    var(--platform-accent-muted-soft) 42%,
+    transparent 72%
+  );
+  padding-left: calc(1.5rem - 4px);
+}
+
+.platform-card-accent-title {
+  color: var(--platform-accent);
+  background: linear-gradient(
+    90deg,
+    var(--platform-accent) 0%,
+    var(--platform-accent-secondary) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.platform-card-accent-marker {
+  background: var(--platform-accent);
+  box-shadow: 0 0 0 3px var(--platform-accent-soft);
 }

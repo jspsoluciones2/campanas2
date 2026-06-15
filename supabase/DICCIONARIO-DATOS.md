@@ -58,6 +58,7 @@ Servicio externo configurado por campaña.
 | `resolutor_captcha` | CAPTCHA Solver + consulta registraduría |
 | `telegram` | Bot de Telegram |
 | `ia_e14` | Análisis IA de formularios E14 |
+| `supabase` | Infraestructura BD / Storage (costos internos) |
 
 ### `tipo_documento`
 Documento de identidad del votante o cliente.
@@ -152,7 +153,8 @@ El **político u organización recurrente**. Puede tener varias campañas a lo l
 | `nombre` | text | Sí | Nombre del cliente / candidato / organización |
 | `documento` | text | No | Documento de identidad del cliente |
 | `telefono` | text | No | Teléfono de contacto comercial |
-| `correo_contacto` | text | No | Correo de contacto |
+| `correo_contacto` | text | No | Correo de contacto y usuario de acceso |
+| `id_usuario` | uuid | No | Usuario Auth vinculado (login del cliente) |
 | `notas` | text | No | Observaciones internas del dueño de plataforma |
 | `creado_en` | timestamptz | Sí | Alta del cliente |
 | `actualizado_en` | timestamptz | Sí | Última modificación |

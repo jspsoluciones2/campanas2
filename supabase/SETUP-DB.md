@@ -15,7 +15,7 @@ Guía corta. **Runbook completo (prueba → BD definitiva):** [GUIA-MIGRACION-BD
 
 ## Checklist mínimo
 
-1. Ejecutar `001_platform_core.sql` → luego `002_domain_schema.sql` (SQL Editor o `supabase db push`)
+1. Ejecutar migraciones en orden: `001` → `002` → `003` → `004` (SQL Editor o `supabase db push`)
 2. Crear usuario en **Authentication**
 3. `INSERT` dueño con UUID **real** (ver [sección 7 de la guía](./GUIA-MIGRACION-BD.md#7-usuario-dueño-de-plataforma-dueno_plataforma))
 4. Completar `apps/web/.env.local` (URL + anon key)

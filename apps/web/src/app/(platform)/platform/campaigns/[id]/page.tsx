@@ -87,7 +87,15 @@ export default async function CampaignDetailPage({
         backHref="/platform/campaigns"
         backLabel="Campañas"
       >
-        <StatusBadge variant={estado}>{ETIQUETAS_ESTADO[estado]}</StatusBadge>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge variant={estado}>{ETIQUETAS_ESTADO[estado]}</StatusBadge>
+          <Link
+            href={`/campaign/${id}`}
+            className="inline-flex h-9 items-center rounded-lg bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
+          >
+            Abrir campaña →
+          </Link>
+        </div>
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { userMustChangePassword } from "@/lib/platform/client-auth";
 
 function isSupabaseConfigured() {
   return Boolean(
@@ -51,13 +52,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && path === "/login") {
+  const mustChangePassword =
+    user && userMustChangePassword(user.user_metadata ?? undefined);
+
+  if (mustChangePassword && !path.startsWith("/cambiar-contraseña")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/platform";
+    url.pathname = "/cambiar-contraseña";
     return NextResponse.redirect(url);
   }
 
-  if (user && path.startsWith("/platform")) {
+  if (user && path === "/login") {
+    const url = request.nextUrl.clone();
+    url.pathname = mustChangePassword ? "/cambiar-contraseña" : "/platform";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && path.startsWith("/platform") && !mustChangePassword) {
     const { data: member } = await supabase
       .from("miembros_plataforma")
       .select("rol")
@@ -69,6 +79,33 @@ export async function updateSession(request: NextRequest) {
       url.pathname = "/login";
       url.searchParams.set("error", "no_platform_access");
       return NextResponse.redirect(url);
+    }
+  }
+
+  if (user && path.startsWith("/campaign/") && !mustChangePassword) {
+    const match = path.match(/^\/campaign\/([^/]+)/);
+    const campaignId = match?.[1];
+    if (campaignId && campaignId !== "undefined") {
+      const [{ data: platform }, { data: member }] = await Promise.all([
+        supabase
+          .from("miembros_plataforma")
+          .select("rol")
+          .eq("id_usuario", user.id)
+          .maybeSingle(),
+        supabase
+          .from("miembros_campana")
+          .select("id")
+          .eq("id_usuario", user.id)
+          .eq("id_campana", campaignId)
+          .maybeSingle(),
+      ]);
+
+      if (!platform && !member) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("error", "no_campaign_access");
+        return NextResponse.redirect(url);
+      }
     }
   }
 

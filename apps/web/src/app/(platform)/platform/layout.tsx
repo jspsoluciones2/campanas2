@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getLoginBrandConfig } from "@/lib/config/login-brand";
+import {
+  getPlatformBrandConfig,
+  platformBrandToStyle,
+} from "@/lib/platform/brand";
 import { PlatformSidebar } from "@/components/platform/platform-sidebar";
 
 export default async function PlatformLayout({
@@ -41,12 +45,16 @@ export default async function PlatformLayout({
   if (!user) redirect("/login");
 
   const brand = getLoginBrandConfig();
+  const platformBrand = await getPlatformBrandConfig(supabase);
 
   return (
-    <div className="platform-shell flex min-h-svh">
+    <div
+      className="platform-shell flex min-h-svh"
+      style={platformBrandToStyle(platformBrand)}
+    >
       <PlatformSidebar
         userEmail={user.email ?? "Usuario"}
-        logoUrl={brand.logoUrl}
+        logoUrl={platformBrand.logoUrl ?? brand.logoUrl}
         logoAlt={brand.logoAlt}
       />
       <div className="platform-main flex min-w-0 flex-1 flex-col">

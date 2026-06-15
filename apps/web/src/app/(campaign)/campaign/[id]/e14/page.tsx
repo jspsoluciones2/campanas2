@@ -1,10 +1,28 @@
-export default function E14Page() {
+import { requireCampaignAccess } from "@/lib/campaign/access";
+import { Card, EmptyState, PageHeader } from "@/components/platform/platform-ui";
+
+export default async function CampaignE14Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  await requireCampaignAccess(id);
+
   return (
-    <div>
-      <h1 className="text-xl font-semibold">E14 — consulta</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Solo lectura — informes y anomalías (si contrató el módulo)
-      </p>
-    </div>
+    <>
+      <PageHeader
+        title="E14"
+        description="Auditoría electoral compartida — solo lectura para la campaña."
+        backHref={`/campaign/${id}`}
+        backLabel="Inicio campaña"
+      />
+      <Card>
+        <EmptyState
+          title="Fase 8 — en construcción"
+          description="Verás aquí el resultado del análisis E14 cuando el módulo esté contratado y ejecutado por la plataforma."
+        />
+      </Card>
+    </>
   );
 }

@@ -1,32 +1,64 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
+  costosPorCampana,
+  formatCosto,
+} from "@/lib/platform/campaign-costs";
+import {
   Card,
+  DataTable,
   PageHeader,
   StatCard,
 } from "@/components/platform/platform-ui";
 
+type CampanaRow = {
+  id: string;
+  nombre: string;
+  clientes: { nombre: string } | { nombre: string }[] | null;
+};
+
+function nombreCliente(
+  rel: CampanaRow["clientes"]
+): string {
+  if (!rel) return "—";
+  if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
+  return rel.nombre;
+}
+
 export default async function PlatformHomePage() {
   const supabase = await createClient();
 
-  const [{ count: totalClientes }, { count: totalCampanas }] = await Promise.all([
+  const [
+    { count: totalClientes },
+    { count: totalCampanas },
+    { data: campanas },
+    { data: uso },
+  ] = await Promise.all([
     supabase.from("clientes").select("*", { count: "exact", head: true }),
     supabase.from("campanas").select("*", { count: "exact", head: true }),
+    supabase
+      .from("campanas")
+      .select("id, nombre, creado_en, clientes(nombre)")
+      .order("creado_en", { ascending: false }),
+    supabase
+      .from("uso_campana")
+      .select("id_campana, proveedor, metrica, cantidad"),
   ]);
+
+  const filas = (campanas ?? []) as CampanaRow[];
 
   return (
     <>
       <PageHeader
-        title="Panel de plataforma"
-        description="Administración central del SaaS — clientes, campañas e integraciones."
+        title="Panel Principal"
+        description="Dueño de plataforma - Administrador"
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Clientes"
           value={totalClientes ?? 0}
-          href="/platform/clients"
+          href="/platform/maestras/clientes"
         />
         <StatCard
           label="Campañas"
@@ -36,60 +68,79 @@ export default async function PlatformHomePage() {
         <StatCard label="Usuarios activos" value="—" />
       </div>
 
-      <Card title="Primeros pasos">
-        <ol className="space-y-4 text-sm text-neutral-600">
-          <li className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
-              1
-            </span>
-            <div>
-              <p className="font-medium text-neutral-900">Crea un cliente</p>
-              <p className="mt-0.5 text-neutral-500">
-                Registra al político o entidad recurrente.
-              </p>
-              <Link
-                href="/platform/clients"
-                className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
-              >
-                Ir a clientes
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
-              2
-            </span>
-            <div>
-              <p className="font-medium text-neutral-900">
-                Crea proceso electoral y campaña
-              </p>
-              <p className="mt-0.5 text-neutral-500">
-                Cada campaña es un silo aislado para una elección.
-              </p>
-              <Link
-                href="/platform/campaigns"
-                className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
-              >
-                Ir a campañas
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-300 text-xs font-semibold text-neutral-700">
-              3
-            </span>
-            <div>
-              <p className="font-medium text-neutral-900">
-                Asigna equipo y módulos
-              </p>
-              <p className="mt-0.5 text-neutral-500">
-                Desde el detalle de cada campaña (Fase 2: votantes y catálogos).
-              </p>
-            </div>
-          </li>
-        </ol>
+      <Card
+        variant="accent"
+        title="Costos por campaña"
+        description="Detalle de los costos asociados a cada campaña"
+      >
+        <DataTable
+          data={filas}
+          rowKey={(c) => c.id}
+          emptyMessage="Sin campañas. Créalas en Campañas (cliente y proceso en Maestras)."
+          columns={[
+            {
+              key: "cliente",
+              header: "Cliente",
+              cell: (c) => (
+                <span className="font-medium text-neutral-900">
+                  {nombreCliente(c.clientes)}
+                </span>
+              ),
+            },
+            {
+              key: "campana",
+              header: "Campaña",
+              cell: (c) => (
+                <Link
+                  href={`/platform/campaigns/${c.id}`}
+                  className="text-neutral-800 hover:underline"
+                >
+                  {c.nombre}
+                </Link>
+              ),
+            },
+            {
+              key: "twilio",
+              header: "Costo Twilio",
+              cell: (c) => formatCosto(costosPorCampana(c.id, uso).twilio),
+              className: "tabular-nums text-neutral-600",
+            },
+            {
+              key: "supabase",
+              header: "Costo Supabase",
+              cell: (c) => {
+                const v = costosPorCampana(c.id, uso).supabase;
+                return v === 0 ? "—" : formatCosto(v);
+              },
+              className: "tabular-nums text-neutral-600",
+            },
+            {
+              key: "ia",
+              header: "Costo IA",
+              cell: (c) => formatCosto(costosPorCampana(c.id, uso).ia),
+              className: "tabular-nums text-neutral-600",
+            },
+            {
+              key: "capsolver",
+              header: "Costo Capsolver",
+              cell: (c) => formatCosto(costosPorCampana(c.id, uso).capsolver),
+              className: "tabular-nums text-neutral-600",
+            },
+            {
+              key: "total",
+              header: "Costo Total",
+              cell: (c) => {
+                const costos = costosPorCampana(c.id, uso);
+                return (
+                  <span className="font-semibold text-neutral-900">
+                    {formatCosto(costos.total)}
+                  </span>
+                );
+              },
+              className: "tabular-nums",
+            },
+          ]}
+        />
       </Card>
     </>
   );
