@@ -225,6 +225,72 @@ export async function createVotanteAction(campaignId: string, formData: FormData
   };
 }
 
+export async function updateVotanteNovedadAction(
+  campaignId: string,
+  votanteId: string,
+  payload: {
+    id_tipo_novedad: string | null;
+    detalle_novedad: string | null;
+  }
+) {
+  const { supabase, user } = await requireCampaignAccess(campaignId);
+
+  const puedeEditar = await userCanEditCampaign(user.id, campaignId);
+  if (!puedeEditar) {
+    return {
+      error:
+        "No tienes permiso para gestionar novedades. Se requiere rol editor o administrador de campaña.",
+    };
+  }
+
+  if (!votanteId) {
+    return { error: "Votante no identificado." };
+  }
+
+  const idTipo = payload.id_tipo_novedad?.trim() || null;
+  const detalle = payload.detalle_novedad?.trim() || null;
+
+  if (idTipo) {
+    const { data: tipo } = await supabase
+      .from("tipos_novedad")
+      .select("id")
+      .eq("id", idTipo)
+      .eq("id_campana", campaignId)
+      .maybeSingle();
+
+    if (!tipo) {
+      return { error: "El tipo de novedad no pertenece a esta campaña." };
+    }
+  }
+
+  const { data: votante, error: fetchError } = await supabase
+    .from("votantes")
+    .select("id")
+    .eq("id", votanteId)
+    .eq("id_campana", campaignId)
+    .maybeSingle();
+
+  if (fetchError || !votante) {
+    return { error: "Votante no encontrado en esta campaña." };
+  }
+
+  const { error } = await supabase
+    .from("votantes")
+    .update({
+      id_tipo_novedad: idTipo,
+      detalle_novedad: detalle,
+    })
+    .eq("id", votanteId)
+    .eq("id_campana", campaignId);
+
+  if (error) {
+    return { error: "No se pudo guardar la novedad del votante." };
+  }
+
+  revalidateCampaign(campaignId);
+  return { ok: true };
+}
+
 export type QuarantineResolveAction = "fusionar" | "descartar" | "escalar";
 
 export async function resolveQuarantineAction(

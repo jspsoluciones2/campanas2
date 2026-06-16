@@ -1,8 +1,27 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CSSProperties } from "react";
 import type { LoginBrandConfig } from "@/lib/config/login-brand";
+import {
+  type BrandTypography,
+  typographyFormDefaults,
+  typographyToCssVars,
+  type BrandTypographyFormInput,
+  validateTypographyFormInput,
+  typographyFromFormInput,
+  typographyToFormInput,
+  parseFontWeight,
+  collectTypographyFontFamilies,
+} from "@/lib/platform/brand-typography";
+import { fontFamilyStack } from "@/lib/platform/fonts";
 
-export type PlatformBrandConfig = {
+export { FONT_OPTIONS } from "@/lib/platform/fonts";
+export {
+  FONT_WEIGHT_OPTIONS,
+  collectTypographyFontFamilies,
+  type BrandTypography,
+} from "@/lib/platform/brand-typography";
+
+export type PlatformBrandConfig = BrandTypography & {
   logoUrl: string | null;
   faviconUrl: string | null;
   colorPrimario: string;
@@ -22,18 +41,8 @@ export type PlatformBrandConfig = {
   loginBotonFondo: string;
 };
 
-export const FONT_OPTIONS = [
-  "Inter",
-  "system-ui",
-  "Roboto",
-  "Open Sans",
-  "Poppins",
-  "Montserrat",
-  "Lato",
-  "Nunito",
-] as const;
-
 const DEFAULTS: PlatformBrandConfig = {
+  ...typographyFormDefaults("Inter"),
   logoUrl: null,
   faviconUrl: null,
   colorPrimario: "#374151",
@@ -102,10 +111,23 @@ type BrandRow = {
   login_fondo_centro: string | null;
   login_panel_fondo: string | null;
   login_boton_fondo: string | null;
+  fuente_titulos: string | null;
+  fuente_subtitulos: string | null;
+  fuente_cuerpo: string | null;
+  color_titulo: string | null;
+  color_subtitulo: string | null;
+  color_texto: string | null;
+  color_etiqueta: string | null;
+  peso_titulo: number | null;
+  peso_subtitulo: number | null;
+  peso_texto: number | null;
+  peso_etiqueta: number | null;
 };
 
 function mergeBrandRow(data: BrandRow | null | undefined): PlatformBrandConfig {
   const envLogo = env("NEXT_PUBLIC_LOGIN_LOGO_URL") ?? null;
+  const familiaBase = strOr(data?.familia_fuente, DEFAULTS.familiaFuente);
+  const typoDefaults = typographyFormDefaults(familiaBase);
 
   return {
     logoUrl: data?.url_logo ?? envLogo ?? DEFAULTS.logoUrl,
@@ -124,7 +146,18 @@ function mergeBrandRow(data: BrandRow | null | undefined): PlatformBrandConfig {
       DEFAULTS.colorFondoSidebar
     ),
     colorFondoPagina: strOr(data?.color_fondo_pagina, DEFAULTS.colorFondoPagina),
-    familiaFuente: strOr(data?.familia_fuente, DEFAULTS.familiaFuente),
+    familiaFuente: strOr(data?.fuente_cuerpo ?? data?.familia_fuente, DEFAULTS.familiaFuente),
+    fuenteTitulos: strOr(data?.fuente_titulos, typoDefaults.fuenteTitulos),
+    fuenteSubtitulos: strOr(data?.fuente_subtitulos, typoDefaults.fuenteSubtitulos),
+    fuenteCuerpo: strOr(data?.fuente_cuerpo ?? data?.familia_fuente, typoDefaults.fuenteCuerpo),
+    colorTitulo: strOr(data?.color_titulo, typoDefaults.colorTitulo),
+    colorSubtitulo: strOr(data?.color_subtitulo, typoDefaults.colorSubtitulo),
+    colorTexto: strOr(data?.color_texto, typoDefaults.colorTexto),
+    colorEtiqueta: strOr(data?.color_etiqueta, typoDefaults.colorEtiqueta),
+    pesoTitulo: parseFontWeight(data?.peso_titulo, typoDefaults.pesoTitulo),
+    pesoSubtitulo: parseFontWeight(data?.peso_subtitulo, typoDefaults.pesoSubtitulo),
+    pesoTexto: parseFontWeight(data?.peso_texto, typoDefaults.pesoTexto),
+    pesoEtiqueta: parseFontWeight(data?.peso_etiqueta, typoDefaults.pesoEtiqueta),
     nombrePlataforma: strOr(data?.nombre_plataforma, DEFAULTS.nombrePlataforma),
     etiquetaPanel: strOr(data?.etiqueta_panel, DEFAULTS.etiquetaPanel),
     textoAltLogo: strOr(data?.texto_alt_logo, DEFAULTS.textoAltLogo),
@@ -151,7 +184,7 @@ export async function getPlatformBrandConfig(
   const { data } = await supabase
     .from("configuracion_marca_plataforma")
     .select(
-      "url_logo, url_favicon, color_primario, color_secundario, color_acento, color_fondo_sidebar, color_fondo_pagina, familia_fuente, nombre_plataforma, etiqueta_panel, texto_alt_logo, subtitulo_login, texto_boton_login, login_fondo_exterior, login_fondo_centro, login_panel_fondo, login_boton_fondo"
+      "url_logo, url_favicon, color_primario, color_secundario, color_acento, color_fondo_sidebar, color_fondo_pagina, familia_fuente, fuente_titulos, fuente_subtitulos, fuente_cuerpo, color_titulo, color_subtitulo, color_texto, color_etiqueta, peso_titulo, peso_subtitulo, peso_texto, peso_etiqueta, nombre_plataforma, etiqueta_panel, texto_alt_logo, subtitulo_login, texto_boton_login, login_fondo_exterior, login_fondo_centro, login_panel_fondo, login_boton_fondo"
     )
     .eq("id", 1)
     .maybeSingle();
@@ -169,6 +202,7 @@ export function platformBrandToStyle(
   );
 
   return {
+    ...typographyToCssVars(config),
     ["--platform-sidebar" as string]: config.colorFondoSidebar,
     ["--platform-sidebar-hover" as string]: `color-mix(in srgb, ${config.colorFondoSidebar} 85%, white)`,
     ["--platform-sidebar-active" as string]: config.colorPrimario,
@@ -180,7 +214,12 @@ export function platformBrandToStyle(
     ["--platform-accent-border" as string]: `rgba(${primary.r}, ${primary.g}, ${primary.b}, 0.24)`,
     ["--platform-accent-muted-soft" as string]: `rgba(${secondary.r}, ${secondary.g}, ${secondary.b}, 0.1)`,
     ["--platform-accent-glow" as string]: `rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.2)`,
-    fontFamily: config.familiaFuente,
+    ["--platform-button-bg" as string]: config.colorPrimario,
+    ["--platform-button-hover" as string]: `color-mix(in srgb, ${config.colorPrimario} 82%, black)`,
+    ["--platform-button-text" as string]: "#ffffff",
+    ["--primary" as string]: config.colorPrimario,
+    ["--primary-foreground" as string]: "#ffffff",
+    fontFamily: fontFamilyStack(config.fuenteCuerpo),
   };
 }
 
@@ -219,7 +258,7 @@ export function isValidHexColor(value: string): boolean {
   return HEX_COLOR.test(value);
 }
 
-export type BrandFormInput = {
+export type BrandFormInput = BrandTypographyFormInput & {
   color_primario: string;
   color_secundario: string;
   color_acento: string;
@@ -242,6 +281,9 @@ export type BrandFormInput = {
 export function validateBrandFormInput(
   input: BrandFormInput
 ): string | null {
+  const typographyError = validateTypographyFormInput(input);
+  if (typographyError) return typographyError;
+
   const hexFields: [string, string][] = [
     ["color primario", input.color_primario],
     ["color secundario", input.color_secundario],
@@ -262,9 +304,6 @@ export function validateBrandFormInput(
   if (!input.nombre_plataforma.trim()) {
     return "El nombre de la plataforma es obligatorio.";
   }
-  if (!input.familia_fuente.trim()) {
-    return "Selecciona una tipografía.";
-  }
   if (!input.login_panel_fondo.trim()) {
     return "El fondo del panel de login es obligatorio.";
   }
@@ -276,6 +315,7 @@ export function brandFormFromConfig(
   config: PlatformBrandConfig
 ): BrandFormInput {
   return {
+    ...typographyToFormInput(config),
     color_primario: config.colorPrimario,
     color_secundario: config.colorSecundario,
     color_acento: config.colorAcento,
@@ -283,7 +323,7 @@ export function brandFormFromConfig(
     color_fondo_pagina: config.colorFondoPagina,
     url_logo: config.logoUrl ?? "",
     url_favicon: config.faviconUrl ?? "",
-    familia_fuente: config.familiaFuente,
+    familia_fuente: config.fuenteCuerpo,
     nombre_plataforma: config.nombrePlataforma,
     etiqueta_panel: config.etiquetaPanel,
     texto_alt_logo: config.textoAltLogo,
@@ -299,7 +339,9 @@ export function brandFormFromConfig(
 export function configFromBrandFormInput(
   input: BrandFormInput
 ): PlatformBrandConfig {
+  const typography = typographyFromFormInput(input, input.familia_fuente);
   return {
+    ...typography,
     logoUrl: input.url_logo.trim() || null,
     faviconUrl: input.url_favicon.trim() || null,
     colorPrimario: input.color_primario.trim(),
@@ -307,7 +349,7 @@ export function configFromBrandFormInput(
     colorAcento: input.color_acento.trim(),
     colorFondoSidebar: input.color_fondo_sidebar.trim(),
     colorFondoPagina: input.color_fondo_pagina.trim(),
-    familiaFuente: input.familia_fuente.trim(),
+    familiaFuente: typography.fuenteCuerpo,
     nombrePlataforma: input.nombre_plataforma.trim(),
     etiquetaPanel: input.etiqueta_panel.trim(),
     textoAltLogo: input.texto_alt_logo.trim(),

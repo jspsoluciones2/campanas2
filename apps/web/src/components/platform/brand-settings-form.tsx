@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Palette, Sparkles, Type } from "lucide-react";
+import { ChevronDown, Palette, Sparkles, Type, CaseSensitive } from "lucide-react";
 import { updatePlatformBrandAction } from "@/app/(platform)/platform/actions";
 import { BrandImageUpload } from "@/components/platform/brand-image-upload";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import { BRAND_COLOR_PRESETS } from "@/lib/platform/brand-assets";
 import {
   FONT_OPTIONS,
+  FONT_WEIGHT_OPTIONS,
   type BrandFormInput,
   configFromBrandFormInput,
   platformBrandToLoginConfig,
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { id: "identidad", label: "Logo y nombre", icon: Sparkles },
   { id: "apariencia", label: "Colores", icon: Palette },
+  { id: "tipografia", label: "Tipografía", icon: CaseSensitive },
   { id: "login", label: "Pantalla de acceso", icon: Type },
 ] as const;
 
@@ -66,6 +68,120 @@ function ColorField({
         </div>
       </div>
     </FormField>
+  );
+}
+
+function FontSelect({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, value: string) => void;
+}) {
+  return (
+    <FormField label={label}>
+      <select
+        name={name}
+        value={value}
+        onChange={(e) => onChange(name, e.target.value)}
+        className={platformSelectClass}
+        style={{ fontFamily: value }}
+      >
+        {FONT_OPTIONS.map((font) => (
+          <option key={font} value={font} style={{ fontFamily: font }}>
+            {font}
+          </option>
+        ))}
+      </select>
+    </FormField>
+  );
+}
+
+function WeightSelect({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, value: string) => void;
+}) {
+  return (
+    <FormField label={label}>
+      <select
+        name={name}
+        value={value}
+        onChange={(e) => onChange(name, e.target.value)}
+        className={platformSelectClass}
+      >
+        {FONT_WEIGHT_OPTIONS.map((weight) => (
+          <option key={weight.value} value={weight.value}>
+            {weight.label}
+          </option>
+        ))}
+      </select>
+    </FormField>
+  );
+}
+
+function TypographyRoleSection({
+  title,
+  description,
+  fontName,
+  fontValue,
+  colorName,
+  colorValue,
+  weightName,
+  weightValue,
+  onChange,
+  showFont = true,
+}: {
+  title: string;
+  description: string;
+  fontName: string;
+  fontValue: string;
+  colorName: string;
+  colorValue: string;
+  weightName: string;
+  weightValue: string;
+  onChange: (name: string, value: string) => void;
+  showFont?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-4">
+      <div className="mb-4">
+        <h4 className="text-sm font-semibold text-neutral-900">{title}</h4>
+        <p className="mt-0.5 text-xs text-neutral-500">{description}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {showFont ? (
+          <FontSelect
+            label="Tipografía"
+            name={fontName}
+            value={fontValue}
+            onChange={onChange}
+          />
+        ) : null}
+        <WeightSelect
+          label="Grosor"
+          name={weightName}
+          value={weightValue}
+          onChange={onChange}
+        />
+        <ColorField
+          label="Color"
+          name={colorName}
+          value={colorValue}
+          onChange={onChange}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -121,21 +237,25 @@ function PreviewPanel({ values }: { values: BrandFormInput }) {
           </div>
           <div className="flex-1 p-4" style={{ background: "var(--platform-main)" }}>
             <div
-              className="rounded-lg border bg-white p-3"
+              className="rounded-lg border bg-white p-4"
               style={{
                 borderColor: "var(--platform-accent-border)",
                 boxShadow: "0 4px 12px var(--platform-accent-soft)",
               }}
             >
-              <p
-                className="text-sm font-semibold"
-                style={{ color: "var(--platform-accent)" }}
-              >
-                Costos por campaña
+              <p className="platform-page-title text-lg">Gestión de campañas</p>
+              <p className="platform-page-subtitle mt-1 text-xs">
+                Subtítulo de sección y descripciones
               </p>
-              <p className="mt-2 text-xs text-neutral-500">
-                Fuente: {config.familiaFuente}
+              <p className="platform-body-text mt-3 text-xs">
+                Texto general en tablas y formularios.
               </p>
+              <p className="platform-label-text mt-2 text-[11px]">
+                Etiqueta de campo
+              </p>
+              <span className="platform-btn mt-3 inline-flex h-9 px-4 text-xs">
+                Ejemplo de botón
+              </span>
             </div>
           </div>
         </div>
@@ -228,7 +348,16 @@ export function BrandSettingsForm({ initial }: { initial: BrandFormInput }) {
   const router = useRouter();
 
   const setField = (name: string, value: string) => {
-    setValues((prev) => ({ ...prev, [name]: value }));
+    setValues((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === "color_primario") {
+        next.login_boton_fondo = value;
+      }
+      if (name === "fuente_cuerpo") {
+        next.familia_fuente = value;
+      }
+      return next;
+    });
     setSaved(false);
   };
 
@@ -398,11 +527,11 @@ export function BrandSettingsForm({ initial }: { initial: BrandFormInput }) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <ColorField
-                label="Color principal"
+                label="Color de botones"
                 name="color_primario"
                 value={values.color_primario}
                 onChange={setField}
-                hint="Botones activos y destacados"
+                hint="Botones del panel, campañas y menú activo"
               />
               <ColorField
                 label="Color secundario"
@@ -430,28 +559,71 @@ export function BrandSettingsForm({ initial }: { initial: BrandFormInput }) {
                 onChange={setField}
               />
             </div>
+          </section>
+        ) : null}
 
-            <FormField label="Tipografía">
-              <select
-                name="familia_fuente"
-                value={values.familia_fuente}
-                onChange={(e) => setField("familia_fuente", e.target.value)}
-                className={platformSelectClass}
-                style={{ fontFamily: values.familia_fuente }}
-              >
-                {FONT_OPTIONS.map((font) => (
-                  <option key={font} value={font} style={{ fontFamily: font }}>
-                    {font}
-                  </option>
-                ))}
-              </select>
-              <p
-                className="mt-2 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2 text-sm text-neutral-700"
-                style={{ fontFamily: values.familia_fuente }}
-              >
-                Vista previa: Gestión de campañas y votantes
+        {tab === "tipografia" ? (
+          <section className="space-y-6 rounded-xl border border-neutral-200 bg-white p-6">
+            <div>
+              <h3 className="text-base font-semibold text-neutral-900">
+                Tipografía del panel
+              </h3>
+              <p className="mt-1 text-sm text-neutral-500">
+                Define fuente, color y grosor para títulos, subtítulos, texto y
+                etiquetas.
               </p>
-            </FormField>
+            </div>
+
+            <TypographyRoleSection
+              title="Títulos"
+              description="Encabezados de página y tarjetas."
+              fontName="fuente_titulos"
+              fontValue={values.fuente_titulos}
+              colorName="color_titulo"
+              colorValue={values.color_titulo}
+              weightName="peso_titulo"
+              weightValue={values.peso_titulo}
+              onChange={setField}
+            />
+
+            <TypographyRoleSection
+              title="Subtítulos"
+              description="Descripciones bajo títulos y textos secundarios."
+              fontName="fuente_subtitulos"
+              fontValue={values.fuente_subtitulos}
+              colorName="color_subtitulo"
+              colorValue={values.color_subtitulo}
+              weightName="peso_subtitulo"
+              weightValue={values.peso_subtitulo}
+              onChange={setField}
+            />
+
+            <TypographyRoleSection
+              title="Texto general"
+              description="Contenido de tablas, párrafos y campos."
+              fontName="fuente_cuerpo"
+              fontValue={values.fuente_cuerpo}
+              colorName="color_texto"
+              colorValue={values.color_texto}
+              weightName="peso_texto"
+              weightValue={values.peso_texto}
+              onChange={setField}
+            />
+
+            <TypographyRoleSection
+              title="Etiquetas"
+              description="Rótulos de formularios y encabezados de columnas. Usan la tipografía del texto general."
+              fontName="fuente_cuerpo"
+              fontValue={values.fuente_cuerpo}
+              colorName="color_etiqueta"
+              colorValue={values.color_etiqueta}
+              weightName="peso_etiqueta"
+              weightValue={values.peso_etiqueta}
+              onChange={setField}
+              showFont={false}
+            />
+
+            <input type="hidden" name="familia_fuente" value={values.familia_fuente} />
           </section>
         ) : null}
 
@@ -552,11 +724,7 @@ export function BrandSettingsForm({ initial }: { initial: BrandFormInput }) {
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-5 py-4">
-          <Button
-            type="submit"
-            disabled={pending}
-            className="h-10 bg-neutral-900 px-8 text-white hover:bg-neutral-800"
-          >
+          <Button type="submit" disabled={pending} className="h-10 px-8">
             {pending ? "Guardando…" : "Guardar configuración"}
           </Button>
           {saved ? (

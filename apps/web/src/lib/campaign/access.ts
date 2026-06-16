@@ -91,3 +91,41 @@ export async function userCanEditCampaign(
   if (!member) return false;
   return member.rol === "editor" || member.rol === "administrador_campana";
 }
+
+export async function userCanManageCampaignTeam(
+  userId: string,
+  campaignId: string
+): Promise<boolean> {
+  const supabase = await createClient();
+
+  const { data: platform } = await supabase
+    .from("miembros_plataforma")
+    .select("rol")
+    .eq("id_usuario", userId)
+    .maybeSingle();
+
+  if (platform) return true;
+
+  const { data: member } = await supabase
+    .from("miembros_campana")
+    .select("rol")
+    .eq("id_usuario", userId)
+    .eq("id_campana", campaignId)
+    .maybeSingle();
+
+  return member?.rol === "administrador_campana";
+}
+
+export async function requireCampaignTeamManager(campaignId: string) {
+  const access = await requireCampaignAccess(campaignId);
+  const canManage = await userCanManageCampaignTeam(
+    access.user.id,
+    campaignId
+  );
+
+  if (!canManage) {
+    redirect(`/campaign/${campaignId}`);
+  }
+
+  return access;
+}

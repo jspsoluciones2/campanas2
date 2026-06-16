@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { platformButtonClass } from "@/components/platform/platform-ui";
 import {
   MASTER_PAGE_SIZE,
   filterSummaryText,
@@ -40,10 +41,7 @@ export function MasterListSearch({
         />
       </label>
       {children}
-      <button
-        type="submit"
-        className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 px-6 text-sm font-medium text-white hover:bg-neutral-800"
-      >
+      <button type="submit" className={platformButtonClass}>
         Buscar
       </button>
       {hasFilters ? (

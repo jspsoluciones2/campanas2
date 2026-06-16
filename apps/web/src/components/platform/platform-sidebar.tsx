@@ -93,7 +93,7 @@ export function PlatformSidebar({
   }
 
   return (
-    <aside className="platform-sidebar flex h-svh w-64 shrink-0 flex-col border-r border-white/5">
+    <aside className="platform-sidebar sticky top-0 flex h-svh w-64 shrink-0 flex-col self-start border-r border-white/5">
       <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-5 py-5">
         <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
           {logoUrl ? (

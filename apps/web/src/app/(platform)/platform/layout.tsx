@@ -45,7 +45,7 @@ export default async function PlatformLayout({
 
   return (
     <div
-      className="platform-shell flex min-h-svh"
+      className="platform-shell flex h-svh overflow-hidden"
       style={platformBrandToStyle(platformBrand)}
     >
       <PlatformSidebar
@@ -55,8 +55,8 @@ export default async function PlatformLayout({
         platformName={platformBrand.nombrePlataforma}
         panelTagline={platformBrand.etiquetaPanel}
       />
-      <div className="platform-main flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 overflow-auto p-6 md:p-8">
+      <div className="platform-main flex min-h-0 min-w-0 flex-1 flex-col">
+        <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
           <div className="mx-auto max-w-6xl space-y-8">{children}</div>
         </main>
       </div>

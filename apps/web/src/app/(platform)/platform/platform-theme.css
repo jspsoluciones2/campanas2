@@ -14,6 +14,20 @@
   --platform-accent-soft: rgb(55 65 81 / 0.12);
   --platform-accent-border: rgb(55 65 81 / 0.24);
   --platform-accent-muted-soft: rgb(107 114 128 / 0.1);
+  --platform-button-bg: var(--platform-accent);
+  --platform-button-hover: color-mix(in srgb, var(--platform-button-bg) 82%, black);
+  --platform-button-text: #ffffff;
+  --platform-font-title: Inter, system-ui, sans-serif;
+  --platform-font-subtitle: Inter, system-ui, sans-serif;
+  --platform-font-body: Inter, system-ui, sans-serif;
+  --platform-color-title: #111827;
+  --platform-color-subtitle: #6b7280;
+  --platform-color-body: #374151;
+  --platform-color-label: #525252;
+  --platform-weight-title: 600;
+  --platform-weight-subtitle: 400;
+  --platform-weight-body: 400;
+  --platform-weight-label: 500;
 }
 
 .platform-main {
@@ -94,19 +108,112 @@
   padding-left: calc(1.5rem - 4px);
 }
 
+.platform-page-title {
+  font-family: var(--platform-font-title);
+  font-weight: var(--platform-weight-title);
+  color: var(--platform-color-title);
+}
+
+.platform-page-subtitle {
+  font-family: var(--platform-font-subtitle);
+  font-weight: var(--platform-weight-subtitle);
+  color: var(--platform-color-subtitle);
+}
+
+.platform-card-title {
+  font-family: var(--platform-font-title);
+  font-weight: var(--platform-weight-title);
+  color: var(--platform-color-title);
+}
+
+.platform-card-desc {
+  font-family: var(--platform-font-subtitle);
+  font-weight: var(--platform-weight-subtitle);
+  color: var(--platform-color-subtitle);
+}
+
+.platform-body-text {
+  font-family: var(--platform-font-body);
+  font-weight: var(--platform-weight-body);
+  color: var(--platform-color-body);
+}
+
+.platform-label-text {
+  font-family: var(--platform-font-body);
+  font-weight: var(--platform-weight-label);
+  color: var(--platform-color-label);
+}
+
+.platform-table-head {
+  font-family: var(--platform-font-body);
+  font-weight: var(--platform-weight-label);
+  color: var(--platform-color-label);
+}
+
+.platform-stat-value {
+  font-family: var(--platform-font-title);
+  font-weight: var(--platform-weight-title);
+  color: var(--platform-color-title);
+}
+
+.platform-stat-label {
+  font-family: var(--platform-font-subtitle);
+  font-weight: var(--platform-weight-subtitle);
+  color: var(--platform-color-subtitle);
+}
+
 .platform-card-accent-title {
-  color: var(--platform-accent);
-  background: linear-gradient(
-    90deg,
-    var(--platform-accent) 0%,
-    var(--platform-accent-secondary) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--platform-color-title);
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 .platform-card-accent-marker {
   background: var(--platform-accent);
   box-shadow: 0 0 0 3px var(--platform-accent-soft);
+}
+
+/* Botones unificados — color desde branding (color primario) */
+.platform-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--platform-button-bg);
+  background-color: var(--platform-button-bg);
+  color: var(--platform-button-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.platform-btn:hover {
+  background-color: var(--platform-button-hover);
+  border-color: var(--platform-button-hover);
+  color: var(--platform-button-text);
+}
+
+.platform-btn:disabled,
+.platform-btn[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.platform-shell [data-slot="button"]:not([data-variant="destructive"]) {
+  border-color: var(--platform-button-bg);
+  background-color: var(--platform-button-bg);
+  color: var(--platform-button-text);
+}
+
+.platform-shell [data-slot="button"]:not([data-variant="destructive"]):hover,
+.platform-shell
+  [data-slot="button"]:not([data-variant="destructive"])[data-pressed] {
+  background-color: var(--platform-button-hover);
+  border-color: var(--platform-button-hover);
+  color: var(--platform-button-text);
 }

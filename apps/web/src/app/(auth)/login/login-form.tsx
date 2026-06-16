@@ -13,6 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { userMustChangePassword } from "@/lib/platform/client-auth";
+import { isEmailIdentifier, resolveAuthEmail } from "@/lib/auth/identity";
 import type { LoginBrandConfig } from "@/lib/config/login-brand";
 import { SplitAuthInput } from "@/components/auth/split-auth-input";
 import {
@@ -80,8 +81,9 @@ export function LoginForm({ brand }: LoginFormProps) {
     setInfo("");
 
     const supabase = createClient();
+    const loginIdentifier = email.trim();
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: resolveAuthEmail(loginIdentifier),
       password,
     });
 
@@ -146,7 +148,15 @@ export function LoginForm({ brand }: LoginFormProps) {
   async function handleForgotPassword() {
     const trimmed = email.trim();
     if (!trimmed) {
-      setError("Escribe tu usuario (correo) para recuperar la contraseña.");
+      setError("Escribe tu usuario para recuperar la contraseña.");
+      setInfo("");
+      return;
+    }
+
+    if (!isEmailIdentifier(trimmed)) {
+      setError(
+        "La recuperación por correo solo aplica si inicias sesión con un email. Pide al administrador que restablezca tu contraseña."
+      );
       setInfo("");
       return;
     }
@@ -210,9 +220,9 @@ export function LoginForm({ brand }: LoginFormProps) {
       <SplitAuthInput
         id="email"
         name="email"
-        type="email"
+        type="text"
         icon={User}
-        placeholder="Usuario"
+        placeholder="Usuario o correo"
         autoComplete="username"
         disabled={loading}
         value={email}

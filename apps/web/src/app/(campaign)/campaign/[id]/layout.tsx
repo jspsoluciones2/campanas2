@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { loadPlatformBrand } from "@/lib/platform/load-platform-brand";
 import { platformBrandToStyle } from "@/lib/platform/brand";
-import { requireCampaignAccess } from "@/lib/campaign/access";
+import { requireCampaignAccess, userCanManageCampaignTeam } from "@/lib/campaign/access";
+import { formatAuthLoginDisplay } from "@/lib/auth/identity";
 import { CampaignSidebar } from "@/components/campaign/campaign-sidebar";
 
 export default async function CampaignLayout({
@@ -33,23 +34,29 @@ export default async function CampaignLayout({
     .maybeSingle();
 
   const platformBrand = await loadPlatformBrand();
+  const canManageTeam = await userCanManageCampaignTeam(user.id, id);
 
   return (
     <div
-      className="platform-shell flex min-h-svh"
+      className="platform-shell flex h-svh overflow-hidden"
       style={platformBrandToStyle(platformBrand)}
     >
       <CampaignSidebar
         campaignId={id}
         campaignName={campana.nombre}
         clientName={campana.nombreCliente}
-        userEmail={user.email ?? "Usuario"}
+        userEmail={
+          formatAuthLoginDisplay(user.email, user.user_metadata) ??
+          user.email ??
+          "Usuario"
+        }
         logoUrl={platformBrand.logoUrl}
         logoAlt={platformBrand.textoAltLogo}
         isPlatformOwner={Boolean(platformMember)}
+        canManageTeam={canManageTeam}
       />
-      <div className="platform-main flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 overflow-auto p-6 md:p-8">
+      <div className="platform-main flex min-h-0 min-w-0 flex-1 flex-col">
+        <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
           <div className="mx-auto max-w-6xl space-y-8">{children}</div>
         </main>
       </div>

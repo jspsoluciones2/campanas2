@@ -48,6 +48,7 @@ import {
   updateClientAuthUser,
   validateInitialPassword,
 } from "@/lib/platform/client-auth";
+import { assignCampaignMemberWithCredentials } from "@/lib/campaign/team";
 
 async function appOriginFromRequest(): Promise<string> {
   const requestHeaders = await headers();
@@ -478,6 +479,57 @@ export async function updateCampaignAction(formData: FormData) {
   return { ok: true };
 }
 
+function moduloActivo(formData: FormData, campo: string): boolean {
+  const valor = formData.get(campo);
+  return valor === "1" || valor === "on" || valor === "true";
+}
+
+export async function updateCampaignModulesAction(
+  campaignId: string,
+  formData: FormData
+) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const id = campaignId.trim();
+  if (!id) return { error: "Campaña no identificada." };
+
+  const payload = {
+    resolutor_captcha: moduloActivo(formData, "resolutor_captcha"),
+    auditoria_e14: moduloActivo(formData, "auditoria_e14"),
+    whatsapp: moduloActivo(formData, "whatsapp"),
+    telegram: moduloActivo(formData, "telegram"),
+    captura_web: moduloActivo(formData, "captura_web"),
+  };
+
+  const { data: existing } = await supabase
+    .from("caracteristicas_campana")
+    .select("id_campana")
+    .eq("id_campana", id)
+    .maybeSingle();
+
+  const { error } = existing
+    ? await supabase
+        .from("caracteristicas_campana")
+        .update(payload)
+        .eq("id_campana", id)
+    : await supabase.from("caracteristicas_campana").insert({
+        id_campana: id,
+        ...payload,
+      });
+
+  if (error) {
+    return { error: error.message ?? "No se pudieron guardar los módulos." };
+  }
+
+  revalidatePath("/platform/campaigns");
+  revalidatePath(`/platform/campaigns/${id}`);
+  revalidatePath(`/platform/campaigns/${id}/integrations`);
+  revalidatePath(`/campaign/${id}`);
+  return { ok: true };
+}
+
 export async function deleteCampaignAction(campaignId: string) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
@@ -570,24 +622,43 @@ export async function updateCampaignStatusAction(
 
 export async function assignCampaignMemberAction(formData: FormData) {
   const supabase = await createClient();
-  const idCampana = String(formData.get("id_campana") ?? formData.get("campaign_id") ?? "");
-  const idUsuario = String(formData.get("id_usuario") ?? formData.get("user_id") ?? "").trim();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const idCampana = String(
+    formData.get("id_campana") ?? formData.get("campaign_id") ?? ""
+  ).trim();
+  const correo = String(
+    formData.get("usuario") ??
+      formData.get("correo") ??
+      formData.get("email") ??
+      ""
+  );
+  const contrasena = String(
+    formData.get("contrasena_inicial") ?? formData.get("password") ?? ""
+  );
+  const nombre = String(formData.get("nombre") ?? formData.get("name") ?? "");
   const rol = String(formData.get("rol") ?? formData.get("role") ?? "lector");
 
-  if (!idCampana || !idUsuario) {
-    return { error: "Campaña y usuario son obligatorios." };
-  }
-
-  const { error } = await supabase.from("miembros_campana").insert({
-    id_campana: idCampana,
-    id_usuario: idUsuario,
+  const result = await assignCampaignMemberWithCredentials({
+    campaignId: idCampana,
+    actorUserId: auth.user!.id,
+    usuario: correo,
+    contrasena,
+    nombre,
     rol,
   });
 
-  if (error) return { error: error.message };
+  if ("error" in result) return { error: result.error };
 
   revalidatePath(`/platform/campaigns/${idCampana}`);
-  return { ok: true };
+  revalidatePath(`/campaign/${idCampana}/equipo`);
+  return {
+    ok: true,
+    email: result.usuario,
+    nombre: result.nombre,
+    tempPassword: result.tempPassword,
+  };
 }
 
 export async function createClientFormAction(formData: FormData): Promise<void> {
@@ -920,6 +991,17 @@ export async function updatePlatformBrandAction(formData: FormData) {
     login_fondo_centro: String(formData.get("login_fondo_centro") ?? "").trim(),
     login_panel_fondo: String(formData.get("login_panel_fondo") ?? "").trim(),
     login_boton_fondo: String(formData.get("login_boton_fondo") ?? "").trim(),
+    fuente_titulos: String(formData.get("fuente_titulos") ?? "").trim(),
+    fuente_subtitulos: String(formData.get("fuente_subtitulos") ?? "").trim(),
+    fuente_cuerpo: String(formData.get("fuente_cuerpo") ?? "").trim(),
+    color_titulo: String(formData.get("color_titulo") ?? "").trim(),
+    color_subtitulo: String(formData.get("color_subtitulo") ?? "").trim(),
+    color_texto: String(formData.get("color_texto") ?? "").trim(),
+    color_etiqueta: String(formData.get("color_etiqueta") ?? "").trim(),
+    peso_titulo: String(formData.get("peso_titulo") ?? "").trim(),
+    peso_subtitulo: String(formData.get("peso_subtitulo") ?? "").trim(),
+    peso_texto: String(formData.get("peso_texto") ?? "").trim(),
+    peso_etiqueta: String(formData.get("peso_etiqueta") ?? "").trim(),
   };
 
   const validationError = validateBrandFormInput(input);
@@ -937,7 +1019,18 @@ export async function updatePlatformBrandAction(formData: FormData) {
       color_fondo_pagina: config.colorFondoPagina,
       url_logo: config.logoUrl,
       url_favicon: config.faviconUrl,
-      familia_fuente: config.familiaFuente,
+      familia_fuente: config.fuenteCuerpo,
+      fuente_titulos: config.fuenteTitulos,
+      fuente_subtitulos: config.fuenteSubtitulos,
+      fuente_cuerpo: config.fuenteCuerpo,
+      color_titulo: config.colorTitulo,
+      color_subtitulo: config.colorSubtitulo,
+      color_texto: config.colorTexto,
+      color_etiqueta: config.colorEtiqueta,
+      peso_titulo: config.pesoTitulo,
+      peso_subtitulo: config.pesoSubtitulo,
+      peso_texto: config.pesoTexto,
+      peso_etiqueta: config.pesoEtiqueta,
       nombre_plataforma: config.nombrePlataforma,
       etiqueta_panel: config.etiquetaPanel,
       texto_alt_logo: config.textoAltLogo,

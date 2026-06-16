@@ -6,7 +6,7 @@ import { bulkUploadCatalogAction } from "@/app/(campaign)/campaign/[id]/actions"
 import { CATALOG_BULK_DEFS } from "@/lib/campaign/catalog-bulk-config";
 import type { CatalogSegment } from "@/lib/campaign/catalog-nav";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/platform/platform-ui";
+import { Card, platformButtonClass } from "@/components/platform/platform-ui";
 
 type BulkUploadState = {
   error?: string;
@@ -50,10 +50,7 @@ export function CatalogBulkUpload({ campaignId, segment }: Props) {
         action={formAction}
         className="flex flex-wrap items-center gap-2"
       >
-        <a
-          href={templateHref}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50"
-        >
+        <a href={templateHref} className={`${platformButtonClass} gap-1.5 px-3`}>
           <Download className="size-4 shrink-0" />
           Plantilla
         </a>

@@ -1,19 +1,7 @@
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { VotanteRegisterForm } from "@/components/campaign/votante-register-form";
-import {
-  Card,
-  DataTable,
-  PageHeader,
-  StatusBadge,
-} from "@/components/platform/platform-ui";
-
-const ETIQUETAS_ESTADO: Record<string, string> = {
-  activo: "Activo",
-  registrado: "Registrado",
-  pendiente_verificacion: "Pendiente verificación",
-  en_cuarentena: "Cuarentena",
-  rechazado: "Rechazado",
-};
+import { VotantesTable } from "@/components/campaign/votantes-table";
+import { Card, PageHeader } from "@/components/platform/platform-ui";
 
 export default async function CampaignVotantesPage({
   params,
@@ -29,12 +17,14 @@ export default async function CampaignVotantesPage({
     { data: puestos },
     { data: lugaresTrabajo },
     { data: lideres },
+    { data: tiposNovedad },
   ] = await Promise.all([
     supabase
       .from("votantes")
       .select(
         `id, nombres, apellidos, documento, tipo_documento, sexo, telefono,
          fecha_nacimiento, direccion, estado, creado_en,
+         id_tipo_novedad, detalle_novedad,
          roles(nombre), lugares_trabajo(nombre)`
       )
       .eq("id_campana", id)
@@ -62,23 +52,20 @@ export default async function CampaignVotantesPage({
       .in("estado", ["activo", "registrado", "pendiente_verificacion"])
       .order("apellidos")
       .limit(200),
+    supabase
+      .from("tipos_novedad")
+      .select("id, novedad")
+      .eq("id_campana", id)
+      .order("novedad"),
   ]);
 
   const rows = votantes ?? [];
-
-  function nombreRelacion(
-    rel: { nombre: string } | { nombre: string }[] | null | undefined
-  ) {
-    if (!rel) return "—";
-    if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
-    return rel.nombre;
-  }
 
   return (
     <>
       <PageHeader
         title="Votantes"
-        description="Registro manual de votantes de esta campaña."
+        description="Registro manual de votantes. Las novedades las completa el equipo al detectar irregularidades."
         backHref={`/campaign/${id}`}
         backLabel="Inicio campaña"
       />
@@ -91,58 +78,15 @@ export default async function CampaignVotantesPage({
         lideres={lideres ?? []}
       />
 
-      <Card title="Listado" description={`${rows.length} votante(s) mostrados (máx. 100)`}>
-        <DataTable
-          data={rows}
-          rowKey={(v) => v.id}
+      <Card
+        title="Listado"
+        description={`${rows.length} votante(s) mostrados (máx. 100)`}
+      >
+        <VotantesTable
+          campaignId={id}
+          rows={rows}
+          tiposNovedad={tiposNovedad ?? []}
           emptyMessage="Sin votantes. Configura catálogos y registra el primero arriba."
-          columns={[
-            {
-              key: "nombre",
-              header: "Nombre Completo",
-              cell: (v) => (
-                <span className="font-medium text-neutral-900">
-                  {v.nombres} {v.apellidos}
-                </span>
-              ),
-            },
-            {
-              key: "doc",
-              header: "Documento",
-              cell: (v) => `${v.tipo_documento} ${v.documento}`,
-            },
-            {
-              key: "trabajo",
-              header: "Trabajo",
-              cell: (v) => nombreRelacion(v.lugares_trabajo),
-            },
-            {
-              key: "direccion",
-              header: "Dirección",
-              cell: (v) => v.direccion ?? "—",
-            },
-            {
-              key: "rol",
-              header: "Rol",
-              cell: (v) => nombreRelacion(v.roles),
-            },
-            {
-              key: "estado",
-              header: "Estado",
-              cell: (v) => (
-                <StatusBadge variant="default">
-                  {ETIQUETAS_ESTADO[v.estado] ?? v.estado}
-                </StatusBadge>
-              ),
-            },
-            {
-              key: "fecha",
-              header: "Registro",
-              cell: (v) =>
-                new Date(v.creado_en).toLocaleDateString("es-CO"),
-              className: "text-neutral-500",
-            },
-          ]}
         />
       </Card>
     </>

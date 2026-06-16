@@ -7,7 +7,7 @@ import {
 import {
   buildAppMetadata,
 } from "@/lib/platform/brand-metadata";
-import { resolveFaviconUrl } from "@/lib/platform/brand";
+import { resolveFaviconUrl, collectTypographyFontFamilies } from "@/lib/platform/brand";
 import { loadPlatformBrand } from "@/lib/platform/load-platform-brand";
 import "./globals.css";
 
@@ -40,10 +40,10 @@ export default async function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={brandFontFamilyStyle(brand.familiaFuente)}
+      style={brandFontFamilyStyle(brand.fuenteCuerpo)}
     >
       <head>
-        <BrandFont family={brand.familiaFuente} />
+        <BrandFont families={collectTypographyFontFamilies(brand)} />
         {faviconUrl ? (
           <>
             <link rel="icon" href={faviconUrl} />

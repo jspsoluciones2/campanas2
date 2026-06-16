@@ -8,6 +8,10 @@ export const platformInputClass =
 export const platformSelectClass =
   "platform-input h-10 rounded-lg px-3 text-sm text-neutral-800";
 
+/** Enlaces y acciones con apariencia de botón (mismo color que branding). */
+export const platformButtonClass =
+  "platform-btn h-10 px-6 whitespace-nowrap";
+
 type PageHeaderProps = {
   title: string;
   description?: string;
@@ -29,16 +33,16 @@ export function PageHeader({
         {backHref && (
           <Link
             href={backHref}
-            className="mb-2 inline-flex text-sm text-neutral-500 transition-colors hover:text-neutral-900"
+            className="platform-page-subtitle mb-2 inline-flex text-sm transition-opacity hover:opacity-80"
           >
             ← {backLabel ?? "Volver"}
           </Link>
         )}
-        <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
+        <h1 className="platform-page-title text-2xl tracking-tight">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 max-w-2xl text-sm text-neutral-500">
+          <p className="platform-page-subtitle mt-1 max-w-2xl text-sm">
             {description}
           </p>
         )}
@@ -88,10 +92,9 @@ export function Card({
             {title && (
               <h2
                 className={cn(
-                  "font-semibold",
                   isAccent
-                    ? "platform-card-accent-title text-base tracking-tight"
-                    : "text-sm text-neutral-900"
+                    ? "platform-card-accent-title platform-card-title text-base tracking-tight"
+                    : "platform-card-title text-sm"
                 )}
               >
                 {isAccent ? (
@@ -108,12 +111,7 @@ export function Card({
               </h2>
             )}
             {description && (
-              <p
-                className={cn(
-                  "mt-0.5 text-xs",
-                  isAccent ? "text-neutral-600" : "text-neutral-500"
-                )}
-              >
+              <p className="platform-card-desc mt-0.5 text-xs">
                 {description}
               </p>
             )}
@@ -135,10 +133,8 @@ type StatCardProps = {
 export function StatCard({ label, value, href }: StatCardProps) {
   const inner = (
     <>
-      <p className="text-3xl font-semibold tabular-nums text-neutral-900">
-        {value}
-      </p>
-      <p className="mt-1 text-sm text-neutral-500">{label}</p>
+      <p className="platform-stat-value text-3xl tabular-nums">{value}</p>
+      <p className="platform-stat-label mt-1 text-sm">{label}</p>
     </>
   );
 
@@ -214,7 +210,7 @@ export function DataTable<T>({
               <th
                 key={col.key}
                 className={cn(
-                  "px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600",
+                  "platform-table-head px-4 py-3 text-xs tracking-wide",
                   col.className
                 )}
               >
@@ -233,7 +229,7 @@ export function DataTable<T>({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={cn("px-4 py-3 text-neutral-700", col.className)}
+                    className={cn("platform-body-text px-4 py-3", col.className)}
                   >
                     {col.cell(row)}
                   </td>
@@ -244,7 +240,7 @@ export function DataTable<T>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-4 py-12 text-center text-neutral-500"
+                className="platform-page-subtitle px-4 py-12 text-center text-sm"
               >
                 {emptyMessage}
               </td>
@@ -265,9 +261,9 @@ export function EmptyState({
 }) {
   return (
     <div className="rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 px-6 py-10 text-center">
-      <p className="text-sm font-medium text-neutral-700">{title}</p>
+      <p className="platform-card-title text-sm">{title}</p>
       {description && (
-        <p className="mt-1 text-sm text-neutral-500">{description}</p>
+        <p className="platform-card-desc mt-1 text-sm">{description}</p>
       )}
     </div>
   );
@@ -298,7 +294,7 @@ export function FormField({
 }) {
   return (
     <label className={cn("flex min-w-[140px] flex-1 flex-col gap-1.5", className)}>
-      <span className="text-xs font-medium text-neutral-600">{label}</span>
+      <span className="platform-label-text text-xs">{label}</span>
       {children}
     </label>
   );

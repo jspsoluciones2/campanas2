@@ -2,20 +2,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
-  assignCampaignMemberFormAction,
+  assignCampaignMemberAction,
   submitCampaignStatusUpdate,
   type EstadoCampana,
 } from "../../actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  FormField,
-  FormRow,
   PageHeader,
-  platformInputClass,
-  platformSelectClass,
+  platformButtonClass,
   StatusBadge,
 } from "@/components/platform/platform-ui";
+import {
+  CampaignModulesForm,
+  type CampaignModules,
+} from "@/components/platform/campaign-modules-form";
+import { AssignTeamMemberForm } from "@/components/campaign/assign-team-member-form";
+import { CampaignTeamMemberList } from "@/components/campaign/campaign-team-member-list";
+import { listCampaignMembersWithProfiles } from "@/lib/campaign/team";
 
 const ETIQUETAS_ESTADO: Record<EstadoCampana, string> = {
   activa: "Activa",
@@ -28,12 +32,6 @@ const SIGUIENTE_ESTADO: Partial<Record<EstadoCampana, EstadoCampana[]>> = {
   activa: ["pausada", "finalizada"],
   pausada: ["activa", "finalizada"],
   finalizada: ["purgada"],
-};
-
-const ETIQUETAS_ROL: Record<string, string> = {
-  lector: "Lector",
-  editor: "Editor",
-  administrador_campana: "Administrador campaña",
 };
 
 export default async function CampaignDetailPage({
@@ -54,11 +52,7 @@ export default async function CampaignDetailPage({
 
   if (!campana) notFound();
 
-  const { data: miembros } = await supabase
-    .from("miembros_campana")
-    .select("id, id_usuario, rol, creado_en")
-    .eq("id_campana", id)
-    .order("creado_en");
+  const miembros = await listCampaignMembersWithProfiles(supabase, id);
 
   const { data: caracteristicas } = await supabase
     .from("caracteristicas_campana")
@@ -79,6 +73,14 @@ export default async function CampaignDetailPage({
       : (campana.procesos_electorales as { nombre: string } | null)?.nombre) ??
     "—";
 
+  const modulos: CampaignModules = {
+    resolutor_captcha: caracteristicas?.resolutor_captcha ?? false,
+    auditoria_e14: caracteristicas?.auditoria_e14 ?? false,
+    whatsapp: caracteristicas?.whatsapp ?? false,
+    telegram: caracteristicas?.telegram ?? false,
+    captura_web: caracteristicas?.captura_web ?? true,
+  };
+
   return (
     <>
       <PageHeader
@@ -89,10 +91,7 @@ export default async function CampaignDetailPage({
       >
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge variant={estado}>{ETIQUETAS_ESTADO[estado]}</StatusBadge>
-          <Link
-            href={`/campaign/${id}`}
-            className="inline-flex h-9 items-center rounded-lg bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
-          >
+          <Link href={`/campaign/${id}`} className={platformButtonClass}>
             Abrir campaña →
           </Link>
         </div>
@@ -126,116 +125,28 @@ export default async function CampaignDetailPage({
           )}
         </Card>
 
-        {caracteristicas && (
-          <Card title="Módulos contratados">
-            <ul className="grid grid-cols-2 gap-3 text-sm">
-              {[
-                ["CAPTCHA Solver", caracteristicas.resolutor_captcha],
-                ["E14 auditoría", caracteristicas.auditoria_e14],
-                ["WhatsApp", caracteristicas.whatsapp],
-                ["Telegram", caracteristicas.telegram],
-                ["Captura web", caracteristicas.captura_web],
-              ].map(([label, activo]) => (
-                <li
-                  key={label as string}
-                  className="flex items-center justify-between rounded-lg border border-neutral-100 bg-neutral-50/50 px-3 py-2"
-                >
-                  <span className="text-neutral-700">{label}</span>
-                  <StatusBadge variant={activo ? "activa" : "default"}>
-                    {activo ? "Sí" : "No"}
-                  </StatusBadge>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+        <CampaignModulesForm campaignId={id} modules={modulos} />
       </div>
 
       <Card
-        title="APIs con costo"
-        description="Twilio, Capsolver e IA E14. El gasto de esta campaña se ve en Uso."
+        title="Equipo asignado"
+        description="Crea usuarios con nombre de usuario o correo y contraseña inicial."
         action={
           <Link
             href={`/platform/campaigns/${id}/integrations`}
-            className="inline-flex h-9 items-center rounded-lg bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
+            className="text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
           >
-            Configurar APIs
+            Integraciones
           </Link>
         }
       >
-        <p className="text-sm text-neutral-600">
-          Telegram se configura en la misma pantalla de integraciones, en la
-          sección aparte «Telegram». Es un canal de captura y no suma costos.
-        </p>
-      </Card>
-
-      <Card
-        title="Equipo asignado"
-        description="Usuarios con acceso a esta campaña."
-        action={
-          <div className="flex gap-4 text-sm">
-            <Link
-              href={`/platform/campaigns/${id}/integrations`}
-              className="font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
-            >
-              Integraciones
-            </Link>
-            <Link
-              href={`/platform/campaigns/${id}/usage`}
-              className="font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
-            >
-              Uso y gastos (APIs)
-            </Link>
-          </div>
-        }
-      >
-        <form action={assignCampaignMemberFormAction}>
-          <input type="hidden" name="id_campana" value={id} />
-          <FormRow>
-            <FormField label="UUID usuario Supabase" className="min-w-[280px]">
-              <input
-                name="id_usuario"
-                type="text"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                required
-                className={`${platformInputClass} font-mono text-xs`}
-              />
-            </FormField>
-            <FormField label="Rol">
-              <select name="rol" className={platformSelectClass}>
-                {Object.entries(ETIQUETAS_ROL).map(([valor, etiqueta]) => (
-                  <option key={valor} value={valor}>
-                    {etiqueta}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <Button type="submit" variant="outline" className="h-10 shrink-0">
-              Asignar
-            </Button>
-          </FormRow>
-        </form>
+        <AssignTeamMemberForm
+          campaignId={id}
+          action={assignCampaignMemberAction}
+        />
 
         <ul className="mt-6 space-y-2">
-          {miembros?.length ? (
-            miembros.map((m) => (
-              <li
-                key={m.id}
-                className="flex items-center justify-between rounded-lg border border-neutral-100 bg-neutral-50/50 px-4 py-3 text-sm"
-              >
-                <span className="font-mono text-xs text-neutral-600">
-                  {m.id_usuario}
-                </span>
-                <StatusBadge variant="default">
-                  {ETIQUETAS_ROL[m.rol] ?? m.rol}
-                </StatusBadge>
-              </li>
-            ))
-          ) : (
-            <li className="rounded-lg border border-dashed border-neutral-200 py-8 text-center text-sm text-neutral-500">
-              Sin miembros asignados.
-            </li>
-          )}
+          <CampaignTeamMemberList members={miembros} />
         </ul>
       </Card>
     </>

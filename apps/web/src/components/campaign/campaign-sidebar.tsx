@@ -13,6 +13,7 @@ import {
   FileSearch,
   LayoutDashboard,
   Megaphone,
+  UserCog,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ type CampaignSidebarProps = {
   logoUrl: string | null;
   logoAlt: string;
   isPlatformOwner: boolean;
+  canManageTeam: boolean;
 };
 
 type CampaignNavItem = {
@@ -56,6 +58,7 @@ export function CampaignSidebar({
   logoUrl,
   logoAlt,
   isPlatformOwner,
+  canManageTeam,
 }: CampaignSidebarProps) {
   const pathname = usePathname();
   const catalogDefaultHref = catalogSegmentPath(
@@ -83,7 +86,7 @@ export function CampaignSidebar({
   }
 
   return (
-    <aside className="platform-sidebar flex h-svh w-64 shrink-0 flex-col border-r border-white/5">
+    <aside className="platform-sidebar sticky top-0 flex h-svh w-64 shrink-0 flex-col self-start border-r border-white/5">
       <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-5 py-5">
         <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
           {logoUrl ? (
@@ -188,6 +191,17 @@ export function CampaignSidebar({
             {label}
           </Link>
         ))}
+
+        {canManageTeam && (
+          <Link
+            href={`/campaign/${campaignId}/equipo`}
+            data-active={isActive(`/campaign/${campaignId}/equipo`)}
+            className="platform-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          >
+            <UserCog className="size-4 shrink-0 opacity-80" />
+            Equipo
+          </Link>
+        )}
       </nav>
 
       <div className="shrink-0 border-t border-white/10 p-4 pb-10">
