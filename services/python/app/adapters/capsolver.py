@@ -29,6 +29,7 @@ def build_create_task_payload(
     *,
     website_url: str | None = None,
     website_key: str | None = None,
+    enterprise: bool = False,
 ) -> dict[str, Any] | None:
     api_key = (config.get("api_key") or "").strip()
     site_key = (website_key or config.get("website_key") or "").strip()
@@ -38,8 +39,17 @@ def build_create_task_payload(
     usar_proxy = config.get("usar_proxy") is not False
     page_url = (website_url or config.get("website_url") or DEFAULT_WEBSITE_URL).strip()
 
+    if enterprise:
+        task_type = (
+            "ReCaptchaV2EnterpriseTask"
+            if usar_proxy
+            else "ReCaptchaV2EnterpriseTaskProxyLess"
+        )
+    else:
+        task_type = "ReCaptchaV2Task" if usar_proxy else "ReCaptchaV2TaskProxyLess"
+
     task: dict[str, Any] = {
-        "type": "ReCaptchaV2Task" if usar_proxy else "ReCaptchaV2TaskProxyLess",
+        "type": task_type,
         "websiteURL": page_url,
         "websiteKey": site_key,
     }
@@ -78,11 +88,13 @@ class CapSolverService:
         *,
         timeout_seconds: int = 300,
         poll_interval: float = 3.0,
+        enterprise: bool = False,
     ) -> str | None:
         payload = build_create_task_payload(
             self.config,
             website_url=website_url,
             website_key=website_key,
+            enterprise=enterprise,
         )
         if not payload:
             return None

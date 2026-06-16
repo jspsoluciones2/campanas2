@@ -59,6 +59,8 @@ class RegisterVoterInput(TypedDict, total=False):
     mesa: str | None
     id_rol: str | None
     id_lider_directo: str | None
+    id_tipo_novedad: str | None
+    detalle_novedad: str | None
     canal_origen: str
 
 
@@ -372,6 +374,10 @@ def _insertar_votante(
         "creado_por": user_id,
         "estado": estado_inicial_votante(client),
     }
+    if payload.get("id_tipo_novedad"):
+        row["id_tipo_novedad"] = payload["id_tipo_novedad"]
+    if payload.get("detalle_novedad"):
+        row["detalle_novedad"] = payload["detalle_novedad"]
     result = client.table("votantes").insert(row).execute()
     if not result.data:
         raise RuntimeError("No se pudo registrar el votante.")

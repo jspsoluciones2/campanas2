@@ -18,6 +18,15 @@ MAIN_MENU_KEYBOARD: dict[str, Any] = {
     "is_persistent": True,
 }
 
+FLOW_KEYBOARD: dict[str, Any] = {
+    "keyboard": [
+        [{"text": "Cancelar"}],
+        [{"text": "Ayuda"}],
+    ],
+    "resize_keyboard": True,
+    "is_persistent": True,
+}
+
 
 def send_message(
     bot_token: str,

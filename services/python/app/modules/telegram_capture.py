@@ -6,7 +6,7 @@ from typing import Any, Callable
 from supabase import Client
 
 from app.adapters.supabase_client import row_or_none
-from app.modules.telegram_api import MAIN_MENU_KEYBOARD, send_message
+from app.modules.telegram_api import FLOW_KEYBOARD, MAIN_MENU_KEYBOARD, send_message
 from app.modules.telegram_catalogs import (
     CATALOGO_LISTA_DIRECTA_MAX,
     TIPOS_DOCUMENTO,
@@ -48,6 +48,7 @@ PASO_LUGAR_TRABAJO = "lugar_trabajo"
 PASO_ROL = "rol"
 PASO_LIDER = "lider_directo"
 PASO_CONFIRMAR = "confirmar"
+PASO_ELEGIR_CORRECCION = "elegir_correccion"
 
 ORDEN_PASOS = [
     PASO_NOMBRES,
@@ -87,13 +88,57 @@ def _reply(
     text: str,
     *,
     menu: bool = False,
+    flow: bool = True,
 ) -> None:
+    if menu:
+        reply_markup = MAIN_MENU_KEYBOARD
+    elif flow:
+        reply_markup = FLOW_KEYBOARD
+    else:
+        reply_markup = None
     send_message(
         bot_token,
         chat_id,
         text,
         parse_mode="Markdown",
-        reply_markup=MAIN_MENU_KEYBOARD if menu else None,
+        reply_markup=reply_markup,
+    )
+
+
+def _sesion_registro_activa(session: dict[str, Any] | None) -> bool:
+    if not session:
+        return False
+    paso = session.get("paso")
+    return paso in (*ORDEN_PASOS, PASO_RECOLECTOR_ROL, PASO_ELEGIR_CORRECCION)
+
+
+def _cancelar_sesion(
+    bot_token: str,
+    client: Client,
+    campaign_id: str,
+    chat_id: int,
+) -> None:
+    _delete_session(client, campaign_id, chat_id)
+    _reply(
+        bot_token,
+        chat_id,
+        "Listo, cancelé lo que estabas haciendo.\n"
+        "Cuando quieras, elige *Mi propio registro* o *Registrar otra persona*.",
+        menu=True,
+        flow=False,
+    )
+
+
+def _reiniciar_sesion(
+    bot_token: str,
+    client: Client,
+    campaign_id: str,
+    chat_id: int,
+    telegram_user_id: int,
+) -> None:
+    _delete_session(client, campaign_id, chat_id)
+    _preguntar_rol_recolector(
+        bot_token, client, campaign_id, chat_id, telegram_user_id
     )
 
 
@@ -167,16 +212,10 @@ def _datos_sesion_recolector(datos: dict[str, Any]) -> dict[str, Any]:
 
 
 def _mensaje_inicio_registro(modo: str) -> str:
-    if modo == MODO_PROPIO:
-        return (
-            "Vamos a registrar *tus* datos en la campaña.\n\n"
-            "¿Cuáles son tus *nombres*?\n"
-            "(Ejemplo: Juan Carlos)"
-        )
     return (
-        "Vamos a registrar a *otra persona*.\n\n"
-        "¿Cuáles son sus *nombres*?\n"
-        "(Ejemplo: Juan Carlos)"
+        f"Vamos a registrar {'tus' if modo == MODO_PROPIO else 'a otra persona'} "
+        f"datos en la campaña.\n\n"
+        "Empezamos con *nombres* y *apellidos*."
     )
 
 
@@ -207,6 +246,10 @@ def _normalizar_comando(text: str) -> str:
         "s": "si",
         "no": "no",
         "n": "no",
+        "reiniciar": "reiniciar",
+        "/reiniciar": "reiniciar",
+        "empezar de nuevo": "reiniciar",
+        "nuevo inicio": "reiniciar",
     }
     return mapa.get(limpio, limpio)
 
@@ -441,10 +484,16 @@ def _iniciar_flujo_registro(
         datos,
         None,
     )
-    _reply(
+    _avanzar_con_pregunta(
         bot_token,
+        client,
+        campaign_id,
         chat_id,
-        _encabezado(PASO_NOMBRES, _mensaje_inicio_registro(modo)),
+        telegram_user_id,
+        None,
+        PASO_NOMBRES,
+        datos,
+        mensaje_previo=_mensaje_inicio_registro(modo),
     )
 
 
@@ -702,18 +751,16 @@ def _avanzar_tras_municipio(
     datos["_municipio"] = municipio
     datos["_municipio_nombre"] = etiqueta
     _limpiar_busqueda_municipio(datos)
-    siguiente = _siguiente_paso(PASO_MUNICIPIO)
-    if siguiente:
-        _avanzar_con_pregunta(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            user_id,
-            siguiente,
-            datos,
-        )
+    _siguiente_despues_de_campo(
+        bot_token,
+        client,
+        campaign_id,
+        chat_id,
+        telegram_user_id,
+        user_id,
+        PASO_MUNICIPIO,
+        datos,
+    )
 
 
 def _procesar_paso_municipio(
@@ -996,18 +1043,16 @@ def _avanzar_tras_puesto(
     else:
         datos.pop("_comuna_nombre", None)
     _limpiar_busqueda_puesto(datos)
-    siguiente = _siguiente_paso(PASO_PUESTO)
-    if siguiente:
-        _avanzar_con_pregunta(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            user_id,
-            siguiente,
-            datos,
-        )
+    _siguiente_despues_de_campo(
+        bot_token,
+        client,
+        campaign_id,
+        chat_id,
+        telegram_user_id,
+        user_id,
+        PASO_PUESTO,
+        datos,
+    )
 
 
 def _procesar_paso_puesto(
@@ -1305,18 +1350,16 @@ def _avanzar_tras_lugar(
     datos["id_lugar_trabajo"] = item_id
     datos["_lugar_nombre"] = etiqueta
     _limpiar_busqueda_lugar(datos)
-    siguiente = _siguiente_paso_votante(PASO_LUGAR_TRABAJO, datos)
-    if siguiente:
-        _avanzar_con_pregunta(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            user_id,
-            siguiente,
-            datos,
-        )
+    _siguiente_despues_de_campo(
+        bot_token,
+        client,
+        campaign_id,
+        chat_id,
+        telegram_user_id,
+        user_id,
+        PASO_LUGAR_TRABAJO,
+        datos,
+    )
 
 
 def _procesar_paso_lugar_trabajo(
@@ -1471,9 +1514,11 @@ def _avanzar_con_pregunta(
     campaign_id: str,
     chat_id: int,
     telegram_user_id: int,
-    user_id: str,
+    user_id: str | None,
     paso: str,
     datos: dict[str, Any],
+    *,
+    mensaje_previo: str | None = None,
 ) -> None:
     paso = _resolver_paso_destino(paso, datos) or PASO_CONFIRMAR
     if paso == PASO_LIDER and _votante_sin_lider_directo(datos):
@@ -1491,14 +1536,55 @@ def _avanzar_con_pregunta(
         _upsert_session(
             client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
         )
+        cuerpo = (
+            f"{mensaje_previo}\n\n" if mensaje_previo else ""
+        ) + (
+            "¿Qué tipo de documento tiene?\n\n"
+            f"{prompt_tipo_documento()}\n\n"
+            "Responde con el número o las siglas (ej: CC)."
+        )
+        _reply(bot_token, chat_id, _encabezado(paso, cuerpo))
+        return
+
+    if paso == PASO_DOCUMENTO:
+        _upsert_session(
+            client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
+        )
         _reply(
             bot_token,
             chat_id,
             _encabezado(
                 paso,
-                "¿Qué tipo de documento tiene?\n\n"
-                f"{prompt_tipo_documento()}\n\n"
-                "Responde con el número o las siglas (ej: CC).",
+                "¿Cuál es el *número de documento*?\n"
+                "(Solo números, sin puntos ni espacios)",
+            ),
+        )
+        return
+
+    if paso == PASO_NOMBRES:
+        _upsert_session(
+            client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
+        )
+        _reply(
+            bot_token,
+            chat_id,
+            _encabezado(
+                paso,
+                "¿Cuáles son sus *nombres*?\n(Ejemplo: Juan Carlos)",
+            ),
+        )
+        return
+
+    if paso == PASO_APELLIDOS:
+        _upsert_session(
+            client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
+        )
+        _reply(
+            bot_token,
+            chat_id,
+            _encabezado(
+                paso,
+                "¿Cuáles son sus *apellidos*?\n(Ejemplo: Pérez Gómez)",
             ),
         )
         return
@@ -1709,6 +1795,186 @@ def _valor_resumen(valor: Any) -> str:
     return str(valor)
 
 
+def _siguiente_despues_de_campo(
+    bot_token: str,
+    client: Client,
+    campaign_id: str,
+    chat_id: int,
+    telegram_user_id: int,
+    user_id: str | None,
+    paso_completado: str,
+    datos: dict[str, Any],
+    *,
+    paso_siguiente_forzado: str | None = None,
+) -> None:
+    if datos.pop("_retorno_confirmacion", False):
+        _mostrar_confirmacion(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            datos,
+        )
+        return
+    siguiente = paso_siguiente_forzado or _siguiente_paso_votante(paso_completado, datos)
+    if siguiente:
+        _avanzar_con_pregunta(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            siguiente,
+            datos,
+        )
+    else:
+        _mostrar_confirmacion(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            datos,
+        )
+
+
+def _opciones_correccion(datos: dict[str, Any]) -> list[tuple[str, str]]:
+    opciones: list[tuple[str, str]] = [
+        ("Tipo de documento", PASO_TIPO_DOCUMENTO),
+        ("Número de documento", PASO_DOCUMENTO),
+        ("Nombres", PASO_NOMBRES),
+        ("Apellidos", PASO_APELLIDOS),
+        ("Fecha de nacimiento", PASO_FECHA_NACIMIENTO),
+        ("Sexo", PASO_SEXO),
+        ("Teléfono", PASO_TELEFONO),
+        ("Dirección", PASO_DIRECCION),
+        ("Municipio", PASO_MUNICIPIO),
+        ("Puesto de votación", PASO_PUESTO),
+        ("Mesa", PASO_MESA),
+        ("Lugar de trabajo", PASO_LUGAR_TRABAJO),
+    ]
+    if not _registro_propio(datos):
+        opciones.append(("Cargo organizacional", PASO_ROL))
+    if not _votante_sin_lider_directo(datos):
+        opciones.append(("Líder directo", PASO_LIDER))
+    opciones.append(("Volver al resumen (sin cambios)", PASO_CONFIRMAR))
+    return opciones
+
+
+def _preparar_correccion_campo(paso: str, datos: dict[str, Any]) -> None:
+    if paso == PASO_MUNICIPIO:
+        datos.pop("id_puesto_votacion", None)
+        datos.pop("_puesto_nombre", None)
+        datos.pop("_comuna_nombre", None)
+        _limpiar_busqueda_municipio(datos)
+        _limpiar_busqueda_puesto(datos)
+    elif paso == PASO_PUESTO:
+        datos.pop("id_puesto_votacion", None)
+        datos.pop("_puesto_nombre", None)
+        datos.pop("_comuna_nombre", None)
+        _limpiar_busqueda_puesto(datos)
+
+
+def _mostrar_menu_correccion(
+    bot_token: str,
+    client: Client,
+    campaign_id: str,
+    chat_id: int,
+    telegram_user_id: int,
+    user_id: str | None,
+    datos: dict[str, Any],
+) -> None:
+    opciones = _opciones_correccion(datos)
+    datos["_correccion_opciones"] = [paso for _, paso in opciones]
+    lineas = [f"{idx}. {etiqueta}" for idx, (etiqueta, _) in enumerate(opciones, start=1)]
+    _upsert_session(
+        client,
+        campaign_id,
+        chat_id,
+        telegram_user_id,
+        PASO_ELEGIR_CORRECCION,
+        datos,
+        user_id,
+    )
+    _reply(
+        bot_token,
+        chat_id,
+        "✏️ *¿Qué dato quieres corregir?*\n\n"
+        + "\n".join(lineas)
+        + "\n\nResponde con el *número* de la opción.\n"
+        "El resto de los datos se conservan.",
+    )
+
+
+def _procesar_elegir_correccion(
+    bot_token: str,
+    client: Client,
+    campaign_id: str,
+    chat_id: int,
+    telegram_user_id: int,
+    user_id: str | None,
+    datos: dict[str, Any],
+    text: str,
+) -> None:
+    opciones = datos.get("_correccion_opciones") or []
+    if not opciones:
+        _mostrar_menu_correccion(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            datos,
+        )
+        return
+
+    try:
+        indice = int("".join(ch for ch in text.strip() if ch.isdigit()))
+    except ValueError:
+        indice = 0
+
+    if indice < 1 or indice > len(opciones):
+        _reply(
+            bot_token,
+            chat_id,
+            f"Responde con un número del 1 al {len(opciones)}.",
+        )
+        return
+
+    paso_destino = str(opciones[indice - 1])
+    datos.pop("_correccion_opciones", None)
+
+    if paso_destino == PASO_CONFIRMAR:
+        _mostrar_confirmacion(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            datos,
+        )
+        return
+
+    _preparar_correccion_campo(paso_destino, datos)
+    datos["_retorno_confirmacion"] = True
+    _avanzar_con_pregunta(
+        bot_token,
+        client,
+        campaign_id,
+        chat_id,
+        telegram_user_id,
+        user_id,
+        paso_destino,
+        datos,
+    )
+
+
 def _mostrar_confirmacion(
     bot_token: str,
     client: Client,
@@ -1738,9 +2004,11 @@ def _mostrar_confirmacion(
         f"• Mesa: {_valor_resumen(datos.get('mesa'))}\n"
         f"• Lugar de trabajo: {_valor_resumen(datos.get('_lugar_nombre'))}\n"
         f"• Rol: {_valor_resumen(datos.get('_rol_nombre'))}\n"
-        f"• Líder directo: {_valor_resumen(datos.get('_lider_nombre'))}\n\n"
-        "¿Los datos están bien?\n"
-        "Responde *SÍ* para guardar o *NO* para cancelar."
+        f"• Líder directo: {_valor_resumen(datos.get('_lider_nombre'))}\n"
+    )
+    resumen += (
+        "\n¿Los datos están bien?\n"
+        "Responde *SÍ* para guardar o *NO* para corregir algún dato."
     )
     _upsert_session(
         client,
@@ -1796,26 +2064,28 @@ def _guardar_y_responder(
     if _votante_sin_lider_directo(datos):
         _limpiar_lider_directo(datos)
 
+    payload: dict[str, Any] = {
+        "nombres": datos.get("nombres", ""),
+        "apellidos": datos.get("apellidos", ""),
+        "documento": datos.get("documento", ""),
+        "tipo_documento": datos.get("tipo_documento", "CC"),
+        "sexo": datos.get("sexo"),
+        "fecha_nacimiento": datos.get("fecha_nacimiento"),
+        "telefono": datos.get("telefono"),
+        "direccion": datos.get("direccion"),
+        "id_lugar_trabajo": datos.get("id_lugar_trabajo"),
+        "id_rol": datos.get("id_rol"),
+        "id_lider_directo": datos.get("id_lider_directo"),
+        "id_puesto_votacion": datos.get("id_puesto_votacion"),
+        "mesa": datos.get("mesa"),
+        "canal_origen": "telegram",
+    }
+
     result = register_voter(
         client,
         campaign_id,
         user_id,
-        {
-            "nombres": datos.get("nombres", ""),
-            "apellidos": datos.get("apellidos", ""),
-            "documento": datos.get("documento", ""),
-            "tipo_documento": datos.get("tipo_documento", "CC"),
-            "sexo": datos.get("sexo"),
-            "fecha_nacimiento": datos.get("fecha_nacimiento"),
-            "telefono": datos.get("telefono"),
-            "direccion": datos.get("direccion"),
-            "id_lugar_trabajo": datos.get("id_lugar_trabajo"),
-            "id_rol": datos.get("id_rol"),
-            "id_lider_directo": datos.get("id_lider_directo"),
-            "id_puesto_votacion": datos.get("id_puesto_votacion"),
-            "mesa": datos.get("mesa"),
-            "canal_origen": "telegram",
-        },
+        payload,
     )
 
     _delete_session(client, campaign_id, chat_id)
@@ -1919,27 +2189,55 @@ def _procesar_paso_registro(
     datos: dict[str, Any],
     text: str,
 ) -> None:
+    comando = _normalizar_comando(text)
+    if comando in ("cancelar", "/cancelar"):
+        _cancelar_sesion(bot_token, client, campaign_id, chat_id)
+        return
+    if comando in ("reiniciar", "/reiniciar"):
+        _reiniciar_sesion(
+            bot_token, client, campaign_id, chat_id, telegram_user_id
+        )
+        return
+
+    if paso == PASO_ELEGIR_CORRECCION:
+        _procesar_elegir_correccion(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            datos,
+            text,
+        )
+        return
+
     if paso == PASO_NOMBRES:
         if len(text) < 2:
             _reply(bot_token, chat_id, "Escribe al menos 2 letras en los nombres.")
             return
         datos["nombres"] = text.strip()
-        _upsert_session(
+        if datos.pop("_retorno_confirmacion", False):
+            _mostrar_confirmacion(
+                bot_token,
+                client,
+                campaign_id,
+                chat_id,
+                telegram_user_id,
+                user_id,
+                datos,
+            )
+            return
+        _siguiente_despues_de_campo(
+            bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
-            PASO_APELLIDOS,
-            datos,
             user_id,
-        )
-        _reply(
-            bot_token,
-            chat_id,
-            _encabezado(
-                PASO_APELLIDOS,
-                "¿Cuáles son sus *apellidos*?\n(Ejemplo: Pérez Gómez)",
-            ),
+            PASO_NOMBRES,
+            datos,
+            paso_siguiente_forzado=PASO_APELLIDOS,
         )
         return
 
@@ -1948,14 +2246,14 @@ def _procesar_paso_registro(
             _reply(bot_token, chat_id, "Escribe al menos 2 letras en los apellidos.")
             return
         datos["apellidos"] = text.strip()
-        _avanzar_con_pregunta(
+        _siguiente_despues_de_campo(
             bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
             user_id,
-            PASO_TIPO_DOCUMENTO,
+            PASO_APELLIDOS,
             datos,
         )
         return
@@ -1971,23 +2269,27 @@ def _procesar_paso_registro(
             )
             return
         datos["tipo_documento"] = codigo
-        _upsert_session(
+        if datos.pop("_retorno_confirmacion", False):
+            _mostrar_confirmacion(
+                bot_token,
+                client,
+                campaign_id,
+                chat_id,
+                telegram_user_id,
+                user_id,
+                datos,
+            )
+            return
+        _siguiente_despues_de_campo(
+            bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
-            PASO_DOCUMENTO,
-            datos,
             user_id,
-        )
-        _reply(
-            bot_token,
-            chat_id,
-            _encabezado(
-                PASO_DOCUMENTO,
-                "¿Cuál es el *número de documento*?\n"
-                "(Solo números, sin puntos ni espacios)",
-            ),
+            PASO_TIPO_DOCUMENTO,
+            datos,
+            paso_siguiente_forzado=PASO_DOCUMENTO,
         )
         return
 
@@ -2001,14 +2303,25 @@ def _procesar_paso_registro(
             )
             return
         datos["documento"] = documento
-        _avanzar_con_pregunta(
+        if datos.pop("_retorno_confirmacion", False):
+            _mostrar_confirmacion(
+                bot_token,
+                client,
+                campaign_id,
+                chat_id,
+                telegram_user_id,
+                user_id,
+                datos,
+            )
+            return
+        _siguiente_despues_de_campo(
             bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
             user_id,
-            PASO_FECHA_NACIMIENTO,
+            PASO_DOCUMENTO,
             datos,
         )
         return
@@ -2050,15 +2363,16 @@ def _procesar_paso_registro(
             )
             return
         datos["fecha_nacimiento"] = fecha
-        _avanzar_con_pregunta(
+        _siguiente_despues_de_campo(
             bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
             user_id,
-            PASO_SEXO,
+            PASO_FECHA_NACIMIENTO,
             datos,
+            paso_siguiente_forzado=PASO_SEXO,
         )
         return
 
@@ -2079,15 +2393,16 @@ def _procesar_paso_registro(
             )
             return
         datos["sexo"] = sexo
-        _avanzar_con_pregunta(
+        _siguiente_despues_de_campo(
             bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
             user_id,
-            PASO_TELEFONO,
+            PASO_SEXO,
             datos,
+            paso_siguiente_forzado=PASO_TELEFONO,
         )
         return
 
@@ -2104,15 +2419,16 @@ def _procesar_paso_registro(
             _reply(bot_token, chat_id, error_tel)
             return
         datos["telefono"] = normalizar_telefono(text.strip())
-        _avanzar_con_pregunta(
+        _siguiente_despues_de_campo(
             bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
             user_id,
-            PASO_DIRECCION,
+            PASO_TELEFONO,
             datos,
+            paso_siguiente_forzado=PASO_DIRECCION,
         )
         return
 
@@ -2125,15 +2441,16 @@ def _procesar_paso_registro(
             )
             return
         datos["direccion"] = text.strip()
-        _avanzar_con_pregunta(
+        _siguiente_despues_de_campo(
             bot_token,
             client,
             campaign_id,
             chat_id,
             telegram_user_id,
             user_id,
-            PASO_MUNICIPIO,
+            PASO_DIRECCION,
             datos,
+            paso_siguiente_forzado=PASO_MUNICIPIO,
         )
         return
 
@@ -2195,18 +2512,16 @@ def _procesar_paso_registro(
         datos["id_rol"] = item_id
         datos["_rol_nombre"] = etiqueta_rol(item) if item else etiqueta
         datos["_voter_rol_nivel"] = item.get("nivel_jerarquia")
-        siguiente = _siguiente_paso_votante(paso, datos)
-        if siguiente:
-            _avanzar_con_pregunta(
-                bot_token,
-                client,
-                campaign_id,
-                chat_id,
-                telegram_user_id,
-                user_id,
-                siguiente,
-                datos,
-            )
+        _siguiente_despues_de_campo(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            PASO_ROL,
+            datos,
+        )
         return
 
     if paso == PASO_LIDER:
@@ -2274,18 +2589,16 @@ def _procesar_paso_registro(
         datos["_lider_nombre"] = (
             f"{lider.get('nombre', '')} — {lider.get('documento', documento_lider)}"
         )
-        siguiente = _siguiente_paso_votante(paso, datos)
-        if siguiente:
-            _avanzar_con_pregunta(
-                bot_token,
-                client,
-                campaign_id,
-                chat_id,
-                telegram_user_id,
-                user_id,
-                siguiente,
-                datos,
-            )
+        _siguiente_despues_de_campo(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            PASO_LIDER,
+            datos,
+        )
         return
 
     if paso == PASO_PUESTO:
@@ -2311,41 +2624,36 @@ def _procesar_paso_registro(
             )
             return
         datos["mesa"] = mesa
-        siguiente = _siguiente_paso_votante(PASO_MESA, datos)
-        if siguiente:
-            _avanzar_con_pregunta(
+        _siguiente_despues_de_campo(
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            PASO_MESA,
+            datos,
+        )
+        return
+
+    if paso == PASO_CONFIRMAR:
+        cmd = _normalizar_comando(text)
+        if cmd == "no":
+            _mostrar_menu_correccion(
                 bot_token,
                 client,
                 campaign_id,
                 chat_id,
                 telegram_user_id,
                 user_id,
-                siguiente,
                 datos,
-            )
-        else:
-            _mostrar_confirmacion(
-                bot_token, client, campaign_id, chat_id, telegram_user_id, user_id, datos
-            )
-        return
-
-    if paso == PASO_CONFIRMAR:
-        cmd = _normalizar_comando(text)
-        if cmd in ("no", "cancelar"):
-            _delete_session(client, campaign_id, chat_id)
-            _reply(
-                bot_token,
-                chat_id,
-                "Registro cancelado. Elige *Mi propio registro* o *Registrar otra persona* "
-                "cuando quieras volver a empezar.",
-                menu=True,
             )
             return
         if cmd not in ("si", "sí", "s", "yes", "ok"):
             _reply(
                 bot_token,
                 chat_id,
-                "Por favor responde *SÍ* para guardar o *NO* para cancelar.",
+                "Por favor responde *SÍ* para guardar o *NO* para corregir algún dato.",
             )
             return
         _guardar_y_responder(
@@ -2400,27 +2708,12 @@ def handle_telegram_update(
     session = _get_session(client, campaign_id, chat_id)
     datos_sesion = dict(session.get("datos_parciales") or {}) if session else {}
 
-    if session and session.get("paso") == PASO_RECOLECTOR_ROL:
-        _procesar_seleccion_rol_recolector(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            text,
-        )
+    if comando in ("cancelar", "/cancelar"):
+        _cancelar_sesion(bot_token, client, campaign_id, chat_id)
         return {"status": "ok"}
 
-    if comando in ("start", "/start"):
-        if session and session.get("paso") in ORDEN_PASOS:
-            _reply(
-                bot_token,
-                chat_id,
-                "Tienes un registro en curso.\n"
-                "Continúa respondiendo o toca *Cancelar* para salir.",
-            )
-            return {"status": "ok"}
-        _preguntar_rol_recolector(
+    if comando in ("reiniciar", "/reiniciar"):
+        _reiniciar_sesion(
             bot_token, client, campaign_id, chat_id, telegram_user_id
         )
         return {"status": "ok"}
@@ -2437,19 +2730,40 @@ def handle_telegram_update(
             "   • *Registrar otra persona* — solo cargos *por debajo* del tuyo\n\n"
             "3️⃣ Responde cada pregunta hasta completar el registro.\n\n"
             "4️⃣ Revisa el resumen y responde *SÍ* para guardar.\n\n"
-            "*Cancelar* detiene el registro en curso.",
-            menu=True,
+            "Si algo no está bien, responde *NO* y elige el dato a corregir.\n"
+            "*Cancelar* detiene el registro y vuelve al menú.\n"
+            "*Reiniciar* borra un borrador incompleto y empieza de cero.",
+            menu=not _sesion_registro_activa(session),
+            flow=_sesion_registro_activa(session),
         )
         return {"status": "ok"}
 
-    if comando in ("cancelar", "/cancelar"):
-        _delete_session(client, campaign_id, chat_id)
-        _reply(
+    if session and session.get("paso") == PASO_RECOLECTOR_ROL:
+        _procesar_seleccion_rol_recolector(
             bot_token,
+            client,
+            campaign_id,
             chat_id,
-            "Listo, cancelé lo que estabas haciendo.\n"
-            "Cuando quieras, elige *Mi propio registro* o *Registrar otra persona*.",
-            menu=True,
+            telegram_user_id,
+            text,
+        )
+        return {"status": "ok"}
+
+    if comando in ("start", "/start"):
+        if _sesion_registro_activa(session):
+            _reply(
+                bot_token,
+                chat_id,
+                "Tienes un registro en curso.\n\n"
+                "• Continúa respondiendo la pregunta actual\n"
+                "• Toca *Cancelar* para salir al menú\n"
+                "• Escribe *Reiniciar* para borrar el borrador y empezar de cero",
+                menu=True,
+                flow=False,
+            )
+            return {"status": "ok"}
+        _preguntar_rol_recolector(
+            bot_token, client, campaign_id, chat_id, telegram_user_id
         )
         return {"status": "ok"}
 

@@ -316,7 +316,6 @@ export function validateApiConfig(
     if (!config.auth_token) return "El Auth Token es obligatorio.";
   }
   if (proveedor === "resolutor_captcha") {
-    if (!config.api_key) return "La API key de CapSolver es obligatoria.";
     if (config.usar_proxy) {
       const c = config as CapsolverConfig;
       if (!c.proxy_type) return "Selecciona el tipo de proxy.";
