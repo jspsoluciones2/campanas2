@@ -5,11 +5,17 @@ import { Card, DataTable, PageHeader } from "@/components/platform/platform-ui";
 
 export default async function CampaignUsagePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
   const supabase = await createClient();
+
+  const volverHref =
+    from === "campana" ? `/platform/campaigns/${id}` : "/platform/campaigns";
 
   const { data: campana } = await supabase
     .from("campanas")
@@ -35,8 +41,8 @@ export default async function CampaignUsagePage({
       <PageHeader
         title="Uso y gastos"
         description="Panel interno — no visible para equipos de campaña."
-        backHref={`/platform/campaigns/${id}`}
-        backLabel={campana.nombre}
+        backHref={volverHref}
+        backLabel="Volver"
       />
 
       <Card

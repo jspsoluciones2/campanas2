@@ -92,7 +92,7 @@ export default async function PlatformHomePage() {
               header: "Campaña",
               cell: (c) => (
                 <Link
-                  href={`/platform/campaigns/${c.id}`}
+                  href={`/platform/campaigns/${c.id}?from=inicio`}
                   className="text-neutral-800 hover:underline"
                 >
                   {c.nombre}

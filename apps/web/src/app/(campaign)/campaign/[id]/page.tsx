@@ -53,15 +53,16 @@ export default async function CampaignDashboardPage({
       <PageHeader
         title={campana.nombre}
         description="Espacio operativo de la campaña — votantes y catálogos."
-      >
-        <StatusBadge
-          variant={
-            campana.estado as "activa" | "pausada" | "finalizada" | "purgada"
-          }
-        >
-          {ETIQUETAS_ESTADO[campana.estado] ?? campana.estado}
-        </StatusBadge>
-      </PageHeader>
+        status={
+          <StatusBadge
+            variant={
+              campana.estado as "activa" | "pausada" | "finalizada" | "purgada"
+            }
+          >
+            {ETIQUETAS_ESTADO[campana.estado] ?? campana.estado}
+          </StatusBadge>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

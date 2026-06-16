@@ -87,11 +87,17 @@ function integrationTableColumns() {
 
 export default async function CampaignIntegrationsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
   const supabase = await createClient();
+
+  const volverHref =
+    from === "campana" ? `/platform/campaigns/${id}` : "/platform/campaigns";
 
   const { data: campana } = await supabase
     .from("campanas")
@@ -144,8 +150,8 @@ export default async function CampaignIntegrationsPage({
       <PageHeader
         title="Integraciones"
         description={`${campana.nombre} · ${nombreCliente} — APIs de pago por campaña; Telegram es canal de captura sin costo medible.`}
-        backHref={`/platform/campaigns/${id}`}
-        backLabel={campana.nombre}
+        backHref={volverHref}
+        backLabel="Volver"
       />
 
       <Card

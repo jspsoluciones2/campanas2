@@ -6,6 +6,8 @@ import { platformBrandToStyle } from "@/lib/platform/brand";
 import { requireCampaignAccess, userCanManageCampaignTeam } from "@/lib/campaign/access";
 import { formatAuthLoginDisplay } from "@/lib/auth/identity";
 import { CampaignSidebar } from "@/components/campaign/campaign-sidebar";
+import { CampaignGestionBack } from "@/components/campaign/campaign-gestion-back";
+import { Suspense } from "react";
 
 export default async function CampaignLayout({
   children,
@@ -57,7 +59,15 @@ export default async function CampaignLayout({
       />
       <div className="platform-main flex min-h-0 min-w-0 flex-1 flex-col">
         <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="mx-auto max-w-6xl space-y-8">{children}</div>
+          <div className="mx-auto max-w-6xl space-y-8">
+            <Suspense fallback={null}>
+              <CampaignGestionBack
+                campaignId={id}
+                isPlatformOwner={Boolean(platformMember)}
+              />
+            </Suspense>
+            {children}
+          </div>
         </main>
       </div>
     </div>

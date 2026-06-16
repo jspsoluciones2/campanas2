@@ -36,11 +36,16 @@ const SIGUIENTE_ESTADO: Partial<Record<EstadoCampana, EstadoCampana[]>> = {
 
 export default async function CampaignDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
   const supabase = await createClient();
+
+  const volverHref = from === "inicio" ? "/platform" : "/platform/campaigns";
 
   const { data: campana } = await supabase
     .from("campanas")
@@ -86,15 +91,17 @@ export default async function CampaignDetailPage({
       <PageHeader
         title={campana.nombre}
         description={`${nombreCliente} · ${nombreProceso}`}
-        backHref="/platform/campaigns"
-        backLabel="Campañas"
+        status={
+          <StatusBadge variant={estado}>
+            {ETIQUETAS_ESTADO[estado]}
+          </StatusBadge>
+        }
+        backHref={volverHref}
+        backLabel="Volver"
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge variant={estado}>{ETIQUETAS_ESTADO[estado]}</StatusBadge>
-          <Link href={`/campaign/${id}`} className={platformButtonClass}>
-            Abrir campaña →
-          </Link>
-        </div>
+        <Link href={`/campaign/${id}?from=gestion`} className={platformButtonClass}>
+          Abrir campaña →
+        </Link>
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -133,7 +140,7 @@ export default async function CampaignDetailPage({
         description="Crea usuarios con nombre de usuario o correo y contraseña inicial."
         action={
           <Link
-            href={`/platform/campaigns/${id}/integrations`}
+            href={`/platform/campaigns/${id}/integrations?from=campana`}
             className="text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:underline"
           >
             Integraciones

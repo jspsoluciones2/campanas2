@@ -141,19 +141,19 @@ export default async function GestionCampanasPage({
               cell: (c) => (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <Link
-                    href={`/platform/campaigns/${c.id}/integrations`}
+                    href={`/platform/campaigns/${c.id}/integrations?from=gestion`}
                     className={platformButtonClass}
                   >
                     APIs
                   </Link>
                   <Link
-                    href={`/platform/campaigns/${c.id}`}
+                    href={`/platform/campaigns/${c.id}?from=gestion`}
                     className={platformButtonClass}
                   >
                     Gestionar
                   </Link>
                   <Link
-                    href={`/campaign/${c.id}`}
+                    href={`/campaign/${c.id}?from=gestion`}
                     className={platformButtonClass}
                   >
                     Abrir campaña

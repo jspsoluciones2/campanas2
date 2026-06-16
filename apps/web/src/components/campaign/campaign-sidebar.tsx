@@ -208,11 +208,11 @@ export function CampaignSidebar({
         <div className="flex flex-col gap-4">
           {isPlatformOwner && (
             <Link
-              href={`/platform/campaigns/${campaignId}`}
-              className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+              href="/platform/campaigns"
+              className="platform-btn flex h-9 w-full items-center justify-center gap-2 text-xs"
             >
-              <ArrowLeft className="size-3.5 shrink-0" />
-              <span>Administración plataforma</span>
+              <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
+              <span>Gestión campañas</span>
             </Link>
           )}
           <div className="space-y-3">

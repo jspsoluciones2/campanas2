@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textoTitulo } from "@/lib/normalize-text";
 
@@ -15,6 +16,7 @@ export const platformButtonClass =
 type PageHeaderProps = {
   title: string;
   description?: string;
+  status?: React.ReactNode;
   backHref?: string;
   backLabel?: string;
   children?: React.ReactNode;
@@ -23,21 +25,14 @@ type PageHeaderProps = {
 export function PageHeader({
   title,
   description,
+  status,
   backHref,
   backLabel,
   children,
 }: PageHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        {backHref && (
-          <Link
-            href={backHref}
-            className="platform-page-subtitle mb-2 inline-flex text-sm transition-opacity hover:opacity-80"
-          >
-            ← {backLabel ?? "Volver"}
-          </Link>
-        )}
+      <div className="min-w-0 flex-1">
         <h1 className="platform-page-title text-2xl tracking-tight">
           {title}
         </h1>
@@ -46,8 +41,22 @@ export function PageHeader({
             {description}
           </p>
         )}
+        {status ? <div className="mt-2">{status}</div> : null}
       </div>
-      {children ? <div className="shrink-0">{children}</div> : null}
+      {(backHref || children) && (
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 self-end sm:pt-0.5">
+          {backHref && (
+            <Link
+              href={backHref}
+              className={cn(platformButtonClass, "gap-2")}
+            >
+              <ArrowLeft className="size-4 shrink-0" aria-hidden />
+              {backLabel ?? "Volver"}
+            </Link>
+          )}
+          {children}
+        </div>
+      )}
     </div>
   );
 }
