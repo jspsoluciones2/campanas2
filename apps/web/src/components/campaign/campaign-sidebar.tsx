@@ -7,7 +7,6 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
-  ArrowLeft,
   BookOpen,
   ChevronDown,
   FileSearch,
@@ -33,7 +32,6 @@ type CampaignSidebarProps = {
   userEmail: string;
   logoUrl: string | null;
   logoAlt: string;
-  isPlatformOwner: boolean;
   canManageTeam: boolean;
 };
 
@@ -57,7 +55,6 @@ export function CampaignSidebar({
   userEmail,
   logoUrl,
   logoAlt,
-  isPlatformOwner,
   canManageTeam,
 }: CampaignSidebarProps) {
   const pathname = usePathname();
@@ -205,34 +202,23 @@ export function CampaignSidebar({
       </nav>
 
       <div className="shrink-0 border-t border-white/10 p-4 pb-10">
-        <div className="flex flex-col gap-4">
-          {isPlatformOwner && (
-            <Link
-              href="/platform/campaigns"
-              className="platform-btn flex h-9 w-full items-center justify-center gap-2 text-xs"
+        <div className="space-y-3">
+          <p
+            className="break-all text-xs leading-relaxed text-neutral-400"
+            title={userEmail}
+          >
+            {userEmail}
+          </p>
+          <form action={signOutAction}>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              className="h-9 w-full border-white/20 bg-transparent text-neutral-200 hover:bg-white/10 hover:text-white"
             >
-              <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
-              <span>Gestión campañas</span>
-            </Link>
-          )}
-          <div className="space-y-3">
-            <p
-              className="break-all text-xs leading-relaxed text-neutral-400"
-              title={userEmail}
-            >
-              {userEmail}
-            </p>
-            <form action={signOutAction}>
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="h-9 w-full border-white/20 bg-transparent text-neutral-200 hover:bg-white/10 hover:text-white"
-              >
-                Cerrar sesión
-              </Button>
-            </form>
-          </div>
+              Cerrar sesión
+            </Button>
+          </form>
         </div>
       </div>
     </aside>

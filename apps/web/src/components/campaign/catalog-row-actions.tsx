@@ -29,10 +29,6 @@ import {
   ComunaBarrioFields,
   type BarrioOption,
 } from "@/components/campaign/comuna-barrio-fields";
-import {
-  etiquetaJerarquia,
-  JERARQUIA_OPCIONES,
-} from "@/lib/campaign/roles";
 
 type ComunaOption = { id: string; nombre: string };
 
@@ -504,17 +500,15 @@ export function RolRowActions({
                     />
                   </FormField>
                   <FormField label="Jerarquía">
-                    <select
+                    <input
+                      type="number"
                       name="nivel_jerarquia"
-                      defaultValue={String(rol.nivel_jerarquia)}
-                      className={platformSelectClass}
-                    >
-                      {JERARQUIA_OPCIONES.map((nivel) => (
-                        <option key={nivel} value={nivel}>
-                          {etiquetaJerarquia(nivel)}
-                        </option>
-                      ))}
-                    </select>
+                      min={1}
+                      step={1}
+                      required
+                      defaultValue={rol.nivel_jerarquia}
+                      className={platformInputClass}
+                    />
                   </FormField>
                 </div>
                 <div className="mt-6 flex justify-end gap-2">

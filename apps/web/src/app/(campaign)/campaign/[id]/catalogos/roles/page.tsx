@@ -4,7 +4,7 @@ import { escapeIlikeTerm } from "@/lib/platform/master-list";
 import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 import {
   etiquetaJerarquia,
-  JERARQUIA_OPCIONES,
+  siguienteNivelJerarquia,
 } from "@/lib/campaign/roles";
 import { createRolFormAction } from "../../actions";
 import {
@@ -23,7 +23,6 @@ import {
   FormRow,
   PageHeader,
   platformInputClass,
-  platformSelectClass,
 } from "@/components/platform/platform-ui";
 
 export default async function CatalogRolesPage({
@@ -67,18 +66,21 @@ export default async function CatalogRolesPage({
   }
 
   const list = rows ?? [];
+
+  const { data: nivelesRows } = await supabase
+    .from("roles")
+    .select("nivel_jerarquia")
+    .eq("id_campana", id);
+  const nivelesExistentes = (nivelesRows ?? []).map((r) => r.nivel_jerarquia);
+  const nivelSugerido = siguienteNivelJerarquia(nivelesExistentes);
+
   const emptyMessage = q
     ? "Sin coincidencias. Prueba otro criterio de búsqueda."
     : "Sin roles. Crea el primero arriba.";
 
   return (
     <>
-      <PageHeader
-        title="Roles"
-        description="Jerarquía organizacional del votante (niveles 1 a 3)."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
-      />
+      <PageHeader title="Roles" />
 
       <CatalogBulkUpload campaignId={id} segment="roles" />
 
@@ -89,17 +91,15 @@ export default async function CatalogRolesPage({
               <input name="nombre" required className={platformInputClass} />
             </FormField>
             <FormField label="Jerarquía">
-              <select
+              <input
+                type="number"
                 name="nivel_jerarquia"
-                className={platformSelectClass}
-                defaultValue="1"
-              >
-                {JERARQUIA_OPCIONES.map((nivel) => (
-                  <option key={nivel} value={nivel}>
-                    {etiquetaJerarquia(nivel)}
-                  </option>
-                ))}
-              </select>
+                min={1}
+                step={1}
+                required
+                defaultValue={nivelSugerido}
+                className={platformInputClass}
+              />
             </FormField>
             <Button type="submit" className="h-10 shrink-0 px-6">
               Crear rol

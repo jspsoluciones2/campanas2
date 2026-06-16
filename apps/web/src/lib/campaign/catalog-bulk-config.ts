@@ -112,7 +112,8 @@ export const CATALOG_BULK_DEFS: Record<CatalogSegment, BulkCatalogDef> = {
   roles: {
     label: "Roles",
     fileName: "plantilla-roles",
-    instructions: "Jerarquía numérica: 1, 2 o 3 (se muestra como Jerarquía 1, Jerarquía 2, etc.).",
+    instructions:
+      "Jerarquía numérica: 1 = más alto. Puede extenderse (2, 3, 4…) según la estructura de la campaña.",
     columns: [
       {
         key: "nombre",

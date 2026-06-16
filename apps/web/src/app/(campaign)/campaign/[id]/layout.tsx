@@ -54,12 +54,11 @@ export default async function CampaignLayout({
         }
         logoUrl={platformBrand.logoUrl}
         logoAlt={platformBrand.textoAltLogo}
-        isPlatformOwner={Boolean(platformMember)}
         canManageTeam={canManageTeam}
       />
       <div className="platform-main flex min-h-0 min-w-0 flex-1 flex-col">
         <main className="min-h-0 flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="mx-auto max-w-6xl space-y-8">
+          <div className="relative mx-auto max-w-6xl space-y-8">
             <Suspense fallback={null}>
               <CampaignGestionBack
                 campaignId={id}

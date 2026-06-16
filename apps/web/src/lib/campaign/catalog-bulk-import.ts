@@ -378,10 +378,10 @@ async function importRoles(
     }
 
     const nivel = Number.parseInt(nivelRaw, 10);
-    if (Number.isNaN(nivel) || nivel < 1 || nivel > 3) {
+    if (Number.isNaN(nivel) || nivel < 1) {
       errors.push({
         row: row.rowNumber,
-        message: "La jerarquía debe ser 1, 2 o 3.",
+        message: "La jerarquía debe ser un número entero mayor o igual a 1.",
       });
       continue;
     }

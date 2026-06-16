@@ -43,7 +43,7 @@ export function CampaignGestionBack({
   if (!visible) return null;
 
   return (
-    <div className="flex justify-end">
+    <div className="absolute right-0 top-0 z-10">
       <Link href="/platform/campaigns" className={`${platformButtonClass} gap-2`}>
         <ArrowLeft className="size-4 shrink-0" aria-hidden />
         Volver

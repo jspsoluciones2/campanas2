@@ -18,7 +18,7 @@ import { parseCatalogWorkbook } from "@/lib/campaign/catalog-bulk-xlsx";
 import { userCanEditCampaign } from "@/lib/campaign/access";
 import { insertPuestoRow, updatePuestoRow } from "@/lib/campaign/puestos";
 import { validarComunaBarrioPuesto } from "@/lib/campaign/comuna-barrio";
-import { registerVoter } from "@/lib/campaign/voter-registry";
+import { validarNivelJerarquia } from "@/lib/campaign/roles";
 import {
   textoTitulo,
   textoTituloOpcional,
@@ -82,7 +82,9 @@ export async function createRolAction(campaignId: string, formData: FormData) {
   const nivel = Number(formData.get("nivel_jerarquia") ?? 1);
 
   if (!nombre) return { error: "El nombre del rol es obligatorio." };
-  if (nivel < 1 || nivel > 3) return { error: "La jerarquía debe ser 1, 2 o 3." };
+
+  const errorJerarquia = validarNivelJerarquia(nivel);
+  if (errorJerarquia) return { error: errorJerarquia };
 
   const { error } = await supabase.from("roles").insert({
     id_campana: campaignId,
@@ -491,7 +493,9 @@ export async function updateRolAction(campaignId: string, formData: FormData) {
 
   if (!id) return { error: "Rol no identificado." };
   if (!nombre) return { error: "El nombre del rol es obligatorio." };
-  if (nivel < 1 || nivel > 3) return { error: "La jerarquía debe ser 1, 2 o 3." };
+
+  const errorJerarquia = validarNivelJerarquia(nivel);
+  if (errorJerarquia) return { error: errorJerarquia };
 
   const { error } = await supabase
     .from("roles")
