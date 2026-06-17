@@ -67,8 +67,6 @@ export default async function CatalogComunasPage({
       <PageHeader
         title="Comunas"
         description="Catálogo territorial de la campaña."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       {formError ? (

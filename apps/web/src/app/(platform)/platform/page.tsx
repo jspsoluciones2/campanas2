@@ -112,12 +112,6 @@ export default async function PlatformHomePage() {
               className: "tabular-nums text-neutral-600",
             },
             {
-              key: "capsolver",
-              header: "Costo Capsolver",
-              cell: (c) => formatCosto(costosPorCampana(c.id, uso).capsolver),
-              className: "tabular-nums text-neutral-600",
-            },
-            {
               key: "total",
               header: "Costo Total",
               cell: (c) => {

@@ -177,14 +177,14 @@ export function CampaignApisManager({
               ? renderIntegrationList(
                   panelIntegrations,
                   "APIs con costo",
-                  "Twilio, Capsolver e IA E14 — consumo en Uso y gastos."
+                  "Twilio e IA E14 — consumo en Uso y gastos."
                 )
               : (
                 <>
                   {renderIntegrationList(
                     billableIntegrations,
                     "APIs con costo",
-                    "Twilio, Capsolver e IA E14 — consumo en Uso y gastos."
+                    "Twilio e IA E14 — consumo en Uso y gastos."
                   )}
                   {renderIntegrationList(
                     telegramIntegrations,

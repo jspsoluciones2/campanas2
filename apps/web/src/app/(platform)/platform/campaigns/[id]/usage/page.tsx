@@ -47,7 +47,7 @@ export default async function CampaignUsagePage({
 
       <Card
         title="Consumo reciente"
-        description="Solo Twilio, Capsolver e IA E14. Telegram no genera costos medibles aquí."
+        description="Solo Twilio e IA E14. Telegram no genera costos medibles aquí."
       >
         <DataTable
           data={rows}

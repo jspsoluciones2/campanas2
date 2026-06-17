@@ -71,8 +71,6 @@ export default async function CatalogTiposNovedadPage({
       <PageHeader
         title="Tipos de novedad"
         description="Catálogo de novedades aplicables a votantes."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       <CatalogBulkUpload campaignId={id} segment="tipos-novedad" />

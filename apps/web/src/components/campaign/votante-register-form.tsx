@@ -3,7 +3,12 @@
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { createVotanteAction } from "@/app/(campaign)/campaign/[id]/actions";
-import { etiquetaJerarquia, JERARQUIA_MIN } from "@/lib/campaign/roles";
+import {
+  etiquetaJerarquia,
+  JERARQUIA_MIN,
+  rolesBajoJerarquia,
+  rolesJerarquiaMaxima,
+} from "@/lib/campaign/roles";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +19,7 @@ import {
 } from "@/components/platform/platform-ui";
 
 const TIPOS_DOCUMENTO = ["CC", "TI", "CE", "PA", "PEP", "PPT"] as const;
+const SIN_LIDER_VALUE = "__sin_lider__";
 
 type Rol = { id: string; nombre: string; nivel_jerarquia: number };
 type Puesto = {
@@ -23,7 +29,13 @@ type Puesto = {
   comunas: { nombre: string } | { nombre: string }[] | null;
 };
 type LugarTrabajo = { id: string; nombre: string };
-type Lider = { id: string; nombres: string; apellidos: string; documento: string };
+type Lider = {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  documento: string;
+  nivel_jerarquia: number | null;
+};
 
 type Props = {
   campaignId: string;
@@ -59,6 +71,7 @@ export function VotanteRegisterForm({
     submitVotante.bind(null, campaignId),
     {}
   );
+  const [liderId, setLiderId] = useState("");
   const [rolId, setRolId] = useState("");
   const [municipio, setMunicipio] = useState("");
   const [puestoId, setPuestoId] = useState("");
@@ -87,10 +100,17 @@ export function VotanteRegisterForm({
     if (Array.isArray(rel)) return rel[0]?.nombre ?? null;
     return rel.nombre;
   }, [puestoId, puestos]);
-  const sinLiderDirecto = useMemo(() => {
-    const rol = roles.find((r) => r.id === rolId);
-    return rol?.nivel_jerarquia === JERARQUIA_MIN;
-  }, [rolId, roles]);
+  const sinLiderDirecto = liderId === SIN_LIDER_VALUE;
+  const liderSeleccionado = useMemo(
+    () => lideres.find((l) => l.id === liderId),
+    [liderId, lideres]
+  );
+  const rolesDisponibles = useMemo(() => {
+    if (!liderId) return [];
+    if (sinLiderDirecto) return rolesJerarquiaMaxima(roles);
+    if (liderSeleccionado?.nivel_jerarquia == null) return [];
+    return rolesBajoJerarquia(roles, liderSeleccionado.nivel_jerarquia);
+  }, [liderId, sinLiderDirecto, liderSeleccionado, roles]);
 
   return (
     <Card title="Nuevo votante" description="Estado inicial: registrado. Duplicados van a cuarentena.">
@@ -185,33 +205,68 @@ export function VotanteRegisterForm({
               ))}
             </select>
           </FormField>
-          <FormField label="Rol organizacional">
+          <FormField label="Líder directo" className="min-w-[220px]">
             <select
-              name="id_rol"
+              name="id_lider_directo"
               className={platformSelectClass}
-              defaultValue=""
-              onChange={(e) => setRolId(e.target.value)}
+              value={liderId}
+              onChange={(e) => {
+                setLiderId(e.target.value);
+                setRolId("");
+              }}
             >
               <option value="">—</option>
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.nombre} ({etiquetaJerarquia(r.nivel_jerarquia)})
-                </option>
-              ))}
-            </select>
-          </FormField>
-          {!sinLiderDirecto ? (
-          <FormField label="Líder directo">
-            <select name="id_lider_directo" className={platformSelectClass} defaultValue="">
-              <option value="">—</option>
+              <option value={SIN_LIDER_VALUE}>
+                Sin líder (jerarquía {JERARQUIA_MIN})
+              </option>
               {lideres.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.apellidos} {l.nombres} — {l.documento}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-neutral-500">
+              Elige quién lidera a esta persona, o «Sin líder» si es del cargo más alto.
+            </p>
           </FormField>
-          ) : null}
+          <FormField label="Rol organizacional" className="min-w-[220px]">
+            <select
+              name="id_rol"
+              className={platformSelectClass}
+              value={rolId}
+              disabled={!liderId}
+              onChange={(e) => setRolId(e.target.value)}
+            >
+              <option value="">
+                {!liderId
+                  ? "—"
+                  : rolesDisponibles.length === 0
+                    ? sinLiderDirecto
+                      ? "Sin roles nivel 1"
+                      : "Sin cargos bajo el líder"
+                    : "—"}
+              </option>
+              {rolesDisponibles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nombre} ({etiquetaJerarquia(r.nivel_jerarquia)})
+                </option>
+              ))}
+            </select>
+            {!liderId ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Disponible después de elegir el líder directo.
+              </p>
+            ) : liderId && !sinLiderDirecto && liderSeleccionado ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Solo cargos por debajo de{" "}
+                {liderSeleccionado.apellidos} {liderSeleccionado.nombres}.
+              </p>
+            ) : sinLiderDirecto ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Solo cargos de jerarquía {JERARQUIA_MIN} (sin líder).
+              </p>
+            ) : null}
+          </FormField>
           <FormField label="Municipio de votación">
             <select
               className={platformSelectClass}
@@ -243,9 +298,9 @@ export function VotanteRegisterForm({
             >
               <option value="">
                 {!municipio
-                  ? "Primero elige municipio"
+                  ? "—"
                   : puestosFiltrados.length === 0
-                    ? "Sin puestos en este municipio"
+                    ? "Sin puestos"
                     : "—"}
               </option>
               {puestosFiltrados.map((p) => (
@@ -254,6 +309,11 @@ export function VotanteRegisterForm({
                 </option>
               ))}
             </select>
+            {!municipio ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Disponible después de elegir el municipio.
+              </p>
+            ) : null}
             {comunaPuesto ? (
               <p className="mt-1 text-xs text-neutral-500">
                 Comuna del puesto: {comunaPuesto}
@@ -265,7 +325,7 @@ export function VotanteRegisterForm({
           </FormField>
           <Button
             type="submit"
-            disabled={pending}
+            disabled={pending || !liderId || !rolId}
             className="h-10 shrink-0 self-end"
           >
             {pending ? "Registrando…" : "Registrar votante"}

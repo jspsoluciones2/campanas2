@@ -19,7 +19,7 @@ const MODULOS: Array<{
   label: string;
   hint?: string;
 }> = [
-  { key: "resolutor_captcha", label: "CAPTCHA Solver" },
+  { key: "resolutor_captcha", label: "Verificación registraduría", hint: "Worker externo (miniapp)" },
   { key: "auditoria_e14", label: "E14 auditoría" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "telegram", label: "Telegram", hint: "Canal de captura" },

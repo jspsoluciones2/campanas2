@@ -205,8 +205,15 @@ def _validar_campos(payload: RegisterVoterInput) -> list[str]:
 def _rol_sin_lider_directo(
     client: Client, campaign_id: str, id_rol: str | None
 ) -> bool:
+    nivel = _nivel_jerarquia_rol(client, campaign_id, id_rol)
+    return nivel == 1
+
+
+def _nivel_jerarquia_rol(
+    client: Client, campaign_id: str, id_rol: str | None
+) -> int | None:
     if not id_rol:
-        return False
+        return None
     result = (
         client.table("roles")
         .select("nivel_jerarquia")
@@ -217,8 +224,35 @@ def _rol_sin_lider_directo(
     )
     row = (result.data or [None])[0]
     if not row or row.get("nivel_jerarquia") is None:
-        return False
-    return int(row["nivel_jerarquia"]) == 1
+        return None
+    return int(row["nivel_jerarquia"])
+
+
+def _nivel_jerarquia_votante(
+    client: Client, campaign_id: str, voter_id: str
+) -> int | None:
+    result = (
+        client.table("votantes")
+        .select("id_rol, roles(nivel_jerarquia)")
+        .eq("id", voter_id)
+        .eq("id_campana", campaign_id)
+        .limit(1)
+        .execute()
+    )
+    row = (result.data or [None])[0]
+    if not row:
+        return None
+    rel = row.get("roles")
+    if isinstance(rel, list):
+        rel = rel[0] if rel else None
+    if rel and rel.get("nivel_jerarquia") is not None:
+        return int(rel["nivel_jerarquia"])
+    return _nivel_jerarquia_rol(client, campaign_id, row.get("id_rol"))
+
+
+def _jerarquia_lider_valida(nivel_lider: int, nivel_votante: int) -> bool:
+    """Jerarquía 1 = más alto. El líder debe estar por encima del votante."""
+    return nivel_lider < nivel_votante
 
 
 def _validar_lider_directo(
@@ -242,7 +276,7 @@ def _validar_lider_directo(
 
     result = (
         client.table("votantes")
-        .select("id, documento")
+        .select("id, documento, id_rol, roles(nivel_jerarquia)")
         .eq("id", id_lider)
         .eq("id_campana", campaign_id)
         .in_("estado", estados_votante_para_consulta(client))
@@ -257,6 +291,23 @@ def _validar_lider_directo(
         documento_votante
     ):
         return "El líder directo no puede ser la misma persona."
+
+    if id_rol:
+        nivel_votante = _nivel_jerarquia_rol(client, campaign_id, id_rol)
+        if nivel_votante is not None:
+            rel = lider.get("roles")
+            if isinstance(rel, list):
+                rel = rel[0] if rel else None
+            nivel_lider = (
+                int(rel["nivel_jerarquia"])
+                if rel and rel.get("nivel_jerarquia") is not None
+                else _nivel_jerarquia_rol(client, campaign_id, lider.get("id_rol"))
+            )
+            if nivel_lider is None or not _jerarquia_lider_valida(nivel_lider, nivel_votante):
+                return (
+                    "Verifica el líder directo o el cargo del votante: "
+                    "el líder debe tener un cargo superior."
+                )
 
     return None
 

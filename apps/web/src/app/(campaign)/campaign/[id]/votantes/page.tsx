@@ -47,7 +47,7 @@ export default async function CampaignVotantesPage({
       .order("nombre"),
     supabase
       .from("votantes")
-      .select("id, nombres, apellidos, documento")
+      .select("id, nombres, apellidos, documento, id_rol, roles(nivel_jerarquia)")
       .eq("id_campana", id)
       .in("estado", ["activo", "registrado", "pendiente_verificacion"])
       .order("apellidos")
@@ -61,13 +61,26 @@ export default async function CampaignVotantesPage({
 
   const rows = votantes ?? [];
 
+  const lideresConJerarquia = (lideres ?? []).map((l) => {
+    const rel = l.roles as
+      | { nivel_jerarquia: number | null }
+      | { nivel_jerarquia: number | null }[]
+      | null;
+    const rol = Array.isArray(rel) ? rel[0] : rel;
+    return {
+      id: l.id,
+      nombres: l.nombres,
+      apellidos: l.apellidos,
+      documento: l.documento,
+      nivel_jerarquia: rol?.nivel_jerarquia ?? null,
+    };
+  });
+
   return (
     <>
       <PageHeader
         title="Votantes"
         description="Registro manual de votantes. Las novedades las completa el equipo al detectar irregularidades."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       <VotanteRegisterForm
@@ -75,7 +88,7 @@ export default async function CampaignVotantesPage({
         roles={roles ?? []}
         puestos={puestos ?? []}
         lugaresTrabajo={lugaresTrabajo ?? []}
-        lideres={lideres ?? []}
+        lideres={lideresConJerarquia}
       />
 
       <Card

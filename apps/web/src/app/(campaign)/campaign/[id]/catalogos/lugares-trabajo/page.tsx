@@ -83,8 +83,6 @@ export default async function CatalogLugaresTrabajoPage({
       <PageHeader
         title="Lugares de trabajo"
         description="Empresas, oficinas o sitios donde trabajan los votantes de la campaña."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       <CatalogBulkUpload campaignId={id} segment="lugares-trabajo" />

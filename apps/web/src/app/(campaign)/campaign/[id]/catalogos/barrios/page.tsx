@@ -85,8 +85,6 @@ export default async function CatalogBarriosPage({
       <PageHeader
         title="Barrios"
         description="Barrios asociados a cada comuna de la campaña."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       <CatalogBulkUpload campaignId={id} segment="barrios" />

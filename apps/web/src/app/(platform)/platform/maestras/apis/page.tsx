@@ -136,7 +136,7 @@ export default async function MaestrasApisPage({
     <>
       <PageHeader
         title="APIs por campaña"
-        description="Twilio, Capsolver e IA E14 con control de gastos por campaña. Telegram se configura aparte como canal sin costo."
+        description="Twilio e IA E14 con control de gastos por campaña. Telegram se configura aparte como canal sin costo."
       />
 
       <Card

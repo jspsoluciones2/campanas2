@@ -7,7 +7,7 @@ export const platformInputClass =
   "platform-input h-10 w-full rounded-lg px-3 text-sm text-neutral-800 placeholder:text-neutral-400";
 
 export const platformSelectClass =
-  "platform-input h-10 rounded-lg px-3 text-sm text-neutral-800";
+  "platform-input h-10 w-full min-w-0 rounded-lg px-3 text-sm text-neutral-800";
 
 /** Enlaces y acciones con apariencia de botón (mismo color que branding). */
 export const platformButtonClass =

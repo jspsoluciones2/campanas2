@@ -6,7 +6,7 @@ import {
   normalizarTelefono,
   similitudNombre,
 } from "@/lib/campaign/voter-normalize";
-import { JERARQUIA_MIN } from "@/lib/campaign/roles";
+import { JERARQUIA_MIN, liderJerarquiaValida } from "@/lib/campaign/roles";
 
 const ESTADOS_ACTIVOS = ["activo", "registrado", "pendiente_verificacion"] as const;
 const UMBRAL_SIMILITUD_NOMBRE = 0.85;
@@ -60,7 +60,8 @@ export async function registerVoter(
     supabase,
     campaignId,
     payload.id_rol,
-    payload.id_lider_directo
+    payload.id_lider_directo,
+    payload.documento
   );
   if (idLiderDirecto.error) {
     return { outcome: "validation_error", errors: [idLiderDirecto.error] };
@@ -158,7 +159,8 @@ async function resolverLiderDirecto(
   supabase: SupabaseClient,
   campaignId: string,
   idRol: string | null | undefined,
-  idLider: string | null | undefined
+  idLider: string | null | undefined,
+  documentoVotante?: string | null
 ): Promise<{ value: string | null; error?: string }> {
   if (!idRol) {
     return { value: idLider || null };
@@ -172,10 +174,68 @@ async function resolverLiderDirecto(
     .maybeSingle();
 
   if (rol?.nivel_jerarquia === JERARQUIA_MIN) {
+    if (idLider) {
+      return {
+        value: null,
+        error: "Los votantes de jerarquía 1 no tienen líder directo.",
+      };
+    }
     return { value: null };
   }
 
-  return { value: idLider || null };
+  if (!idLider) {
+    return { value: null };
+  }
+
+  const { data: lider } = await supabase
+    .from("votantes")
+    .select("id, documento, id_rol, roles(nivel_jerarquia)")
+    .eq("id", idLider)
+    .eq("id_campana", campaignId)
+    .in("estado", [...ESTADOS_ACTIVOS])
+    .maybeSingle();
+
+  if (!lider) {
+    return {
+      value: null,
+      error: "El líder directo debe estar registrado en la campaña.",
+    };
+  }
+
+  if (
+    documentoVotante &&
+    normalizarDocumento(lider.documento) === normalizarDocumento(documentoVotante)
+  ) {
+    return { value: null, error: "El líder directo no puede ser la misma persona." };
+  }
+
+  const nivelVotante = rol?.nivel_jerarquia;
+  if (nivelVotante != null) {
+    const rel = lider.roles;
+    const rolLider = Array.isArray(rel) ? rel[0] : rel;
+    let nivelLider = rolLider?.nivel_jerarquia ?? null;
+    if (nivelLider == null && lider.id_rol) {
+      const { data: rolLiderRow } = await supabase
+        .from("roles")
+        .select("nivel_jerarquia")
+        .eq("id", lider.id_rol)
+        .eq("id_campana", campaignId)
+        .maybeSingle();
+      nivelLider = rolLiderRow?.nivel_jerarquia ?? null;
+    }
+    if (
+      nivelLider == null ||
+      !liderJerarquiaValida(nivelLider, nivelVotante)
+    ) {
+      return {
+        value: null,
+        error:
+          "Verifica el líder directo o el cargo del votante: el líder debe tener un cargo superior.",
+      };
+    }
+  }
+
+  return { value: idLider };
 }
 
 function validarCampos(payload: RegisterVoterInput) {

@@ -19,6 +19,7 @@ import { userCanEditCampaign } from "@/lib/campaign/access";
 import { insertPuestoRow, updatePuestoRow } from "@/lib/campaign/puestos";
 import { validarComunaBarrioPuesto } from "@/lib/campaign/comuna-barrio";
 import { validarNivelJerarquia } from "@/lib/campaign/roles";
+import { registerVoter } from "@/lib/campaign/voter-registry";
 import {
   textoTitulo,
   textoTituloOpcional,
@@ -196,7 +197,8 @@ export async function createVotanteAction(campaignId: string, formData: FormData
     fecha_nacimiento: fechaNacimiento || null,
     direccion,
     id_rol: idRol || null,
-    id_lider_directo: idLider || null,
+    id_lider_directo:
+      idLider === "__sin_lider__" || !idLider ? null : idLider,
     id_puesto_votacion: idPuesto || null,
     id_lugar_trabajo: idLugarTrabajo || null,
     mesa,

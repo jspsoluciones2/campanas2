@@ -93,8 +93,6 @@ export default async function QuarantinePage({
       <PageHeader
         title="Cuarentena"
         description="Duplicados y conflictos detectados entre recolectores de esta campaña."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       <Card

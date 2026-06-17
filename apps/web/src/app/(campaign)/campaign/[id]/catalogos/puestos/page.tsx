@@ -98,8 +98,6 @@ export default async function CatalogPuestosPage({
       <PageHeader
         title="Puestos de votación"
         description="Cupos H/M por puesto. Comuna y barrio obligatorios y deben coincidir."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
 
       {formError ? (

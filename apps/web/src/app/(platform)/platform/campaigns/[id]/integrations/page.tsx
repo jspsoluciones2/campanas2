@@ -156,7 +156,7 @@ export default async function CampaignIntegrationsPage({
 
       <Card
         title="APIs con costo"
-        description="Twilio, Capsolver e IA E14. El consumo se registra en Uso y gastos."
+        description="Twilio e IA E14. El consumo se registra en Uso y gastos."
       >
         <DataTable
           data={apiRows}

@@ -21,3 +21,24 @@ export function validarNivelJerarquia(nivel: number): string | null {
   }
   return null;
 }
+
+/** Jerarquía 1 = más alto. El líder debe estar por encima del votante. */
+export function liderJerarquiaValida(
+  nivelLider: number,
+  nivelVotante: number
+): boolean {
+  return nivelLider < nivelVotante;
+}
+
+export function rolesBajoJerarquia<T extends { nivel_jerarquia: number }>(
+  roles: T[],
+  nivelLider: number
+): T[] {
+  return roles.filter((rol) => rol.nivel_jerarquia > nivelLider);
+}
+
+export function rolesJerarquiaMaxima<T extends { nivel_jerarquia: number }>(
+  roles: T[]
+): T[] {
+  return roles.filter((rol) => rol.nivel_jerarquia === JERARQUIA_MIN);
+}

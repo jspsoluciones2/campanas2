@@ -8,7 +8,6 @@ type UsoRow = {
 export type CostosCampana = {
   twilio: number;
   ia: number;
-  capsolver: number;
   total: number;
 };
 
@@ -32,13 +31,11 @@ export function costosPorCampana(
 
   const twilio = porProveedor("twilio");
   const ia = porProveedor("ia_e14");
-  const capsolver = porProveedor("resolutor_captcha");
 
   return {
     twilio,
     ia,
-    capsolver,
-    total: twilio + ia + capsolver,
+    total: twilio + ia,
   };
 }
 

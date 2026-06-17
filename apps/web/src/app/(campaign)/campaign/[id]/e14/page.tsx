@@ -14,8 +14,6 @@ export default async function CampaignE14Page({
       <PageHeader
         title="E14"
         description="Auditoría electoral compartida — solo lectura para la campaña."
-        backHref={`/campaign/${id}`}
-        backLabel="Inicio campaña"
       />
       <Card>
         <EmptyState

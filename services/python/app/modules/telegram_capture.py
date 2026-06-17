@@ -26,13 +26,11 @@ from app.modules.telegram_catalogs import (
     resolver_sexo,
     resolver_tipo_documento,
     roles_bajo_jerarquia,
-    rol_por_id,
 )
 from app.modules.voter_registry import register_voter
 from app.modules.voter_normalize import error_cc_menor_edad, error_telefono_invalido, normalizar_telefono
 
 PASO_INICIO = "inicio"
-PASO_RECOLECTOR_ROL = "recolector_rol"
 PASO_NOMBRES = "nombres"
 PASO_APELLIDOS = "apellidos"
 PASO_TIPO_DOCUMENTO = "tipo_documento"
@@ -45,8 +43,8 @@ PASO_MUNICIPIO = "municipio"
 PASO_PUESTO = "puesto_votacion"
 PASO_MESA = "mesa"
 PASO_LUGAR_TRABAJO = "lugar_trabajo"
-PASO_ROL = "rol"
 PASO_LIDER = "lider_directo"
+PASO_ROL = "rol"
 PASO_CONFIRMAR = "confirmar"
 PASO_ELEGIR_CORRECCION = "elegir_correccion"
 
@@ -63,8 +61,8 @@ ORDEN_PASOS = [
     PASO_PUESTO,
     PASO_MESA,
     PASO_LUGAR_TRABAJO,
-    PASO_ROL,
     PASO_LIDER,
+    PASO_ROL,
     PASO_CONFIRMAR,
 ]
 
@@ -72,14 +70,6 @@ TOTAL_PREGUNTAS = len(ORDEN_PASOS) - 1
 NIVEL_JERARQUIA_SIN_LIDER = 1
 MODO_PROPIO = "propio"
 MODO_OTROS = "otros"
-
-CAMPOS_RECOLECTOR_SESION = frozenset(
-    {
-        "_nivel_recolector",
-        "_recolector_rol_nombre",
-        "_recolector_id_rol",
-    }
-)
 
 
 def _reply(
@@ -109,7 +99,7 @@ def _sesion_registro_activa(session: dict[str, Any] | None) -> bool:
     if not session:
         return False
     paso = session.get("paso")
-    return paso in (*ORDEN_PASOS, PASO_RECOLECTOR_ROL, PASO_ELEGIR_CORRECCION)
+    return paso in (*ORDEN_PASOS, PASO_ELEGIR_CORRECCION)
 
 
 def _cancelar_sesion(
@@ -137,7 +127,7 @@ def _reiniciar_sesion(
     telegram_user_id: int,
 ) -> None:
     _delete_session(client, campaign_id, chat_id)
-    _preguntar_rol_recolector(
+    _mostrar_menu_principal(
         bot_token, client, campaign_id, chat_id, telegram_user_id
     )
 
@@ -166,7 +156,13 @@ def _registro_propio(datos: dict[str, Any]) -> bool:
     return datos.get("_modo_registro") == MODO_PROPIO
 
 
+def _sin_lider_directo_en_sesion(datos: dict[str, Any]) -> bool:
+    return bool(datos.get("_sin_lider_directo"))
+
+
 def _votante_sin_lider_directo(datos: dict[str, Any]) -> bool:
+    if _sin_lider_directo_en_sesion(datos):
+        return True
     nivel = datos.get("_voter_rol_nivel")
     if nivel is None:
         return False
@@ -176,26 +172,53 @@ def _votante_sin_lider_directo(datos: dict[str, Any]) -> bool:
 def _limpiar_lider_directo(datos: dict[str, Any]) -> None:
     datos.pop("id_lider_directo", None)
     datos.pop("_lider_nombre", None)
+    datos.pop("_lider_rol_nivel", None)
+    datos.pop("_sin_lider_directo", None)
 
 
-def _aplicar_rol_propio(datos: dict[str, Any]) -> None:
-    rol_id = datos.get("_recolector_id_rol")
-    if not rol_id:
-        return
-    datos["id_rol"] = rol_id
-    datos["_rol_nombre"] = datos.get("_recolector_rol_nombre")
-    datos["_voter_rol_nivel"] = datos.get("_nivel_recolector")
+def _limpiar_rol_votante(datos: dict[str, Any]) -> None:
+    datos.pop("id_rol", None)
+    datos.pop("_rol_nombre", None)
+    datos.pop("_voter_rol_nivel", None)
+
+
+def _roles_disponibles_votante(
+    datos: dict[str, Any], roles: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if _sin_lider_directo_en_sesion(datos):
+        return [
+            rol
+            for rol in roles
+            if rol.get("nivel_jerarquia") is not None
+            and int(rol["nivel_jerarquia"]) == NIVEL_JERARQUIA_SIN_LIDER
+        ]
+    nivel_lider = datos.get("_lider_rol_nivel")
+    if nivel_lider is not None:
+        return roles_bajo_jerarquia(roles, int(nivel_lider))
+    return roles
+
+
+def _aplicar_lider_directo(datos: dict[str, Any], lider: dict[str, Any]) -> None:
+    documento = lider.get("documento", "")
+    datos["id_lider_directo"] = lider["id"]
+    datos["_lider_nombre"] = f"{lider.get('nombre', '')} — {documento}"
+    datos["_lider_rol_nivel"] = lider.get("nivel_jerarquia")
+    datos["_sin_lider_directo"] = False
+    _limpiar_rol_votante(datos)
+
+
+def _marcar_sin_lider_directo(datos: dict[str, Any]) -> None:
+    _limpiar_lider_directo(datos)
+    datos["_sin_lider_directo"] = True
+    _limpiar_rol_votante(datos)
 
 
 def _resolver_paso_destino(paso: str, datos: dict[str, Any]) -> str | None:
     while paso:
-        if paso == PASO_ROL and _registro_propio(datos):
-            _aplicar_rol_propio(datos)
-            paso = _siguiente_paso(PASO_ROL)
-            continue
         if paso == PASO_LIDER and _votante_sin_lider_directo(datos):
-            _limpiar_lider_directo(datos)
-            return PASO_CONFIRMAR
+            if datos.get("id_rol"):
+                return PASO_CONFIRMAR
+            return PASO_ROL
         return paso
     return None
 
@@ -205,10 +228,6 @@ def _siguiente_paso_votante(paso_actual: str, datos: dict[str, Any]) -> str | No
     if not siguiente:
         return None
     return _resolver_paso_destino(siguiente, datos)
-
-
-def _datos_sesion_recolector(datos: dict[str, Any]) -> dict[str, Any]:
-    return {k: datos[k] for k in CAMPOS_RECOLECTOR_SESION if k in datos}
 
 
 def _mensaje_inicio_registro(modo: str) -> str:
@@ -294,65 +313,37 @@ def _delete_session(client: Client, campaign_id: str, chat_id: int) -> None:
     ).eq("chat_id", chat_id).execute()
 
 
-def _recolector_listo_en_sesion(datos: dict[str, Any] | None) -> bool:
-    return bool(datos and datos.get("_nivel_recolector") is not None)
-
-
-def _mensaje_bienvenida(datos: dict[str, Any] | None) -> str:
-    if _recolector_listo_en_sesion(datos):
-        cargo = datos.get("_recolector_rol_nombre", "—")
-        return (
-            "¡Hola! 👋\n\n"
-            f"Tu cargo en esta sesión: *{cargo}*\n\n"
-            "Elige una opción:\n"
-            "• *Mi propio registro* — registrarte con tu cargo\n"
-            "• *Registrar otra persona* — solo cargos *por debajo* de tu jerarquía\n\n"
-            "• *Ayuda* — instrucciones\n"
-            "• *Cancelar* — detener el registro en curso"
-        )
+def _mensaje_bienvenida() -> str:
     return (
         "¡Hola! 👋\n\n"
         "Bienvenido al bot de registro de la campaña.\n\n"
-        "Primero dime *cuál es tu cargo* en la organización. "
-        "Te mostraré una lista para que elijas."
+        "Elige una opción:\n"
+        "• *Mi propio registro* — registrarte en la campaña\n"
+        "• *Registrar otra persona* — capturar datos de otra persona\n\n"
+        "• *Ayuda* — instrucciones\n"
+        "• *Cancelar* — detener el registro en curso"
     )
 
 
-def _preguntar_rol_recolector(
+def _mostrar_menu_principal(
     bot_token: str,
     client: Client,
     campaign_id: str,
     chat_id: int,
     telegram_user_id: int,
     *,
-    datos_iniciales: dict[str, Any] | None = None,
+    id_usuario: str | None = None,
 ) -> None:
-    roles = fetch_roles(client, campaign_id)
-    if not roles:
-        _reply(
-            bot_token,
-            chat_id,
-            "Aún no hay cargos configurados en la campaña.\n"
-            "Pide a tu coordinador que cargue los *roles* en la plataforma.",
-        )
-        return
     _upsert_session(
         client,
         campaign_id,
         chat_id,
         telegram_user_id,
-        PASO_RECOLECTOR_ROL,
-        dict(datos_iniciales or {}),
-        None,
+        PASO_INICIO,
+        {},
+        id_usuario,
     )
-    _reply(
-        bot_token,
-        chat_id,
-        "👤 *¿Cuál es tu cargo en la campaña?*\n\n"
-        f"{lista_numerada(roles, etiqueta='rol')}\n\n"
-        "Responde con el *número* de la lista.\n"
-        "Solo podrás registrar personas *por debajo* de tu jerarquía.",
-    )
+    _reply(bot_token, chat_id, _mensaje_bienvenida(), menu=True)
 
 
 def _campaign_telegram_enabled(client: Client, campaign_id: str) -> bool:
@@ -390,91 +381,16 @@ def _integration_config(client: Client, campaign_id: str) -> dict[str, Any] | No
         return {}
 
 
-def _procesar_seleccion_rol_recolector(
-    bot_token: str,
-    client: Client,
-    campaign_id: str,
-    chat_id: int,
-    telegram_user_id: int,
-    text: str,
-) -> None:
-    session = _get_session(client, campaign_id, chat_id)
-    datos_previos = dict(session.get("datos_parciales") or {}) if session else {}
-    tras_rol = datos_previos.pop("_tras_rol", None)
-
-    roles = fetch_roles(client, campaign_id)
-    estado, rol_id, etiqueta = resolver_por_numero_o_texto(
-        roles, text, campo_busqueda="nombre"
-    )
-    if estado == "ambiguo":
-        _reply(bot_token, chat_id, "Hay varias opciones parecidas. Responde con el número exacto.")
-        return
-    if estado != "ok" or not rol_id:
-        _reply(
-            bot_token,
-            chat_id,
-            "No entendí tu respuesta. Elige el número de tu cargo en la lista.",
-        )
-        return
-
-    rol = next((item for item in roles if item["id"] == rol_id), None)
-    if not rol or rol.get("nivel_jerarquia") is None:
-        _reply(bot_token, chat_id, "Ese cargo no está disponible. Intenta de nuevo.")
-        return
-
-    datos = {
-        **datos_previos,
-        "_nivel_recolector": int(rol["nivel_jerarquia"]),
-        "_recolector_rol_nombre": etiqueta,
-        "_recolector_id_rol": rol_id,
-    }
-
-    if tras_rol in (MODO_PROPIO, MODO_OTROS):
-        _iniciar_flujo_registro(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            datos,
-            modo=tras_rol,
-        )
-        return
-
-    _upsert_session(
-        client,
-        campaign_id,
-        chat_id,
-        telegram_user_id,
-        PASO_INICIO,
-        datos,
-        None,
-    )
-    _reply(
-        bot_token,
-        chat_id,
-        f"✅ Perfecto. Quedaste como *{etiqueta}* en esta sesión.\n\n"
-        "Elige *Mi propio registro* o *Registrar otra persona*.",
-        menu=True,
-    )
-
-
 def _iniciar_flujo_registro(
     bot_token: str,
     client: Client,
     campaign_id: str,
     chat_id: int,
     telegram_user_id: int,
-    datos_recolector: dict[str, Any],
     *,
     modo: str,
 ) -> None:
-    datos = {
-        **_datos_sesion_recolector(datos_recolector),
-        "_modo_registro": modo,
-    }
-    if modo == MODO_PROPIO:
-        _aplicar_rol_propio(datos)
+    datos: dict[str, Any] = {"_modo_registro": modo}
     _upsert_session(
         client,
         campaign_id,
@@ -497,25 +413,6 @@ def _iniciar_flujo_registro(
     )
 
 
-def _pedir_cargo_y_registro(
-    bot_token: str,
-    client: Client,
-    campaign_id: str,
-    chat_id: int,
-    telegram_user_id: int,
-    *,
-    modo: str,
-) -> None:
-    _preguntar_rol_recolector(
-        bot_token,
-        client,
-        campaign_id,
-        chat_id,
-        telegram_user_id,
-        datos_iniciales={"_tras_rol": modo},
-    )
-
-
 def _iniciar_registro(
     bot_token: str,
     client: Client,
@@ -526,18 +423,7 @@ def _iniciar_registro(
     *,
     modo: str,
 ) -> None:
-    if _recolector_listo_en_sesion(datos_sesion):
-        _iniciar_flujo_registro(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            datos_sesion,
-            modo=modo,
-        )
-        return
-    _pedir_cargo_y_registro(
+    _iniciar_flujo_registro(
         bot_token,
         client,
         campaign_id,
@@ -1521,11 +1407,6 @@ def _avanzar_con_pregunta(
     mensaje_previo: str | None = None,
 ) -> None:
     paso = _resolver_paso_destino(paso, datos) or PASO_CONFIRMAR
-    if paso == PASO_LIDER and _votante_sin_lider_directo(datos):
-        _mostrar_confirmacion(
-            bot_token, client, campaign_id, chat_id, telegram_user_id, user_id, datos
-        )
-        return
     if paso == PASO_CONFIRMAR:
         _mostrar_confirmacion(
             bot_token, client, campaign_id, chat_id, telegram_user_id, user_id, datos
@@ -1702,71 +1583,6 @@ def _avanzar_con_pregunta(
         )
         return
 
-    if paso == PASO_ROL:
-        if _registro_propio(datos):
-            siguiente = _siguiente_paso_votante(PASO_ROL, datos)
-            if siguiente:
-                _avanzar_con_pregunta(
-                    bot_token,
-                    client,
-                    campaign_id,
-                    chat_id,
-                    telegram_user_id,
-                    user_id,
-                    siguiente,
-                    datos,
-                )
-            return
-        nivel_recolector = datos.get("_nivel_recolector")
-        todos_roles = fetch_roles(client, campaign_id)
-        roles = (
-            roles_bajo_jerarquia(todos_roles, int(nivel_recolector))
-            if nivel_recolector is not None
-            else todos_roles
-        )
-        if not roles:
-            siguiente = _siguiente_paso_votante(PASO_ROL, datos) or PASO_CONFIRMAR
-            _saltar_catalogo_vacio(
-                bot_token,
-                client,
-                campaign_id,
-                chat_id,
-                telegram_user_id,
-                user_id,
-                siguiente,
-                datos,
-                "En tu jerarquía no hay cargos inferiores que asignar. Continuamos…",
-            )
-            if siguiente != PASO_CONFIRMAR:
-                _avanzar_con_pregunta(
-                    bot_token,
-                    client,
-                    campaign_id,
-                    chat_id,
-                    telegram_user_id,
-                    user_id,
-                    siguiente,
-                    datos,
-                )
-            else:
-                _mostrar_confirmacion(bot_token, client, campaign_id, chat_id, telegram_user_id, user_id, datos)
-            return
-        lista = lista_numerada(roles, etiqueta="rol")
-        _upsert_session(
-            client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
-        )
-        _reply(
-            bot_token,
-            chat_id,
-            _pregunta_catalogo(
-                paso,
-                "¿Qué *cargo organizacional* tiene esta persona?\n"
-                "(Solo cargos *por debajo* del tuyo)",
-                lista,
-            ),
-        )
-        return
-
     if paso == PASO_LIDER:
         _upsert_session(
             client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
@@ -1778,7 +1594,54 @@ def _avanzar_con_pregunta(
                 paso,
                 "¿Cuál es el *documento* de su líder directo?\n\n"
                 "Debe ser una persona *ya registrada* en la campaña.\n"
-                "Escribe solo números, sin puntos ni espacios.",
+                "Escribe solo números, sin puntos ni espacios.\n\n"
+                "Si esta persona es del *cargo más alto* (sin líder), "
+                "responde *OMITIR*.",
+            ),
+        )
+        return
+
+    if paso == PASO_ROL:
+        roles = _roles_disponibles_votante(datos, fetch_roles(client, campaign_id))
+        if not roles:
+            mensaje = (
+                "No hay cargos disponibles para esta persona según el líder elegido. "
+                "Corrige el *líder directo* o el *cargo*."
+            )
+            if _sin_lider_directo_en_sesion(datos):
+                mensaje = (
+                    "No hay cargos de jerarquía máxima configurados. "
+                    "Pide a tu coordinador que revise los *roles*."
+                )
+            _reply(bot_token, chat_id, f"⚠️ {mensaje}")
+            _upsert_session(
+                client,
+                campaign_id,
+                chat_id,
+                telegram_user_id,
+                PASO_LIDER if datos.get("id_lider_directo") else PASO_ROL,
+                datos,
+                user_id,
+            )
+            return
+        lista = lista_numerada(roles, etiqueta="rol")
+        lider = datos.get("_lider_nombre", "—")
+        contexto = (
+            f"Líder directo: *{lider}*\n"
+            "Solo puedes elegir cargos *por debajo* del líder.\n\n"
+            if datos.get("id_lider_directo")
+            else "Cargo de *jerarquía máxima* (sin líder directo).\n\n"
+        )
+        _upsert_session(
+            client, campaign_id, chat_id, telegram_user_id, paso, datos, user_id
+        )
+        _reply(
+            bot_token,
+            chat_id,
+            _pregunta_catalogo(
+                paso,
+                f"{contexto}¿Qué *cargo organizacional* tiene esta persona?",
+                lista,
             ),
         )
         return
@@ -1856,17 +1719,19 @@ def _opciones_correccion(datos: dict[str, Any]) -> list[tuple[str, str]]:
         ("Puesto de votación", PASO_PUESTO),
         ("Mesa", PASO_MESA),
         ("Lugar de trabajo", PASO_LUGAR_TRABAJO),
+        ("Líder directo", PASO_LIDER),
+        ("Cargo organizacional", PASO_ROL),
     ]
-    if not _registro_propio(datos):
-        opciones.append(("Cargo organizacional", PASO_ROL))
-    if not _votante_sin_lider_directo(datos):
-        opciones.append(("Líder directo", PASO_LIDER))
+    if _votante_sin_lider_directo(datos):
+        opciones = [item for item in opciones if item[1] != PASO_LIDER]
     opciones.append(("Volver al resumen (sin cambios)", PASO_CONFIRMAR))
     return opciones
 
 
 def _preparar_correccion_campo(paso: str, datos: dict[str, Any]) -> None:
-    if paso == PASO_MUNICIPIO:
+    if paso == PASO_LIDER:
+        _limpiar_rol_votante(datos)
+    elif paso == PASO_MUNICIPIO:
         datos.pop("id_puesto_votacion", None)
         datos.pop("_puesto_nombre", None)
         datos.pop("_comuna_nombre", None)
@@ -2003,8 +1868,8 @@ def _mostrar_confirmacion(
         f"• Comuna (del puesto): {_valor_resumen(datos.get('_comuna_nombre'))}\n"
         f"• Mesa: {_valor_resumen(datos.get('mesa'))}\n"
         f"• Lugar de trabajo: {_valor_resumen(datos.get('_lugar_nombre'))}\n"
-        f"• Rol: {_valor_resumen(datos.get('_rol_nombre'))}\n"
         f"• Líder directo: {_valor_resumen(datos.get('_lider_nombre'))}\n"
+        f"• Rol: {_valor_resumen(datos.get('_rol_nombre'))}\n"
     )
     resumen += (
         "\n¿Los datos están bien?\n"
@@ -2027,40 +1892,10 @@ def _guardar_y_responder(
     client: Client,
     campaign_id: str,
     chat_id: int,
+    telegram_user_id: int,
     user_id: str | None,
     datos: dict[str, Any],
 ) -> None:
-    nivel_recolector = datos.get("_nivel_recolector")
-    if datos.get("id_rol") and nivel_recolector is not None:
-        rol = rol_por_id(client, campaign_id, str(datos["id_rol"]))
-        nivel_votante = int(rol.get("nivel_jerarquia", 99)) if rol else 99
-        nivel_rec = int(nivel_recolector)
-        if _registro_propio(datos):
-            if (
-                not rol
-                or str(datos["id_rol"]) != str(datos.get("_recolector_id_rol", ""))
-                or nivel_votante != nivel_rec
-            ):
-                _reply(
-                    bot_token,
-                    chat_id,
-                    "❌ En tu propio registro el cargo debe ser el tuyo en esta sesión. "
-                    "Toca *Mi propio registro* para intentar de nuevo.",
-                    menu=True,
-                )
-                _delete_session(client, campaign_id, chat_id)
-                return
-        elif nivel_votante <= nivel_rec:
-            _reply(
-                bot_token,
-                chat_id,
-                "❌ No puedes asignar un cargo igual o superior al tuyo. "
-                "Corrige el registro tocando *Registrar otra persona* de nuevo.",
-                menu=True,
-            )
-            _delete_session(client, campaign_id, chat_id)
-            return
-
     if _votante_sin_lider_directo(datos):
         _limpiar_lider_directo(datos)
 
@@ -2088,11 +1923,10 @@ def _guardar_y_responder(
         payload,
     )
 
-    _delete_session(client, campaign_id, chat_id)
-
     nombre = f"{datos.get('nombres', '')} {datos.get('apellidos', '')}".strip()
 
     if result.get("outcome") == "created":
+        _delete_session(client, campaign_id, chat_id)
         _reply(
             bot_token,
             chat_id,
@@ -2102,6 +1936,7 @@ def _guardar_y_responder(
             menu=True,
         )
     elif result.get("outcome") == "quarantined":
+        _delete_session(client, campaign_id, chat_id)
         _reply(
             bot_token,
             chat_id,
@@ -2114,6 +1949,28 @@ def _guardar_y_responder(
         )
     else:
         errors = result.get("errors") or ["No se pudo guardar."]
+        error_text = " ".join(errors).lower()
+        if any(
+            palabra in error_text
+            for palabra in ("líder", "lider", "cargo", "jerarquía", "jerarquia")
+        ):
+            _reply(
+                bot_token,
+                chat_id,
+                f"⚠️ {errors[0]}\n\n"
+                "Corrige el *líder directo* o el *cargo organizacional*.",
+            )
+            _mostrar_menu_correccion(
+                bot_token,
+                client,
+                campaign_id,
+                chat_id,
+                telegram_user_id,
+                user_id,
+                datos,
+            )
+            return
+        _delete_session(client, campaign_id, chat_id)
         _reply(
             bot_token,
             chat_id,
@@ -2481,13 +2338,7 @@ def _procesar_paso_registro(
         return
 
     if paso == PASO_ROL:
-        nivel_recolector = datos.get("_nivel_recolector")
-        todos_roles = fetch_roles(client, campaign_id)
-        items = (
-            roles_bajo_jerarquia(todos_roles, int(nivel_recolector))
-            if nivel_recolector is not None
-            else todos_roles
-        )
+        items = _roles_disponibles_votante(datos, fetch_roles(client, campaign_id))
         estado, item_id, etiqueta = resolver_por_numero_o_texto(
             items, text, campo_busqueda="nombre"
         )
@@ -2507,11 +2358,18 @@ def _procesar_paso_registro(
             return
         item = next((r for r in items if r["id"] == item_id), {})
         if not item:
-            _reply(bot_token, chat_id, "Ese cargo no está permitido para tu jerarquía.")
+            _reply(
+                bot_token,
+                chat_id,
+                "Ese cargo no está permitido con el líder elegido. "
+                "Elige otro de la lista o corrige el líder directo.",
+            )
             return
         datos["id_rol"] = item_id
         datos["_rol_nombre"] = etiqueta_rol(item) if item else etiqueta
         datos["_voter_rol_nivel"] = item.get("nivel_jerarquia")
+        if _votante_sin_lider_directo(datos):
+            _limpiar_lider_directo(datos)
         _siguiente_despues_de_campo(
             bot_token,
             client,
@@ -2526,10 +2384,16 @@ def _procesar_paso_registro(
 
     if paso == PASO_LIDER:
         if es_omitir(text):
-            _reply(
+            _marcar_sin_lider_directo(datos)
+            _siguiente_despues_de_campo(
                 bot_token,
+                client,
+                campaign_id,
                 chat_id,
-                "Escribe el *documento* del líder directo (solo números).",
+                telegram_user_id,
+                user_id,
+                PASO_LIDER,
+                datos,
             )
             return
 
@@ -2542,12 +2406,10 @@ def _procesar_paso_registro(
             )
             return
 
-        max_nivel = datos.get("_voter_rol_nivel")
         estado, lider = buscar_lider_por_documento(
             client,
             campaign_id,
             documento_lider,
-            max_nivel_jerarquia=int(max_nivel) if max_nivel is not None else None,
             documento_excluir=str(datos.get("documento", "")),
         )
 
@@ -2563,31 +2425,23 @@ def _procesar_paso_registro(
             _reply(
                 bot_token,
                 chat_id,
-                "❌ No hay nadie *registrado* con ese documento.\n"
+                "No encontré a nadie *registrado* con ese documento.\n"
                 "Verifica el número o registra primero al líder en la campaña.",
             )
             return
-        if estado == "jerarquia_invalida":
-            nombre_lider = lider.get("nombre", "") if lider else ""
+        if estado == "jerarquia_invalida" or not lider:
             _reply(
                 bot_token,
                 chat_id,
-                f"❌ *{nombre_lider}* no puede ser líder directo de esta persona "
-                "según la jerarquía organizacional.\n"
-                "Escribe el documento de otra persona:",
-            )
-            return
-        if not lider:
-            _reply(
-                bot_token,
-                chat_id,
-                "No se pudo validar el líder. Intenta de nuevo:",
+                "No se pudo validar el líder. Verifica el documento e inténtalo de nuevo:",
             )
             return
 
-        datos["id_lider_directo"] = lider["id"]
-        datos["_lider_nombre"] = (
-            f"{lider.get('nombre', '')} — {lider.get('documento', documento_lider)}"
+        _aplicar_lider_directo(datos, lider)
+        _reply(
+            bot_token,
+            chat_id,
+            f"✅ Líder: *{lider.get('nombre', '')}* — {lider.get('documento', documento_lider)}",
         )
         _siguiente_despues_de_campo(
             bot_token,
@@ -2657,7 +2511,13 @@ def _procesar_paso_registro(
             )
             return
         _guardar_y_responder(
-            bot_token, client, campaign_id, chat_id, user_id, datos
+            bot_token,
+            client,
+            campaign_id,
+            chat_id,
+            telegram_user_id,
+            user_id,
+            datos,
         )
 
 
@@ -2723,29 +2583,16 @@ def handle_telegram_update(
             bot_token,
             chat_id,
             "📖 *Cómo usar este bot*\n\n"
-            "1️⃣ Al abrir el bot te pregunta tu *cargo* "
-            "(nombre y jerarquía) en esa sesión.\n\n"
-            "2️⃣ Elige una opción:\n"
-            "   • *Mi propio registro* — te registras con tu cargo\n"
-            "   • *Registrar otra persona* — solo cargos *por debajo* del tuyo\n\n"
-            "3️⃣ Responde cada pregunta hasta completar el registro.\n\n"
-            "4️⃣ Revisa el resumen y responde *SÍ* para guardar.\n\n"
+            "1️⃣ Elige una opción:\n"
+            "   • *Mi propio registro* — registrarte en la campaña\n"
+            "   • *Registrar otra persona* — capturar datos de otra persona\n\n"
+            "2️⃣ Responde cada pregunta hasta completar el registro.\n\n"
+            "3️⃣ Revisa el resumen y responde *SÍ* para guardar.\n\n"
             "Si algo no está bien, responde *NO* y elige el dato a corregir.\n"
             "*Cancelar* detiene el registro y vuelve al menú.\n"
             "*Reiniciar* borra un borrador incompleto y empieza de cero.",
             menu=not _sesion_registro_activa(session),
             flow=_sesion_registro_activa(session),
-        )
-        return {"status": "ok"}
-
-    if session and session.get("paso") == PASO_RECOLECTOR_ROL:
-        _procesar_seleccion_rol_recolector(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            text,
         )
         return {"status": "ok"}
 
@@ -2762,7 +2609,7 @@ def handle_telegram_update(
                 flow=False,
             )
             return {"status": "ok"}
-        _preguntar_rol_recolector(
+        _mostrar_menu_principal(
             bot_token, client, campaign_id, chat_id, telegram_user_id
         )
         return {"status": "ok"}
@@ -2792,11 +2639,6 @@ def handle_telegram_update(
         return {"status": "ok"}
 
     if not session or session.get("paso") in (PASO_INICIO, None):
-        if not _recolector_listo_en_sesion(datos_sesion):
-            _preguntar_rol_recolector(
-                bot_token, client, campaign_id, chat_id, telegram_user_id
-            )
-            return {"status": "ok"}
         _reply(
             bot_token,
             chat_id,
@@ -2809,28 +2651,6 @@ def handle_telegram_update(
     paso = session.get("paso", PASO_INICIO)
     datos = dict(session.get("datos_parciales") or {})
     user_id = session.get("id_usuario")
-
-    if paso == PASO_RECOLECTOR_ROL:
-        _procesar_seleccion_rol_recolector(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            text,
-        )
-        return {"status": "ok"}
-
-    if not _recolector_listo_en_sesion(datos):
-        _preguntar_rol_recolector(
-            bot_token,
-            client,
-            campaign_id,
-            chat_id,
-            telegram_user_id,
-            datos_iniciales={"_tras_rol": datos.get("_modo_registro") or MODO_OTROS},
-        )
-        return {"status": "ok"}
 
     _procesar_paso_registro(
         bot_token,
