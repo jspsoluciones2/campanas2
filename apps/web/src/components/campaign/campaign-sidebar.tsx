@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
+  BarChart3,
   BookOpen,
   ChevronDown,
   FileSearch,
@@ -44,6 +45,7 @@ type CampaignNavItem = {
 
 const otherNavItems = (id: string): CampaignNavItem[] => [
   { href: `/campaign/${id}/votantes`, label: "Votantes", icon: Users },
+  { href: `/campaign/${id}/reportes`, label: "Reportes", icon: BarChart3 },
   { href: `/campaign/${id}/quarantine`, label: "Cuarentena", icon: AlertTriangle },
   { href: `/campaign/${id}/e14`, label: "E14", icon: FileSearch },
 ];
