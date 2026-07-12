@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
-import { fetchComunasList, COMUNA_LABEL_CREACION } from "@/lib/campaign/comunas";
+import {
+  fetchComunasList,
+  fetchDepartamentos,
+  fetchMunicipios,
+  COMUNA_LABEL_CREACION,
+} from "@/lib/campaign/comunas";
 import { formatCatalogId } from "@/lib/campaign/catalog-codigo";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
 import { createComunaFormAction } from "../../actions";
@@ -12,14 +17,13 @@ import {
 } from "@/components/campaign/catalog-list-controls";
 import { ComunaRowActions } from "@/components/campaign/catalog-row-actions";
 import { CatalogBulkUpload } from "@/components/campaign/catalog-bulk-upload";
+import { DepartamentoMunicipioFields } from "@/components/campaign/departamento-municipio-fields";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   DataTable,
-  FormField,
   FormRow,
   PageHeader,
-  platformInputClass,
 } from "@/components/platform/platform-ui";
 
 export default async function CatalogComunasPage({
@@ -44,6 +48,9 @@ export default async function CatalogComunasPage({
   const to = from + CATALOG_PAGE_SIZE - 1;
 
   const { supabase } = await requireCampaignAccess(campaignId);
+
+  const departamentos = await fetchDepartamentos(supabase);
+  const municipios = await fetchMunicipios(supabase);
 
   const term = escapeIlikeTerm(q);
   const { rows, count: total, error: listError } = await fetchComunasList(
@@ -97,14 +104,21 @@ export default async function CatalogComunasPage({
       >
         <form action={createComunaFormAction.bind(null, campaignId)}>
           <FormRow>
-            <FormField label={COMUNA_LABEL_CREACION}>
+            <DepartamentoMunicipioFields
+              departamentos={departamentos}
+              municipios={municipios}
+            />
+          </FormRow>
+          <FormRow>
+            <div className="flex min-w-[200px] flex-col gap-1.5">
+              <label className="text-sm font-medium text-neutral-700">{COMUNA_LABEL_CREACION}</label>
               <input
                 name="nombre"
                 required
                 placeholder="Nombre de la subdivisión"
-                className={platformInputClass}
+                className="h-10 rounded-lg border border-neutral-300 bg-white px-3 text-sm text-neutral-900 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
-            </FormField>
+            </div>
             <Button type="submit" className="h-10 shrink-0 px-6">
               Crear subdivisión
             </Button>
@@ -137,6 +151,15 @@ export default async function CatalogComunasPage({
               ),
             },
             {
+              key: "municipio",
+              header: "Municipio",
+              cell: (c) => (
+                <span className="text-neutral-600">
+                  {Array.isArray(c.municipios) ? c.municipios[0]?.nombre ?? "—" : c.municipios?.nombre ?? "—"}
+                </span>
+              ),
+            },
+            {
               key: "creado",
               header: "Creado",
               cell: (c) => new Date(c.creado_en).toLocaleDateString("es-CO"),
@@ -147,7 +170,7 @@ export default async function CatalogComunasPage({
               header: "Acciones",
               className: "text-center",
               cell: (c) => (
-                <ComunaRowActions campaignId={campaignId} comuna={c} />
+                <ComunaRowActions campaignId={campaignId} comuna={c} departamentos={departamentos} municipios={municipios} />
               ),
             },
           ]}

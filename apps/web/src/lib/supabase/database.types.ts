@@ -176,18 +176,21 @@ export type Database = {
           creado_en: string
           id: number
           id_campana: number
+          id_municipio: number | null
           nombre: string
         }
         Insert: {
           creado_en?: string
           id?: never
           id_campana: number
+          id_municipio?: number | null
           nombre: string
         }
         Update: {
           creado_en?: string
           id?: never
           id_campana?: number
+          id_municipio?: number | null
           nombre?: string
         }
         Relationships: [
@@ -196,6 +199,13 @@ export type Database = {
             columns: ["id_campana"]
             isOneToOne: false
             referencedRelation: "campanas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunas_id_municipio_fkey"
+            columns: ["id_municipio"]
+            isOneToOne: false
+            referencedRelation: "municipios"
             referencedColumns: ["id"]
           },
         ]

@@ -5,7 +5,28 @@ export type ComunaListRow = {
   id: number;
   nombre: string;
   creado_en: string;
+  id_municipio: number | null;
+  municipios: { nombre: string } | { nombre: string }[] | null;
 };
+
+export type MunicipioOption = { id: number; nombre: string; id_departamento: number };
+export type DepartamentoOption = { id: number; nombre: string };
+
+export async function fetchDepartamentos(supabase: SupabaseClient) {
+  const { data } = await supabase
+    .from("departamentos")
+    .select("id, nombre")
+    .order("nombre");
+  return (data ?? []) as DepartamentoOption[];
+}
+
+export async function fetchMunicipios(supabase: SupabaseClient) {
+  const { data } = await supabase
+    .from("municipios")
+    .select("id, nombre, id_departamento")
+    .order("nombre");
+  return (data ?? []) as MunicipioOption[];
+}
 
 /** Solo UI: la tabla en BD sigue siendo `comunas`. */
 export const COMUNA_LABEL_CREACION = "Comuna / subdivisión administrativa";
@@ -19,7 +40,7 @@ export async function fetchComunasList(
 
   let query = supabase
     .from("comunas")
-    .select("id, nombre, creado_en", { count: "exact" })
+    .select("id, nombre, creado_en, id_municipio, municipios!left(nombre)", { count: "exact" })
     .eq("id_campana", campaignId)
     .order("id");
 

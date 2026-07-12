@@ -46,12 +46,15 @@ function revalidateCampaign(id: number) {
 export async function createComunaAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idMunicipio = Number(formData.get("id_municipio") ?? 0);
 
   if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
+  if (!idMunicipio) return { error: "El municipio es obligatorio." };
 
   const { error } = await supabase.from("comunas").insert({
     id_campana: campaignId,
     nombre,
+    id_municipio: idMunicipio,
   });
 
   const saveError = catalogSaveError(error, "comuna");
@@ -404,13 +407,15 @@ export async function updateComunaAction(campaignId: number, formData: FormData)
   const { supabase } = await requireCampaignAccess(campaignId);
   const id = Number(formData.get("id") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idMunicipio = Number(formData.get("id_municipio") ?? 0);
 
   if (!id) return { error: "Comuna no identificada." };
   if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
+  if (!idMunicipio) return { error: "El municipio es obligatorio." };
 
   const { error } = await supabase
     .from("comunas")
-    .update({ nombre })
+    .update({ nombre, id_municipio: idMunicipio })
     .eq("id", id)
     .eq("id_campana", campaignId);
 

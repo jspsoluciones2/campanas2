@@ -22,8 +22,14 @@ export const CATALOG_BULK_DEFS: Record<CatalogSegment, BulkCatalogDef> = {
     label: "Comunas",
     fileName: "plantilla-comunas",
     instructions:
-      "Una fila por subdivisión territorial. El ID se asigna automáticamente al importar.",
+      "Indica el municipio existente. Una fila por subdivisión territorial. El ID se asigna automáticamente al importar.",
     columns: [
+      {
+        key: "municipio",
+        header: "municipio",
+        required: true,
+        example: "Medellín",
+      },
       {
         key: "nombre",
         header: "nombre",

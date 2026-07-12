@@ -29,6 +29,7 @@ import {
   ComunaBarrioFields,
   type BarrioOption,
 } from "@/components/campaign/comuna-barrio-fields";
+import { DepartamentoMunicipioFields } from "@/components/campaign/departamento-municipio-fields";
 
 type ComunaOption = { id: number; nombre: string };
 
@@ -90,9 +91,13 @@ function ActionButtons({
 export function ComunaRowActions({
   campaignId,
   comuna,
+  departamentos,
+  municipios,
 }: {
   campaignId: number;
-  comuna: { id: number; nombre: string };
+  comuna: { id: number; nombre: string; id_municipio?: number | null };
+  departamentos?: { id: number; nombre: string }[];
+  municipios?: { id: number; nombre: string; id_departamento: number }[];
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -145,6 +150,13 @@ export function ComunaRowActions({
                   <p className="text-sm text-neutral-500">
                     ID: <span className="font-medium text-neutral-900">{formatCatalogId(comuna.id)}</span>
                   </p>
+                  {departamentos && municipios ? (
+                    <DepartamentoMunicipioFields
+                      departamentos={departamentos}
+                      municipios={municipios}
+                      defaultMunicipioId={comuna.id_municipio}
+                    />
+                  ) : null}
                   <FormField label="Nombre">
                     <input
                       name="nombre"

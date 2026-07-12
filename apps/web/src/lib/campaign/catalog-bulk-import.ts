@@ -100,6 +100,14 @@ async function importComunas(
     .select("nombre")
     .eq("id_campana", campaignId);
 
+  const { data: municipiosData } = await supabase
+    .from("municipios")
+    .select("id, nombre");
+
+  const municipioMap = new Map<string, number>(
+    (municipiosData ?? []).map((m) => [claveNombre(m.nombre), m.id])
+  );
+
   const usados = new Set(
     (existentes ?? []).map((row) => claveNombre(row.nombre))
   );
@@ -110,8 +118,24 @@ async function importComunas(
 
   for (const row of rows) {
     const nombre = textoTitulo(row.values.nombre ?? "");
+    const municipioRaw = row.values.municipio ?? "";
+
     if (!nombre) {
       errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
+      continue;
+    }
+
+    if (!municipioRaw) {
+      errors.push({ row: row.rowNumber, message: "El municipio es obligatorio." });
+      continue;
+    }
+
+    const idMunicipio = municipioMap.get(claveNombre(municipioRaw));
+    if (!idMunicipio) {
+      errors.push({
+        row: row.rowNumber,
+        message: `Municipio "${municipioRaw}" no encontrado. Verifica que exista en el catálogo global.`,
+      });
       continue;
     }
 
@@ -124,6 +148,7 @@ async function importComunas(
     const { error } = await supabase.from("comunas").insert({
       id_campana: campaignId,
       nombre,
+      id_municipio: idMunicipio,
     });
 
     if (error) {
