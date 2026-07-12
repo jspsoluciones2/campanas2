@@ -1,4 +1,4 @@
-export function formatCatalogId(codigo: number | null | undefined) {
+export function formatCatalogId(codigo: number | string | null | undefined) {
   if (codigo == null) return "—";
   return String(codigo);
 }

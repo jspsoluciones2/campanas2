@@ -16,9 +16,9 @@ import {
 } from "@/components/platform/platform-ui";
 
 export type MunicipioRow = {
-  id: number;
+  id: string;
   nombre: string;
-  id_departamento: number;
+  id_departamento: string;
   latitud: number | null;
   longitud: number | null;
 };
@@ -28,7 +28,7 @@ export function MunicipioRowActions({
   departamentos,
 }: {
   municipio: MunicipioRow;
-  departamentos: { id: number; nombre: string }[];
+  departamentos: { id: string; nombre: string }[];
 }) {
   const [editing, setEditing] = useState(false);
   const mounted = useIsClient();

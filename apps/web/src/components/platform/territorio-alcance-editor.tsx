@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-type Depto = { id: number; nombre: string };
-type Municipio = { id: number; nombre: string; id_departamento: number };
+type Depto = { id: string; nombre: string };
+type Municipio = { id: string; nombre: string; id_departamento: string };
 
-type AlcanceEntry = { id_departamento: number; id_municipio?: number };
+type AlcanceEntry = { id_departamento: string; id_municipio?: string };
 
 type Props = {
   departamentos: Depto[];
@@ -26,7 +26,7 @@ export function TerritorioAlcanceEditor({
   const initialDeptos = new Set(
     (initialAlcance ?? []).map((a) => a.id_departamento)
   );
-  const initialMunicipios = new Map<number, Set<number>>();
+  const initialMunicipios = new Map<string, Set<string>>();
   for (const a of initialAlcance ?? []) {
     if (a.id_municipio) {
       if (!initialMunicipios.has(a.id_departamento)) {
@@ -37,10 +37,10 @@ export function TerritorioAlcanceEditor({
   }
 
   const [selectedDeptos, setSelectedDeptos] =
-    useState<Set<number>>(initialDeptos);
+    useState<Set<string>>(initialDeptos);
   const [selectedMunicipios, setSelectedMunicipios] =
-    useState<Map<number, Set<number>>>(initialMunicipios);
-  const [expandedDepto, setExpandedDepto] = useState<number | null>(null);
+    useState<Map<string, Set<string>>>(initialMunicipios);
+  const [expandedDepto, setExpandedDepto] = useState<string | null>(null);
 
   const municipiosByDepto = useMemo(
     () =>
@@ -52,12 +52,12 @@ export function TerritorioAlcanceEditor({
           acc.get(m.id_departamento)!.push(m);
           return acc;
         },
-        new Map<number, Municipio[]>()
+        new Map<string, Municipio[]>()
       ),
     [municipios]
   );
 
-  function toggleDepto(id: number) {
+  function toggleDepto(id: string) {
     setSelectedDeptos((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -66,7 +66,7 @@ export function TerritorioAlcanceEditor({
     });
   }
 
-  function toggleMunicipio(deptoId: number, muniId: number) {
+  function toggleMunicipio(deptoId: string, muniId: string) {
     setSelectedMunicipios((prev) => {
       const next = new Map(prev);
       const set = new Set(next.get(deptoId) ?? []);

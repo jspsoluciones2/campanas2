@@ -11,6 +11,7 @@ export const MAESTRAS_BULK_DEFS: Record<string, MaestrasBulkDef> = {
     fileName: "plantilla-departamentos",
     instructions: "Una fila por departamento. Latitud y longitud son opcionales.",
     columns: [
+      { key: "id", header: "id", required: true, example: "04" },
       { key: "nombre", header: "nombre", required: true, example: "Antioquia" },
       { key: "latitud", header: "latitud", example: "6.5", aliases: ["lat"] },
       { key: "longitud", header: "longitud", example: "-75.5", aliases: ["lng", "lon"] },
@@ -21,6 +22,7 @@ export const MAESTRAS_BULK_DEFS: Record<string, MaestrasBulkDef> = {
     fileName: "plantilla-municipios",
     instructions: "Indica el departamento existente. Carga departamentos antes que municipios.",
     columns: [
+      { key: "id", header: "id", required: true, example: "001" },
       { key: "departamento", header: "departamento", required: true, example: "Antioquia" },
       { key: "nombre", header: "nombre", required: true, example: "Medellín" },
       { key: "latitud", header: "latitud", example: "6.2", aliases: ["lat"] },

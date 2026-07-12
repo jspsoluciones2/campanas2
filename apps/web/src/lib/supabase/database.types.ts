@@ -46,18 +46,18 @@ export type Database = {
       campana_territorio: {
         Row: {
           id_campana: number
-          id_departamento: number | null
-          id_municipio: number | null
+          id_departamento: string | null
+          id_municipio: string | null
         }
         Insert: {
           id_campana: number
-          id_departamento?: number | null
-          id_municipio?: number | null
+          id_departamento?: string | null
+          id_municipio?: string | null
         }
         Update: {
           id_campana?: number
-          id_departamento?: number | null
-          id_municipio?: number | null
+          id_departamento?: string | null
+          id_municipio?: string | null
         }
         Relationships: [
           {
@@ -215,19 +215,19 @@ export type Database = {
         Row: {
           creado_en: string
           id: number
-          id_municipio: number | null
+          id_municipio: string | null
           nombre: string
         }
         Insert: {
           creado_en?: string
           id?: never
-          id_municipio?: number | null
+          id_municipio?: string | null
           nombre: string
         }
         Update: {
           creado_en?: string
           id?: never
-          id_municipio?: number | null
+          id_municipio?: string | null
           nombre?: string
         }
         Relationships: [
@@ -560,19 +560,19 @@ export type Database = {
       }
       departamentos: {
         Row: {
-          id: number
+          id: string
           latitud: number | null
           longitud: number | null
           nombre: string
         }
         Insert: {
-          id?: never
+          id: string
           latitud?: number | null
           longitud?: number | null
           nombre: string
         }
         Update: {
-          id?: never
+          id?: string
           latitud?: number | null
           longitud?: number | null
           nombre?: string
@@ -788,22 +788,22 @@ export type Database = {
       }
       municipios: {
         Row: {
-          id: number
-          id_departamento: number
+          id: string
+          id_departamento: string
           latitud: number | null
           longitud: number | null
           nombre: string
         }
         Insert: {
-          id?: never
-          id_departamento: number
+          id: string
+          id_departamento: string
           latitud?: number | null
           longitud?: number | null
           nombre: string
         }
         Update: {
-          id?: never
-          id_departamento?: number
+          id?: string
+          id_departamento?: string
           latitud?: number | null
           longitud?: number | null
           nombre?: string

@@ -5,12 +5,12 @@ export type ComunaListRow = {
   id: number;
   nombre: string;
   creado_en: string;
-  id_municipio: number | null;
+  id_municipio: string | null;
   municipios: { nombre: string } | { nombre: string }[] | null;
 };
 
-export type MunicipioOption = { id: number; nombre: string; id_departamento: number };
-export type DepartamentoOption = { id: number; nombre: string };
+export type MunicipioOption = { id: string; nombre: string; id_departamento: string };
+export type DepartamentoOption = { id: string; nombre: string };
 
 export async function fetchDepartamentos(supabase: SupabaseClient) {
   const { data } = await supabase
@@ -31,14 +31,14 @@ export async function fetchMunicipios(supabase: SupabaseClient) {
 export async function fetchTerritorioAlcance(
   supabase: SupabaseClient,
   campaignId: number
-): Promise<{ departamentos: number[]; municipios: number[] }> {
+): Promise<{ departamentos: string[]; municipios: string[] }> {
   const { data } = await supabase
     .from("campana_territorio")
     .select("id_departamento, id_municipio")
     .eq("id_campana", campaignId);
 
-  const deptos = new Set<number>();
-  const munis = new Set<number>();
+  const deptos = new Set<string>();
+  const munis = new Set<string>();
   for (const row of data ?? []) {
     if (row.id_departamento) deptos.add(row.id_departamento);
     if (row.id_municipio) munis.add(row.id_municipio);
@@ -71,7 +71,7 @@ export async function fetchComunasList(
 
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("id", Number(term));
+      query = query.eq("id", term);
     } else {
       query = query.ilike("nombre", `%${term}%`);
     }

@@ -44,7 +44,7 @@ export default async function MaestrasDepartamentosPage({
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("id", Number(term));
+      query = query.eq("id", term);
     } else {
       query = query.ilike("nombre", `%${term}%`);
     }
@@ -77,6 +77,14 @@ export default async function MaestrasDepartamentosPage({
           id="create-departamento-form"
         >
           <FormRow>
+            <FormField label="ID">
+              <input
+                name="id"
+                placeholder="Ej. 04"
+                required
+                className={platformInputClass}
+              />
+            </FormField>
             <FormField label="Nombre">
               <input
                 name="nombre"

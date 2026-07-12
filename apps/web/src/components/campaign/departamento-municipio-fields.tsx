@@ -7,7 +7,7 @@ import type { DepartamentoOption, MunicipioOption } from "@/lib/campaign/comunas
 type Props = {
   departamentos: DepartamentoOption[];
   municipios: MunicipioOption[];
-  defaultMunicipioId?: number | null;
+  defaultMunicipioId?: string | null;
   departamentoLabel?: string;
   municipioLabel?: string;
   disabled?: boolean;

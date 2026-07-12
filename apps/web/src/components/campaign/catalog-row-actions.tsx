@@ -95,9 +95,9 @@ export function ComunaRowActions({
   municipios,
 }: {
   campaignId: number;
-  comuna: { id: number; nombre: string; id_municipio?: number | null };
-  departamentos?: { id: number; nombre: string }[];
-  municipios?: { id: number; nombre: string; id_departamento: number }[];
+  comuna: { id: number; nombre: string; id_municipio?: string | null };
+  departamentos?: { id: string; nombre: string }[];
+  municipios?: { id: string; nombre: string; id_departamento: string }[];
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();

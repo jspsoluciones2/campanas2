@@ -387,10 +387,12 @@ export async function createDepartamentoAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
+  const id = String(formData.get("id") ?? "").trim();
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
   const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
 
+  if (!id) return { error: "El ID del departamento es obligatorio." };
   if (!nombre) return { error: "El nombre del departamento es obligatorio." };
   if (latitud != null && (Number.isNaN(latitud) || latitud < -90 || latitud > 90)) {
     return { error: "Latitud inválida. Debe ser un número entre -90 y 90." };
@@ -399,7 +401,7 @@ export async function createDepartamentoAction(formData: FormData) {
     return { error: "Longitud inválida. Debe ser un número entre -180 y 180." };
   }
 
-  const { error } = await supabase.from("departamentos").insert({ nombre, latitud, longitud });
+  const { error } = await supabase.from("departamentos").insert({ id, nombre, latitud, longitud });
   if (error) {
     if (error.code === "23505") return { error: "Ya existe un departamento con ese nombre." };
     return { error: error.message };
@@ -414,7 +416,7 @@ export async function updateDepartamentoAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = Number(formData.get("id") ?? 0);
+  const id = String(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
   const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
@@ -436,7 +438,7 @@ export async function updateDepartamentoAction(formData: FormData) {
   return { ok: true };
 }
 
-export async function deleteDepartamentoAction(departamentoId: number) {
+export async function deleteDepartamentoAction(departamentoId: string) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
@@ -458,15 +460,18 @@ export async function createMunicipioAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
+  const id = String(formData.get("id") ?? "").trim();
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const idDepartamento = Number(formData.get("id_departamento") ?? 0);
+  const idDepartamento = String(formData.get("id_departamento") ?? "");
   const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
   const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
 
+  if (!id) return { error: "El ID del municipio es obligatorio." };
   if (!nombre) return { error: "El nombre del municipio es obligatorio." };
   if (!idDepartamento) return { error: "El departamento es obligatorio." };
 
   const { error } = await supabase.from("municipios").insert({
+    id,
     nombre,
     id_departamento: idDepartamento,
     latitud,
@@ -487,9 +492,9 @@ export async function updateMunicipioAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = Number(formData.get("id") ?? 0);
+  const id = String(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const idDepartamento = Number(formData.get("id_departamento") ?? 0);
+  const idDepartamento = String(formData.get("id_departamento") ?? "");
   const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
   const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
 
@@ -511,7 +516,7 @@ export async function updateMunicipioAction(formData: FormData) {
   return { ok: true };
 }
 
-export async function deleteMunicipioAction(municipioId: number) {
+export async function deleteMunicipioAction(municipioId: string) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
@@ -611,7 +616,7 @@ async function syncCampaignAlcance(
   const raw = String(formData.get("alcance") ?? "");
   if (!raw) return;
 
-  let parsed: { tipo: string; entries?: { id_departamento: number; id_municipio?: number }[] };
+  let parsed: { tipo: string; entries?: { id_departamento: string; id_municipio?: string }[] };
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -1434,6 +1439,11 @@ export async function bulkUploadDepartamentosAction(formData: FormData) {
   const errors: { row: number; message: string }[] = [];
 
   for (const row of parsed.rows) {
+    const id = row.values.id ?? "";
+    if (!id) {
+      errors.push({ row: row.rowNumber, message: "El ID es obligatorio." });
+      continue;
+    }
     const nombre = textoTitulo(row.values.nombre ?? "");
     if (!nombre) {
       errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
@@ -1443,7 +1453,7 @@ export async function bulkUploadDepartamentosAction(formData: FormData) {
     const latitud = row.values.latitud ? Number(row.values.latitud) : null;
     const longitud = row.values.longitud ? Number(row.values.longitud) : null;
 
-    const { error } = await supabase.from("departamentos").insert({ nombre, latitud, longitud });
+    const { error } = await supabase.from("departamentos").insert({ id, nombre, latitud, longitud });
     if (error) {
       if (error.code === "23505") {
         errors.push({ row: row.rowNumber, message: `"${nombre}" ya existe.` });
@@ -1483,6 +1493,11 @@ export async function bulkUploadMunicipiosAction(formData: FormData) {
   const errors: { row: number; message: string }[] = [];
 
   for (const row of parsed.rows) {
+    const id = row.values.id ?? "";
+    if (!id) {
+      errors.push({ row: row.rowNumber, message: "El ID es obligatorio." });
+      continue;
+    }
     const nombre = textoTitulo(row.values.nombre ?? "");
     const deptoRaw = row.values.departamento ?? "";
 
@@ -1505,7 +1520,7 @@ export async function bulkUploadMunicipiosAction(formData: FormData) {
     const longitud = row.values.longitud ? Number(row.values.longitud) : null;
 
     const { error } = await supabase.from("municipios").insert({
-      nombre, id_departamento: idDepartamento, latitud, longitud,
+      id, nombre, id_departamento: idDepartamento, latitud, longitud,
     });
     if (error) {
       if (error.code === "23505") {

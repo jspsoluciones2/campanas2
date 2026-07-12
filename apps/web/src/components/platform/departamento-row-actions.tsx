@@ -15,7 +15,7 @@ import {
 } from "@/components/platform/platform-ui";
 
 export type DepartamentoRow = {
-  id: number;
+  id: string;
   nombre: string;
   latitud: number | null;
   longitud: number | null;
