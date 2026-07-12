@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import {
   buildHeaderIndexMap,
+  validateNoUnknownHeaders,
   CATALOG_BULK_DEFS,
   type BulkCatalogDef,
 } from "@/lib/campaign/catalog-bulk-config";
@@ -55,6 +56,11 @@ export function parseCatalogWorkbook(
   const headerMap = buildHeaderIndexMap(headerRow, def);
   if ("error" in headerMap) {
     return { error: headerMap.error };
+  }
+
+  const unknownError = validateNoUnknownHeaders(headerRow, def);
+  if (unknownError) {
+    return { error: unknownError };
   }
 
   const rows: ParsedBulkRow[] = [];

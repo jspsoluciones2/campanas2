@@ -227,3 +227,33 @@ export function buildHeaderIndexMap(
 
   return indexByKey;
 }
+
+export function validateNoUnknownHeaders(
+  headers: string[],
+  def: BulkCatalogDef
+): string | null {
+  const validVariants = new Set<string>();
+  for (const column of def.columns) {
+    validVariants.add(normalizeBulkHeader(column.header));
+    for (const alias of column.aliases ?? []) {
+      validVariants.add(normalizeBulkHeader(alias));
+    }
+  }
+
+  const unknown: string[] = [];
+  for (const header of headers) {
+    const normalized = normalizeBulkHeader(header);
+    if (!normalized) continue;
+    if (!validVariants.has(normalized)) {
+      unknown.push(header.trim());
+    }
+  }
+
+  if (unknown.length === 0) return null;
+
+  const esperadas = def.columns.map((c) => `"${c.header}"`).join(", ");
+  if (unknown.length <= 3) {
+    return `Columnas no reconocidas: ${unknown.map((h) => `"${h}"`).join(", ")}. Las columnas válidas son: ${esperadas}.`;
+  }
+  return `Hay ${unknown.length} columnas no reconocidas. Las columnas válidas son: ${esperadas}.`;
+}
