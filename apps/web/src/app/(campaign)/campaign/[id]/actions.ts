@@ -742,7 +742,7 @@ export async function bulkUploadCatalogAction(
   formData: FormData
 ) {
   if (!isBulkCatalogSegment(segment)) {
-    return { error: "Catálogo no soportado para carga masiva." };
+    return { error: "Catálogo no soportado para carga masiva.", message: "Catálogo no soportado para carga masiva." };
   }
 
   const { supabase, user } = await requireCampaignAccess(campaignId);
@@ -751,21 +751,23 @@ export async function bulkUploadCatalogAction(
     return {
       error:
         "No tienes permiso para importar catálogos. Se requiere rol editor o administrador.",
+      message:
+        "No tienes permiso para importar catálogos. Se requiere rol editor o administrador.",
     };
   }
 
   const archivo = formData.get("archivo");
   if (!(archivo instanceof File) || archivo.size === 0) {
-    return { error: "Selecciona un archivo Excel (.xlsx)." };
+    return { error: "Selecciona un archivo Excel (.xlsx).", message: "Selecciona un archivo Excel (.xlsx)." };
   }
 
   if (archivo.size > 5 * 1024 * 1024) {
-    return { error: "El archivo no puede superar 5 MB." };
+    return { error: "El archivo no puede superar 5 MB.", message: "El archivo no puede superar 5 MB." };
   }
 
   const parsed = parseCatalogWorkbook(await archivo.arrayBuffer(), segment);
   if ("error" in parsed) {
-    return { error: parsed.error };
+    return { error: parsed.error, message: parsed.error };
   }
 
   const result = await importCatalogRows(
