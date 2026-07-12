@@ -10,6 +10,7 @@ import type { CatalogSegment } from "@/lib/campaign/catalog-nav";
 export type ParsedBulkRow = {
   rowNumber: number;
   values: Record<string, string>;
+  raw: string[];
 };
 
 export function buildCatalogTemplateWorkbook(segment: CatalogSegment) {
@@ -24,7 +25,7 @@ export function buildCatalogTemplateWorkbook(segment: CatalogSegment) {
 export function parseCatalogWorkbook(
   buffer: ArrayBuffer,
   segment: CatalogSegment
-): { rows: ParsedBulkRow[] } | { error: string } {
+): { rows: ParsedBulkRow[]; headerRow: string[] } | { error: string } {
   const def = CATALOG_BULK_DEFS[segment];
 
   let workbook: XLSX.WorkBook;
@@ -64,28 +65,65 @@ export function parseCatalogWorkbook(
   }
 
   const rows: ParsedBulkRow[] = [];
+  const cellCount = headerRow.length;
 
   for (let i = 1; i < matrix.length; i++) {
     const rawRow = matrix[i];
-    if (!rawRow || rawRow.every((cell) => String(cell ?? "").trim() === "")) {
-      continue;
-    }
+    const raw = rawRow
+      ? Array.from({ length: cellCount }, (_, ci) =>
+          String(rawRow[ci] ?? "").trim()
+        )
+      : [];
+    if (raw.every((cell) => cell === "")) continue;
 
     const values: Record<string, string> = {};
     for (const column of def.columns) {
       const index = headerMap.get(column.key);
       if (index == null) continue;
-      values[column.key] = String(rawRow[index] ?? "").trim();
+      values[column.key] = raw[index] ?? "";
     }
 
-    rows.push({ rowNumber: i + 1, values });
+    rows.push({ rowNumber: i + 1, values, raw });
   }
 
   if (rows.length === 0) {
     return { error: "No hay filas con datos para importar." };
   }
 
-  return { rows };
+  return { rows, headerRow };
+}
+
+export function buildErrorWorkbook(
+  rawHeaders: string[],
+  errors: { row: number; message: string }[],
+  rows: ParsedBulkRow[]
+): Buffer {
+  const errorByRow = new Map<number, string>();
+  for (const err of errors) {
+    const prev = errorByRow.get(err.row);
+    errorByRow.set(err.row, prev ? `${prev}; ${err.message}` : err.message);
+  }
+
+  const headers = [...rawHeaders, "error"];
+  const data: (string | number | null)[][] = [headers];
+
+  for (const row of rows) {
+    const errMsg = errorByRow.get(row.rowNumber);
+    if (!errMsg) continue;
+    data.push([...row.raw, errMsg]);
+  }
+
+  const sheet = XLSX.utils.aoa_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, "errores");
+
+  const colWidths = rawHeaders.map((h) => ({
+    wch: Math.max(h.length + 2, 20),
+  }));
+  colWidths.push({ wch: 50 });
+  sheet["!cols"] = colWidths;
+
+  return XLSX.write(workbook, { bookType: "xlsx", type: "buffer" }) as Buffer;
 }
 
 export function catalogBulkDef(segment: CatalogSegment): BulkCatalogDef {

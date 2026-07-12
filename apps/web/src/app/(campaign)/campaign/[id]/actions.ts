@@ -14,7 +14,10 @@ import {
 } from "@/lib/campaign/catalog-codigo";
 import { isBulkCatalogSegment } from "@/lib/campaign/catalog-bulk-config";
 import { importCatalogRows } from "@/lib/campaign/catalog-bulk-import";
-import { parseCatalogWorkbook } from "@/lib/campaign/catalog-bulk-xlsx";
+import {
+  parseCatalogWorkbook,
+  buildErrorWorkbook,
+} from "@/lib/campaign/catalog-bulk-xlsx";
 import { userCanEditCampaign } from "@/lib/campaign/access";
 import { insertPuestoRow, updatePuestoRow } from "@/lib/campaign/puestos";
 import { validarComunaBarrioPuesto } from "@/lib/campaign/comuna-barrio";
@@ -776,12 +779,23 @@ export async function bulkUploadCatalogAction(
     revalidateCampaign(campaignId);
   }
 
+  let archivoError: string | undefined;
+  if (result.errors.length > 0) {
+    const errorBuf = buildErrorWorkbook(
+      parsed.headerRow,
+      result.errors,
+      parsed.rows
+    );
+    archivoError = errorBuf.toString("base64");
+  }
+
   return {
     ok: result.ok,
     message: result.message,
     created: result.created,
     skipped: result.skipped,
     errors: result.errors,
+    archivo_error: archivoError,
     error: result.created === 0 && result.errors.length > 0 ? result.message : undefined,
   };
 }

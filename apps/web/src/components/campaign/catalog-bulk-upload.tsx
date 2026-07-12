@@ -15,6 +15,7 @@ type BulkUploadState = {
   created?: number;
   skipped?: number;
   errors?: { row: number; message: string }[];
+  archivo_error?: string;
 };
 
 async function submitBulkUpload(
@@ -86,18 +87,30 @@ export function CatalogBulkUpload({ campaignId, segment }: Props) {
       ) : null}
 
       {state.errors && state.errors.length > 0 ? (
-        <ul className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/50 px-3 py-2 text-sm text-amber-950">
-          {state.errors.slice(0, 20).map((item) => (
-            <li key={`${item.row}-${item.message}`}>
-              Fila {item.row}: {item.message}
-            </li>
-          ))}
-          {state.errors.length > 20 ? (
-            <li className="text-amber-700">
-              … y {state.errors.length - 20} error(es) más.
-            </li>
+        <>
+          <ul className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/50 px-3 py-2 text-sm text-amber-950">
+            {state.errors.slice(0, 20).map((item) => (
+              <li key={`${item.row}-${item.message}`}>
+                Fila {item.row}: {item.message}
+              </li>
+            ))}
+            {state.errors.length > 20 ? (
+              <li className="text-amber-700">
+                … y {state.errors.length - 20} error(es) más.
+              </li>
+            ) : null}
+          </ul>
+          {state.archivo_error ? (
+            <a
+              href={`data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${state.archivo_error}`}
+              download={`errores-${segment}.xlsx`}
+              className={`${platformButtonClass} mt-2 gap-1.5 px-3`}
+            >
+              <Download className="size-4 shrink-0" />
+              Descargar errores
+            </a>
           ) : null}
-        </ul>
+        </>
       ) : null}
     </Card>
   );
