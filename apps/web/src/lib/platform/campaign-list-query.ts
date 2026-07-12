@@ -13,12 +13,12 @@ export async function matchingCampaignIds(
   if (!term) return null;
 
   if (isNumericSearchTerm(term)) {
-    const codigo = Number(term);
-    const { data: byCodigo } = await supabase
+    const idBuscado = Number(term);
+    const { data: byId } = await supabase
       .from("campanas")
       .select("id")
-      .eq("codigo", codigo);
-    return (byCodigo ?? []).map((row) => row.id);
+      .eq("id", idBuscado);
+    return (byId ?? []).map((row) => row.id);
   }
 
   const pattern = `%${term}%`;

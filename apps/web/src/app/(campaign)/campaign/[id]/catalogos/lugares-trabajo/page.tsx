@@ -51,16 +51,16 @@ export default async function CatalogLugaresTrabajoPage({
   let query = supabase
     .from("lugares_trabajo")
     .select(
-      "id, nombre, codigo, direccion, id_comuna, id_barrio, creado_en, comunas(nombre), barrios(nombre)",
+      "id, nombre, direccion, id_comuna, id_barrio, creado_en, comunas(nombre), barrios(nombre)",
       { count: "exact" }
     )
     .eq("id_campana", id)
-    .order("codigo");
+    .order("id");
 
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.or(`nombre.ilike.%${term}%,direccion.ilike.%${term}%`);
     }
@@ -129,7 +129,7 @@ export default async function CatalogLugaresTrabajoPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (l) => formatCatalogId(l.codigo),
+              cell: (l) => formatCatalogId(l.id),
             },
             {
               key: "nombre",

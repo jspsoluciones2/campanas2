@@ -41,14 +41,14 @@ export default async function CatalogTiposNovedadPage({
 
   let query = supabase
     .from("tipos_novedad")
-    .select("id, novedad, codigo, creado_en", { count: "exact" })
+    .select("id, novedad, creado_en", { count: "exact" })
     .eq("id_campana", campaignId)
-    .order("codigo");
+    .order("id");
 
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.ilike("novedad", `%${term}%`);
     }
@@ -104,7 +104,7 @@ export default async function CatalogTiposNovedadPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (t) => formatCatalogId(t.codigo),
+              cell: (t) => formatCatalogId(t.id),
             },
             {
               key: "novedad",

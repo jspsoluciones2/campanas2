@@ -191,7 +191,7 @@ export default async function CatalogPuestosPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (p) => formatCatalogId(p.codigo),
+              cell: (p) => formatCatalogId(p.id),
             },
             {
               key: "nombre",

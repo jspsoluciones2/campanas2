@@ -51,16 +51,16 @@ export default async function CatalogBarriosPage({
   let query = supabase
     .from("barrios")
     .select(
-      "id, nombre, codigo, id_comuna, creado_en, comunas!inner(nombre, id_campana)",
+      "id, nombre, id_comuna, creado_en, comunas!inner(nombre, id_campana)",
       { count: "exact" }
     )
     .eq("comunas.id_campana", campaignId)
-    .order("codigo");
+    .order("id");
 
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.ilike("nombre", `%${term}%`);
     }
@@ -140,7 +140,7 @@ export default async function CatalogBarriosPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (b) => formatCatalogId(b.codigo),
+              cell: (b) => formatCatalogId(b.id),
             },
             {
               key: "nombre",

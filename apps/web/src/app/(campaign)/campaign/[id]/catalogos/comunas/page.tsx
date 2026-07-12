@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
-import { fetchComunasList, renderComunaCodigo, COMUNA_LABEL_CREACION } from "@/lib/campaign/comunas";
+import { fetchComunasList, COMUNA_LABEL_CREACION } from "@/lib/campaign/comunas";
+import { formatCatalogId } from "@/lib/campaign/catalog-codigo";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
 import { createComunaFormAction } from "../../actions";
 import {
@@ -126,7 +127,7 @@ export default async function CatalogComunasPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (c) => renderComunaCodigo(c),
+              cell: (c) => formatCatalogId(c.id),
             },
             {
               key: "nombre",

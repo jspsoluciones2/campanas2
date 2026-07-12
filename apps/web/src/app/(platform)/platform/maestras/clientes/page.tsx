@@ -39,15 +39,15 @@ export default async function MaestrasClientesPage({
   let query = supabase
     .from("clientes")
     .select(
-      "id, codigo, nombre, documento, telefono, correo_contacto, id_usuario, creado_en",
+      "id, nombre, documento, telefono, correo_contacto, id_usuario, creado_en",
       { count: "exact" }
     )
-    .order("codigo", { ascending: true });
+    .order("id", { ascending: true });
 
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       const pattern = `%${term}%`;
       query = query.or(
@@ -98,7 +98,7 @@ export default async function MaestrasClientesPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (c) => formatCatalogId(c.codigo),
+              cell: (c) => formatCatalogId(c.id),
             },
             {
               key: "nombre",

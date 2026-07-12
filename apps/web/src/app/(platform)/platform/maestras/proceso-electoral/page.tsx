@@ -27,13 +27,13 @@ export default async function MaestrasProcesoElectoralPage({
 
   let query = supabase
     .from("procesos_electorales")
-    .select("id, codigo, nombre, fecha_eleccion, creado_en", { count: "exact" })
-    .order("codigo", { ascending: true });
+    .select("id, nombre, fecha_eleccion, creado_en", { count: "exact" })
+    .order("id", { ascending: true });
 
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.ilike("nombre", `%${term}%`);
     }
@@ -74,7 +74,7 @@ export default async function MaestrasProcesoElectoralPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (p) => formatCatalogId(p.codigo),
+              cell: (p) => formatCatalogId(p.id),
             },
             {
               key: "nombre",

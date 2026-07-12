@@ -30,7 +30,6 @@ const ETIQUETAS_ESTADO: Record<string, string> = {
 
 type CampanaRow = {
   id: number;
-  codigo: number | null;
   nombre: string;
   estado: string;
   clientes: { nombre: string } | { nombre: string }[] | null;
@@ -66,10 +65,10 @@ export default async function MaestrasCampanasPage({
   let campanasQuery = supabase
     .from("campanas")
     .select(
-      "id, codigo, nombre, estado, creado_en, clientes(nombre), procesos_electorales(nombre)",
+      "id, nombre, estado, creado_en, clientes(nombre), procesos_electorales(nombre)",
       { count: "exact" }
     )
-    .order("codigo", { ascending: true });
+    .order("id", { ascending: true });
 
   if (matchingIds) {
     campanasQuery = campanasQuery.in("id", matchingIds);
@@ -124,7 +123,7 @@ export default async function MaestrasCampanasPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (c) => formatCatalogId(c.codigo),
+              cell: (c) => formatCatalogId(c.id),
             },
             {
               key: "nombre",

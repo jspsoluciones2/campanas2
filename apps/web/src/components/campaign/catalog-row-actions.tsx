@@ -92,7 +92,7 @@ export function ComunaRowActions({
   comuna,
 }: {
   campaignId: number;
-  comuna: { id: number; nombre: string; codigo?: number | null };
+  comuna: { id: number; nombre: string };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -143,7 +143,7 @@ export function ComunaRowActions({
                 </h3>
                 <div className="mt-5 space-y-3">
                   <p className="text-sm text-neutral-500">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(comuna.codigo)}</span>
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(comuna.id)}</span>
                   </p>
                   <FormField label="Nombre">
                     <input
@@ -195,7 +195,6 @@ export function LugarTrabajoRowActions({
   lugar: {
     id: number;
     nombre: string;
-    codigo: number | null;
     direccion: string | null;
     id_comuna: string | null;
     id_barrio: string | null;
@@ -254,7 +253,7 @@ export function LugarTrabajoRowActions({
                 </h3>
                 <div className="mt-5 space-y-3">
                   <p className="text-sm text-neutral-500">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(lugar.codigo)}</span>
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(lugar.id)}</span>
                   </p>
                   <FormField label="Nombre">
                     <input
@@ -324,7 +323,7 @@ export function BarrioRowActions({
   comunas,
 }: {
   campaignId: number;
-  barrio: { id: number; nombre: string; codigo: number | null; id_comuna: number };
+  barrio: { id: number; nombre: string; id_comuna: number };
   comunas: ComunaOption[];
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
@@ -376,7 +375,7 @@ export function BarrioRowActions({
                 </h3>
                 <div className="mt-5 space-y-3">
                   <p className="text-sm text-neutral-500">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(barrio.codigo)}</span>
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(barrio.id)}</span>
                   </p>
                   <FormField label="Comuna">
                     <select
@@ -438,7 +437,7 @@ export function RolRowActions({
   rol,
 }: {
   campaignId: number;
-  rol: { id: number; nombre: string; codigo: number | null; nivel_jerarquia: number };
+  rol: { id: number; nombre: string; nivel_jerarquia: number };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -489,7 +488,7 @@ export function RolRowActions({
                 </h3>
                 <div className="mt-5 space-y-3">
                   <p className="text-sm text-neutral-500">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(rol.codigo)}</span>
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(rol.id)}</span>
                   </p>
                   <FormField label="Nombre">
                     <input
@@ -548,7 +547,7 @@ export function TipoNovedadRowActions({
   tipo,
 }: {
   campaignId: number;
-  tipo: { id: number; novedad: string; codigo: number | null };
+  tipo: { id: number; novedad: string };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -601,7 +600,7 @@ export function TipoNovedadRowActions({
                   Editar tipo de novedad
                 </h3>
                 <p className="mt-5 text-sm text-neutral-500">
-                  ID: <span className="font-medium text-neutral-900">{formatCatalogId(tipo.codigo)}</span>
+                  ID: <span className="font-medium text-neutral-900">{formatCatalogId(tipo.id)}</span>
                 </p>
                 <FormField label="Descripción" className="mt-3">
                   <input
@@ -655,7 +654,6 @@ export function PuestoRowActions({
     nombre: string;
     municipio: string | null;
     direccion: string | null;
-    codigo: number | null;
     id_comuna: number | null;
     id_barrio: number | null;
     votantes_hombres_admite: number;
@@ -714,7 +712,7 @@ export function PuestoRowActions({
                 </h3>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <p className="text-sm text-neutral-500 sm:col-span-2">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(puesto.codigo)}</span>
+                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(puesto.id)}</span>
                   </p>
                   <FormField label="Nombre">
                     <input

@@ -1,10 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
+import { isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 
 export type ComunaListRow = {
   id: number;
   nombre: string;
-  codigo: number | null;
   creado_en: string;
 };
 
@@ -20,13 +19,13 @@ export async function fetchComunasList(
 
   let query = supabase
     .from("comunas")
-    .select("id, nombre, codigo, creado_en", { count: "exact" })
+    .select("id, nombre, creado_en", { count: "exact" })
     .eq("id_campana", campaignId)
-    .order("codigo");
+    .order("id");
 
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.ilike("nombre", `%${term}%`);
     }
@@ -41,6 +40,3 @@ export async function fetchComunasList(
   };
 }
 
-export function renderComunaCodigo(comuna: ComunaListRow) {
-  return formatCatalogId(comuna.codigo);
-}

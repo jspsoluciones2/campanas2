@@ -45,14 +45,14 @@ export default async function CatalogRolesPage({
 
   let query = supabase
     .from("roles")
-    .select("id, nombre, codigo, nivel_jerarquia, creado_en", { count: "exact" })
+    .select("id, nombre, nivel_jerarquia, creado_en", { count: "exact" })
     .eq("id_campana", campaignId)
-    .order("codigo");
+    .order("id");
 
   const term = escapeIlikeTerm(q);
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.ilike("nombre", `%${term}%`);
     }
@@ -124,7 +124,7 @@ export default async function CatalogRolesPage({
             {
               key: "codigo",
               header: "ID",
-              cell: (r) => formatCatalogId(r.codigo),
+              cell: (r) => formatCatalogId(r.id),
             },
             {
               key: "nombre",

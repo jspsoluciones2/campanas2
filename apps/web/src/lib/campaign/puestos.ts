@@ -6,7 +6,6 @@ export type PuestoListRow = {
   nombre: string;
   municipio: string | null;
   direccion: string | null;
-  codigo: number | null;
   id_comuna: number | null;
   id_barrio: number | null;
   votantes_hombres_admite: number;
@@ -18,7 +17,7 @@ export type PuestoListRow = {
 };
 
 const PUESTO_SELECT =
-  "id, nombre, municipio, direccion, codigo, id_comuna, id_barrio, votantes_hombres_admite, votantes_mujeres_admite, cantidad_mesas, creado_en, comunas(nombre), barrios(nombre)";
+  "id, nombre, municipio, direccion, id_comuna, id_barrio, votantes_hombres_admite, votantes_mujeres_admite, cantidad_mesas, creado_en, comunas(nombre), barrios(nombre)";
 
 export async function fetchPuestosList(
   supabase: SupabaseClient,
@@ -31,11 +30,11 @@ export async function fetchPuestosList(
     .from("puestos_votacion")
     .select(PUESTO_SELECT, { count: "exact" })
     .eq("id_campana", campaignId)
-    .order("codigo");
+    .order("id");
 
   if (term) {
     if (isNumericSearchTerm(term)) {
-      query = query.eq("codigo", Number(term));
+      query = query.eq("id", Number(term));
     } else {
       query = query.or(
         `nombre.ilike.%${term}%,municipio.ilike.%${term}%,direccion.ilike.%${term}%`

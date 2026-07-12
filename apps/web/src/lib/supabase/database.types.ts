@@ -16,21 +16,18 @@ export type Database = {
     Tables: {
       barrios: {
         Row: {
-          codigo: number
           creado_en: string
           id: number
           id_comuna: number
           nombre: string
         }
         Insert: {
-          codigo: number
           creado_en?: string
           id?: never
           id_comuna: number
           nombre: string
         }
         Update: {
-          codigo?: number
           creado_en?: string
           id?: never
           id_comuna?: number
@@ -49,7 +46,6 @@ export type Database = {
       campanas: {
         Row: {
           actualizado_en: string
-          codigo: number
           creado_en: string
           estado: Database["public"]["Enums"]["estado_campana"]
           finalizado_en: string | null
@@ -62,7 +58,6 @@ export type Database = {
         }
         Insert: {
           actualizado_en?: string
-          codigo: number
           creado_en?: string
           estado?: Database["public"]["Enums"]["estado_campana"]
           finalizado_en?: string | null
@@ -75,7 +70,6 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
-          codigo?: number
           creado_en?: string
           estado?: Database["public"]["Enums"]["estado_campana"]
           finalizado_en?: string | null
@@ -144,7 +138,6 @@ export type Database = {
       clientes: {
         Row: {
           actualizado_en: string
-          codigo: number
           correo_contacto: string | null
           creado_en: string
           documento: string | null
@@ -156,7 +149,6 @@ export type Database = {
         }
         Insert: {
           actualizado_en?: string
-          codigo: number
           correo_contacto?: string | null
           creado_en?: string
           documento?: string | null
@@ -168,7 +160,6 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
-          codigo?: number
           correo_contacto?: string | null
           creado_en?: string
           documento?: string | null
@@ -182,21 +173,18 @@ export type Database = {
       }
       comunas: {
         Row: {
-          codigo: number
           creado_en: string
           id: number
           id_campana: number
           nombre: string
         }
         Insert: {
-          codigo: number
           creado_en?: string
           id?: never
           id_campana: number
           nombre: string
         }
         Update: {
-          codigo?: number
           creado_en?: string
           id?: never
           id_campana?: number
@@ -606,7 +594,6 @@ export type Database = {
       lugares_trabajo: {
         Row: {
           actualizado_en: string
-          codigo: number
           creado_en: string
           direccion: string | null
           id: number
@@ -617,7 +604,6 @@ export type Database = {
         }
         Insert: {
           actualizado_en?: string
-          codigo: number
           creado_en?: string
           direccion?: string | null
           id?: never
@@ -628,7 +614,6 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
-          codigo?: number
           creado_en?: string
           direccion?: string | null
           id?: never
@@ -784,21 +769,18 @@ export type Database = {
       }
       procesos_electorales: {
         Row: {
-          codigo: number
           creado_en: string
           fecha_eleccion: string | null
           id: number
           nombre: string
         }
         Insert: {
-          codigo: number
           creado_en?: string
           fecha_eleccion?: string | null
           id?: number
           nombre: string
         }
         Update: {
-          codigo?: number
           creado_en?: string
           fecha_eleccion?: string | null
           id?: number
@@ -811,7 +793,6 @@ export type Database = {
           actualizado_en: string
           actualizado_registraduria_en: string
           cantidad_mesas: number
-          codigo: number
           creado_en: string
           direccion: string | null
           embedding: string | null
@@ -829,7 +810,6 @@ export type Database = {
           actualizado_en?: string
           actualizado_registraduria_en?: string
           cantidad_mesas?: number
-          codigo: number
           creado_en?: string
           direccion?: string | null
           embedding?: string | null
@@ -847,7 +827,6 @@ export type Database = {
           actualizado_en?: string
           actualizado_registraduria_en?: string
           cantidad_mesas?: number
-          codigo?: number
           creado_en?: string
           direccion?: string | null
           embedding?: string | null
@@ -973,7 +952,6 @@ export type Database = {
       }
       roles: {
         Row: {
-          codigo: number
           creado_en: string
           id: number
           id_campana: number
@@ -981,7 +959,6 @@ export type Database = {
           nombre: string
         }
         Insert: {
-          codigo: number
           creado_en?: string
           id?: never
           id_campana: number
@@ -989,7 +966,6 @@ export type Database = {
           nombre: string
         }
         Update: {
-          codigo?: number
           creado_en?: string
           id?: never
           id_campana?: number
@@ -1096,21 +1072,18 @@ export type Database = {
       }
       tipos_novedad: {
         Row: {
-          codigo: number
           creado_en: string
           id: number
           id_campana: number
           novedad: string
         }
         Insert: {
-          codigo: number
           creado_en?: string
           id?: never
           id_campana: number
           novedad: string
         }
         Update: {
-          codigo?: number
           creado_en?: string
           id?: never
           id_campana?: number
