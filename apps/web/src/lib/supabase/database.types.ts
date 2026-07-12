@@ -560,18 +560,21 @@ export type Database = {
       }
       departamentos: {
         Row: {
+          creado_en: string
           id: string
           latitud: number | null
           longitud: number | null
           nombre: string
         }
         Insert: {
+          creado_en?: string
           id: string
           latitud?: number | null
           longitud?: number | null
           nombre: string
         }
         Update: {
+          creado_en?: string
           id?: string
           latitud?: number | null
           longitud?: number | null
@@ -788,6 +791,7 @@ export type Database = {
       }
       municipios: {
         Row: {
+          creado_en: string
           id: string
           id_departamento: string
           latitud: number | null
@@ -795,6 +799,7 @@ export type Database = {
           nombre: string
         }
         Insert: {
+          creado_en?: string
           id: string
           id_departamento: string
           latitud?: number | null
@@ -802,6 +807,7 @@ export type Database = {
           nombre: string
         }
         Update: {
+          creado_en?: string
           id?: string
           id_departamento?: string
           latitud?: number | null
