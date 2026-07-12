@@ -52,17 +52,17 @@ export default async function CampaignDetailPage({
     .select(
       "id, nombre, estado, iniciado_en, finalizado_en, purgado_en, clientes(nombre), procesos_electorales(nombre)"
     )
-    .eq("id", id)
+    .eq("id", Number(id))
     .single();
 
   if (!campana) notFound();
 
-  const miembros = await listCampaignMembersWithProfiles(supabase, id);
+  const miembros = await listCampaignMembersWithProfiles(supabase, Number(id));
 
   const { data: caracteristicas } = await supabase
     .from("caracteristicas_campana")
     .select("*")
-    .eq("id_campana", id)
+    .eq("id_campana", Number(id))
     .single();
 
   const estado = campana.estado as EstadoCampana;
@@ -111,7 +111,7 @@ export default async function CampaignDetailPage({
               {transiciones.map((siguiente) => (
                 <form
                   key={siguiente}
-                  action={submitCampaignStatusUpdate.bind(null, id, siguiente)}
+                  action={submitCampaignStatusUpdate.bind(null, Number(id), siguiente)}
                 >
                   <Button type="submit" variant="outline" size="sm">
                     Marcar como {ETIQUETAS_ESTADO[siguiente].toLowerCase()}
@@ -132,7 +132,7 @@ export default async function CampaignDetailPage({
           )}
         </Card>
 
-        <CampaignModulesForm campaignId={id} modules={modulos} />
+        <CampaignModulesForm campaignId={Number(id)} modules={modulos} />
       </div>
 
       <Card

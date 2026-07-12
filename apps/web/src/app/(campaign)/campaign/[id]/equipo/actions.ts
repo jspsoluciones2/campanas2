@@ -5,7 +5,7 @@ import { requireCampaignTeamManager } from "@/lib/campaign/access";
 import { assignCampaignMemberWithCredentials } from "@/lib/campaign/team";
 
 export async function assignCampaignTeamMemberAction(formData: FormData) {
-  const idCampana = String(formData.get("id_campana") ?? "").trim();
+  const idCampana = Number(formData.get("id_campana"));
   const { user } = await requireCampaignTeamManager(idCampana);
 
   const result = await assignCampaignMemberWithCredentials({

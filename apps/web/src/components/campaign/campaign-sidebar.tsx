@@ -27,7 +27,7 @@ import {
 } from "@/lib/campaign/catalog-nav";
 
 type CampaignSidebarProps = {
-  campaignId: string;
+  campaignId: number;
   campaignName: string;
   clientName: string | null;
   userEmail: string;
@@ -43,7 +43,7 @@ type CampaignNavItem = {
   exact?: boolean;
 };
 
-const otherNavItems = (id: string): CampaignNavItem[] => [
+const otherNavItems = (id: number): CampaignNavItem[] => [
   { href: `/campaign/${id}/votantes`, label: "Votantes", icon: Users },
   { href: `/campaign/${id}/reportes`, label: "Reportes", icon: BarChart3 },
   { href: `/campaign/${id}/quarantine`, label: "Cuarentena", icon: AlertTriangle },

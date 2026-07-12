@@ -22,7 +22,7 @@ El problema central es la dispersión de datos de votantes en múltiples canales
 - Multi-tenancy por campaña con aislamiento RLS
 - Módulo de registro de votantes con estados y auditoría
 - Módulo de cuarentena y resolución de duplicados
-- Canales: WhatsApp (Twilio), Telegram, formulario web autenticado + **formulario público por enlace**
+- Canales: Telegram, formulario web autenticado + **formulario público por enlace**
 - Módulo de branding **de plataforma** (logo, colores, tipografía — solo dueños, no por político)
 - Dashboard de estadísticas MVP
 - Integración CAPTCHA Solver (consulta registraduría / puesto de votación)
@@ -47,7 +47,7 @@ El problema central es la dispersión de datos de votantes en múltiples canales
 - `platform-core`: Auth SaaS, **módulo único de admin para dueños** (`platform_owner`), asignación de usuarios a campañas, roles, feature flags
 - `voter-registry`: CRUD de votantes, estados, normalización, auditoría (campos finales en fase BD)
 - `voter-quarantine`: Detección de duplicados, cola de cuarentena, panel de resolución
-- `capture-channels`: WhatsApp (Twilio), Telegram, web autenticada, web pública por enlace
+- `capture-channels`: Telegram, web autenticada, web pública por enlace
 - `brand-config`: Logo, colores, tipografía de **la plataforma** (solo `platform_owner`)
 - `analytics-dashboard`: KPIs por zona, pureza, cuarentena, canales, recolectores
 - `captcha-solver-integration`: Consulta registraduría vía CAPTCHA Solver, verificación puesto/nombre
@@ -71,7 +71,6 @@ Arquitectura **híbrida y sencilla**:
 
 **CAPTCHA Solver y E14**: cola `job_queue` procesada por worker Flask.
 
-**WhatsApp**: Twilio → Edge Function delgada → Flask/Postgres.
 
 ## Decisiones confirmadas (PO — 2026-06-13)
 
@@ -82,7 +81,6 @@ Arquitectura **híbrida y sencilla**:
 | Coincidencias | **Crítico** — cuarentena por campaña, sin cruce entre políticos |
 | Formulario web público | Sí, en MVP — acceso solo por enlace único (no listado público) |
 | Verificación registraduría | **CAPTCHA Solver** (resolución de captchas + consulta puesto) |
-| WhatsApp | **Twilio** — número y credenciales **por campaña** |
 | Integraciones | **Por campaña** (WA, CAPTCHA, TG, IA); Supabase **compartido** |
 | Campos del votante | Se definen en fase de construcción de BD Supabase |
 | Stack | Next.js (UI) + **Python/Flask** (stats, IA, export) + Supabase |

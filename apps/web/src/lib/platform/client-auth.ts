@@ -35,7 +35,7 @@ export async function requirePlatformOwner(supabase: SupabaseClient) {
 
 export async function syncClientCampaignMembership(
   supabase: SupabaseClient,
-  clientId: string,
+  clientId: number,
   userId: string
 ) {
   const { data: campanas } = await supabase
@@ -132,7 +132,7 @@ export async function deleteOrphanAuthUserByEmail(
 export async function provisionClientAuthUser(
   email: string,
   password: string,
-  clientId: string
+  clientId: number
 ): Promise<ProvisionResult> {
   const admin = createAdminClient();
   if (!admin) {
@@ -224,7 +224,7 @@ export async function updateClientAuthUser(
 
 export async function linkClientToUser(
   supabase: SupabaseClient,
-  clientId: string,
+  clientId: number,
   userId: string
 ) {
   await supabase.from("miembros_cliente").upsert(

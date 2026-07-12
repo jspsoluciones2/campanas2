@@ -14,7 +14,7 @@ import {
 import { userCanManageCampaignTeam } from "@/lib/campaign/access";
 
 export type CampaignMemberRow = {
-  id: string;
+  id: number;
   id_usuario: string;
   rol: CampaignMemberRole;
   creado_en: string;
@@ -24,7 +24,7 @@ export type CampaignMemberWithProfile = CampaignMemberRow & MemberAuthProfile;
 
 export async function listCampaignMembersWithProfiles(
   supabase: SupabaseClient,
-  campaignId: string
+  campaignId: number
 ): Promise<CampaignMemberWithProfile[]> {
   const { data: miembros } = await supabase
     .from("miembros_campana")
@@ -48,7 +48,7 @@ export async function listCampaignMembersWithProfiles(
 }
 
 type AssignMemberInput = {
-  campaignId: string;
+  campaignId: number;
   actorUserId: string;
   usuario: string;
   contrasena: string;
@@ -68,7 +68,7 @@ type AssignMemberResult =
 export async function assignCampaignMemberWithCredentials(
   input: AssignMemberInput
 ): Promise<AssignMemberResult> {
-  const campaignId = input.campaignId.trim();
+  const campaignId = input.campaignId;
   const usuario = input.usuario.trim();
   const contrasena = input.contrasena.trim();
   const nombre = textoTituloOpcional(input.nombre ?? "");

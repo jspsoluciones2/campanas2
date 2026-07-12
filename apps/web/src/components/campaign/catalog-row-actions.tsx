@@ -30,7 +30,7 @@ import {
   type BarrioOption,
 } from "@/components/campaign/comuna-barrio-fields";
 
-type ComunaOption = { id: string; nombre: string };
+type ComunaOption = { id: number; nombre: string };
 
 function useEditModal() {
   const [editing, setEditing] = useState(false);
@@ -91,8 +91,8 @@ export function ComunaRowActions({
   campaignId,
   comuna,
 }: {
-  campaignId: string;
-  comuna: { id: string; nombre: string; codigo?: number | null };
+  campaignId: number;
+  comuna: { id: number; nombre: string; codigo?: number | null };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -191,9 +191,9 @@ export function LugarTrabajoRowActions({
   lugar,
   comunas,
 }: {
-  campaignId: string;
+  campaignId: number;
   lugar: {
-    id: string;
+    id: number;
     nombre: string;
     codigo: number | null;
     direccion: string | null;
@@ -323,8 +323,8 @@ export function BarrioRowActions({
   barrio,
   comunas,
 }: {
-  campaignId: string;
-  barrio: { id: string; nombre: string; codigo: number | null; id_comuna: string };
+  campaignId: number;
+  barrio: { id: number; nombre: string; codigo: number | null; id_comuna: number };
   comunas: ComunaOption[];
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
@@ -437,8 +437,8 @@ export function RolRowActions({
   campaignId,
   rol,
 }: {
-  campaignId: string;
-  rol: { id: string; nombre: string; codigo: number | null; nivel_jerarquia: number };
+  campaignId: number;
+  rol: { id: number; nombre: string; codigo: number | null; nivel_jerarquia: number };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -547,8 +547,8 @@ export function TipoNovedadRowActions({
   campaignId,
   tipo,
 }: {
-  campaignId: string;
-  tipo: { id: string; novedad: string; codigo: number | null };
+  campaignId: number;
+  tipo: { id: number; novedad: string; codigo: number | null };
 }) {
   const { editing, setEditing, mounted, pending, startTransition, router } =
     useEditModal();
@@ -649,15 +649,15 @@ export function PuestoRowActions({
   comunas,
   barrios,
 }: {
-  campaignId: string;
+  campaignId: number;
   puesto: {
-    id: string;
+    id: number;
     nombre: string;
     municipio: string | null;
     direccion: string | null;
     codigo: number | null;
-    id_comuna: string | null;
-    id_barrio: string | null;
+    id_comuna: number | null;
+    id_barrio: number | null;
     votantes_hombres_admite: number;
     votantes_mujeres_admite: number;
     cantidad_mesas: number;
@@ -741,8 +741,8 @@ export function PuestoRowActions({
                   <ComunaBarrioFields
                     comunas={comunas}
                     barrios={barrios}
-                    defaultComunaId={puesto.id_comuna ?? ""}
-                    defaultBarrioId={puesto.id_barrio ?? ""}
+                    defaultComunaId={puesto.id_comuna}
+                    defaultBarrioId={puesto.id_barrio}
                   />
                   <FormField label="Cupos H">
                     <input

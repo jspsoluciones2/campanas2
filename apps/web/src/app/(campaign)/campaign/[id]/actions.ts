@@ -25,7 +25,7 @@ import {
   textoTituloOpcional,
 } from "@/lib/normalize-text";
 
-function campaignPaths(id: string) {
+function campaignPaths(id: number) {
   return [
     `/campaign/${id}`,
     `/campaign/${id}/votantes`,
@@ -34,13 +34,13 @@ function campaignPaths(id: string) {
   ];
 }
 
-function revalidateCampaign(id: string) {
+function revalidateCampaign(id: number) {
   for (const path of campaignPaths(id)) {
     revalidatePath(path);
   }
 }
 
-export async function createComunaAction(campaignId: string, formData: FormData) {
+export async function createComunaAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
 
@@ -57,9 +57,9 @@ export async function createComunaAction(campaignId: string, formData: FormData)
   return { ok: true };
 }
 
-export async function createBarrioAction(campaignId: string, formData: FormData) {
+export async function createBarrioAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const idComuna = String(formData.get("id_comuna") ?? "");
+  const idComuna = Number(formData.get("id_comuna") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
 
   if (!idComuna || !nombre) {
@@ -77,7 +77,7 @@ export async function createBarrioAction(campaignId: string, formData: FormData)
   return { ok: true };
 }
 
-export async function createRolAction(campaignId: string, formData: FormData) {
+export async function createRolAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const nivel = Number(formData.get("nivel_jerarquia") ?? 1);
@@ -99,13 +99,13 @@ export async function createRolAction(campaignId: string, formData: FormData) {
   return { ok: true };
 }
 
-export async function createPuestoAction(campaignId: string, formData: FormData) {
+export async function createPuestoAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const municipio = textoTituloOpcional(String(formData.get("municipio") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const idComuna = String(formData.get("id_comuna") ?? "").trim();
-  const idBarrio = String(formData.get("id_barrio") ?? "").trim();
+  const idComuna = Number(formData.get("id_comuna") ?? 0);
+  const idBarrio = Number(formData.get("id_barrio") ?? 0);
   const cuposH = Number(formData.get("votantes_hombres_admite") ?? 0);
   const cuposM = Number(formData.get("votantes_mujeres_admite") ?? 0);
   const mesas = Number(formData.get("cantidad_mesas") ?? 0);
@@ -139,7 +139,7 @@ export async function createPuestoAction(campaignId: string, formData: FormData)
 }
 
 export async function createTipoNovedadAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ) {
   const { supabase } = await requireCampaignAccess(campaignId);
@@ -158,7 +158,7 @@ export async function createTipoNovedadAction(
   return { ok: true };
 }
 
-export async function createVotanteAction(campaignId: string, formData: FormData) {
+export async function createVotanteAction(campaignId: number, formData: FormData) {
   const { supabase, user } = await requireCampaignAccess(campaignId);
 
   const puedeEditar = await userCanEditCampaign(user.id, campaignId);
@@ -175,13 +175,13 @@ export async function createVotanteAction(campaignId: string, formData: FormData
   const tipoDocumento = String(formData.get("tipo_documento") ?? "CC");
   const sexo = String(formData.get("sexo") ?? "").trim();
   const telefono = String(formData.get("telefono") ?? "").trim() || null;
-  const idRol = String(formData.get("id_rol") ?? "").trim();
-  const idLider = String(formData.get("id_lider_directo") ?? "").trim();
-  const idPuesto = String(formData.get("id_puesto_votacion") ?? "").trim();
+  const idRol = Number(formData.get("id_rol") ?? 0);
+  const idLider = Number(formData.get("id_lider_directo") ?? 0);
+  const idPuesto = Number(formData.get("id_puesto_votacion") ?? 0);
   const mesa = textoTituloOpcional(String(formData.get("mesa") ?? ""));
   const fechaNacimiento = String(formData.get("fecha_nacimiento") ?? "").trim();
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const idLugarTrabajo = String(formData.get("id_lugar_trabajo") ?? "").trim();
+  const idLugarTrabajo = Number(formData.get("id_lugar_trabajo") ?? 0);
 
   if (!nombres || !apellidos || !documento) {
     return { error: "Nombres, apellidos y documento son obligatorios." };
@@ -197,8 +197,7 @@ export async function createVotanteAction(campaignId: string, formData: FormData
     fecha_nacimiento: fechaNacimiento || null,
     direccion,
     id_rol: idRol || null,
-    id_lider_directo:
-      idLider === "__sin_lider__" || !idLider ? null : idLider,
+    id_lider_directo: !idLider ? null : idLider,
     id_puesto_votacion: idPuesto || null,
     id_lugar_trabajo: idLugarTrabajo || null,
     mesa,
@@ -230,10 +229,10 @@ export async function createVotanteAction(campaignId: string, formData: FormData
 }
 
 export async function updateVotanteNovedadAction(
-  campaignId: string,
-  votanteId: string,
+  campaignId: number,
+  votanteId: number,
   payload: {
-    id_tipo_novedad: string | null;
+    id_tipo_novedad: number | null;
     detalle_novedad: string | null;
   }
 ) {
@@ -251,7 +250,7 @@ export async function updateVotanteNovedadAction(
     return { error: "Votante no identificado." };
   }
 
-  const idTipo = payload.id_tipo_novedad?.trim() || null;
+  const idTipo = payload.id_tipo_novedad || null;
   const detalle = payload.detalle_novedad?.trim() || null;
 
   if (idTipo) {
@@ -298,8 +297,8 @@ export async function updateVotanteNovedadAction(
 export type QuarantineResolveAction = "fusionar" | "descartar" | "escalar";
 
 export async function resolveQuarantineAction(
-  campaignId: string,
-  quarantineId: string,
+  campaignId: number,
+  quarantineId: number,
   action: QuarantineResolveAction
 ) {
   const { supabase, user } = await requireCampaignAccess(campaignId);
@@ -398,9 +397,9 @@ export async function resolveQuarantineAction(
   return { ok: true };
 }
 
-export async function updateComunaAction(campaignId: string, formData: FormData) {
+export async function updateComunaAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
 
   if (!id) return { error: "Comuna no identificada." };
@@ -418,9 +417,9 @@ export async function updateComunaAction(campaignId: string, formData: FormData)
   return { ok: true };
 }
 
-export async function deleteComunaAction(campaignId: string, comunaId: string) {
+export async function deleteComunaAction(campaignId: number, comunaId: number) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = comunaId.trim();
+  const id = comunaId;
   if (!id) return { error: "Comuna no identificada." };
 
   const { count } = await supabase
@@ -445,10 +444,10 @@ export async function deleteComunaAction(campaignId: string, comunaId: string) {
   return { ok: true };
 }
 
-export async function updateBarrioAction(campaignId: string, formData: FormData) {
+export async function updateBarrioAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
-  const idComuna = String(formData.get("id_comuna") ?? "").trim();
+  const id = Number(formData.get("id") ?? 0);
+  const idComuna = Number(formData.get("id_comuna") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
 
   if (!id) return { error: "Barrio no identificado." };
@@ -476,9 +475,9 @@ export async function updateBarrioAction(campaignId: string, formData: FormData)
   return { ok: true };
 }
 
-export async function deleteBarrioAction(campaignId: string, barrioId: string) {
+export async function deleteBarrioAction(campaignId: number, barrioId: number) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = barrioId.trim();
+  const id = barrioId;
   if (!id) return { error: "Barrio no identificado." };
 
   const { error } = await supabase.from("barrios").delete().eq("id", id);
@@ -487,9 +486,9 @@ export async function deleteBarrioAction(campaignId: string, barrioId: string) {
   return { ok: true };
 }
 
-export async function updateRolAction(campaignId: string, formData: FormData) {
+export async function updateRolAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const nivel = Number(formData.get("nivel_jerarquia") ?? 1);
 
@@ -511,9 +510,9 @@ export async function updateRolAction(campaignId: string, formData: FormData) {
   return { ok: true };
 }
 
-export async function deleteRolAction(campaignId: string, rolId: string) {
+export async function deleteRolAction(campaignId: number, rolId: number) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = rolId.trim();
+  const id = rolId;
   if (!id) return { error: "Rol no identificado." };
 
   const { count } = await supabase
@@ -539,11 +538,11 @@ export async function deleteRolAction(campaignId: string, rolId: string) {
 }
 
 export async function updateTipoNovedadAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? 0);
   const novedad = textoTitulo(String(formData.get("novedad") ?? ""));
 
   if (!id) return { error: "Tipo de novedad no identificado." };
@@ -562,11 +561,11 @@ export async function updateTipoNovedadAction(
 }
 
 export async function deleteTipoNovedadAction(
-  campaignId: string,
-  tipoId: string
+  campaignId: number,
+  tipoId: number
 ) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = tipoId.trim();
+  const id = tipoId;
   if (!id) return { error: "Tipo de novedad no identificado." };
 
   const { count } = await supabase
@@ -591,14 +590,14 @@ export async function deleteTipoNovedadAction(
   return { ok: true };
 }
 
-export async function updatePuestoAction(campaignId: string, formData: FormData) {
+export async function updatePuestoAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const municipio = textoTituloOpcional(String(formData.get("municipio") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const idComuna = String(formData.get("id_comuna") ?? "").trim();
-  const idBarrio = String(formData.get("id_barrio") ?? "").trim();
+  const idComuna = Number(formData.get("id_comuna") ?? 0);
+  const idBarrio = Number(formData.get("id_barrio") ?? 0);
   const cuposH = Number(formData.get("votantes_hombres_admite") ?? 0);
   const cuposM = Number(formData.get("votantes_mujeres_admite") ?? 0);
   const mesas = Number(formData.get("cantidad_mesas") ?? 0);
@@ -631,9 +630,9 @@ export async function updatePuestoAction(campaignId: string, formData: FormData)
   return { ok: true };
 }
 
-export async function deletePuestoAction(campaignId: string, puestoId: string) {
+export async function deletePuestoAction(campaignId: number, puestoId: number) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = puestoId.trim();
+  const id = puestoId;
   if (!id) return { error: "Puesto no identificado." };
 
   const { count } = await supabase
@@ -659,14 +658,14 @@ export async function deletePuestoAction(campaignId: string, puestoId: string) {
 }
 
 export async function createLugarTrabajoAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const idComuna = String(formData.get("id_comuna") ?? "").trim();
-  const idBarrio = String(formData.get("id_barrio") ?? "").trim();
+  const idComuna = Number(formData.get("id_comuna") ?? 0);
+  const idBarrio = Number(formData.get("id_barrio") ?? 0);
 
   if (!nombre) return { error: "El nombre del lugar de trabajo es obligatorio." };
 
@@ -685,15 +684,15 @@ export async function createLugarTrabajoAction(
 }
 
 export async function updateLugarTrabajoAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? 0);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
-  const idComuna = String(formData.get("id_comuna") ?? "").trim();
-  const idBarrio = String(formData.get("id_barrio") ?? "").trim();
+  const idComuna = Number(formData.get("id_comuna") ?? 0);
+  const idBarrio = Number(formData.get("id_barrio") ?? 0);
 
   if (!id) return { error: "Lugar de trabajo no identificado." };
   if (!nombre) return { error: "El nombre es obligatorio." };
@@ -716,11 +715,11 @@ export async function updateLugarTrabajoAction(
 }
 
 export async function deleteLugarTrabajoAction(
-  campaignId: string,
-  lugarId: string
+  campaignId: number,
+  lugarId: number
 ) {
   const { supabase } = await requireCampaignAccess(campaignId);
-  const id = lugarId.trim();
+  const id = lugarId;
   if (!id) return { error: "Lugar de trabajo no identificado." };
 
   const { error } = await supabase
@@ -735,7 +734,7 @@ export async function deleteLugarTrabajoAction(
 }
 
 export async function bulkUploadCatalogAction(
-  campaignId: string,
+  campaignId: number,
   segment: CatalogSegment,
   formData: FormData
 ) {
@@ -788,7 +787,7 @@ export async function bulkUploadCatalogAction(
 }
 
 export async function createComunaFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   const result = await createComunaAction(campaignId, formData);
@@ -800,21 +799,21 @@ export async function createComunaFormAction(
 }
 
 export async function createBarrioFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   await createBarrioAction(campaignId, formData);
 }
 
 export async function createRolFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   await createRolAction(campaignId, formData);
 }
 
 export async function createPuestoFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   const result = await createPuestoAction(campaignId, formData);
@@ -826,21 +825,21 @@ export async function createPuestoFormAction(
 }
 
 export async function createTipoNovedadFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   await createTipoNovedadAction(campaignId, formData);
 }
 
 export async function createLugarTrabajoFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   await createLugarTrabajoAction(campaignId, formData);
 }
 
 export async function createVotanteFormAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ): Promise<void> {
   await createVotanteAction(campaignId, formData);

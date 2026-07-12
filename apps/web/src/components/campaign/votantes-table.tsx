@@ -10,10 +10,10 @@ import {
 } from "@/components/platform/platform-ui";
 import { cn } from "@/lib/utils";
 
-type TipoNovedad = { id: string; novedad: string };
+type TipoNovedad = { id: number; novedad: string };
 
 export type VotanteListRow = {
-  id: string;
+  id: number;
   nombres: string;
   apellidos: string;
   documento: string;
@@ -21,7 +21,7 @@ export type VotanteListRow = {
   direccion: string | null;
   estado: string;
   creado_en: string;
-  id_tipo_novedad: string | null;
+  id_tipo_novedad: number | null;
   detalle_novedad: string | null;
   roles: { nombre: string } | { nombre: string }[] | null;
   lugares_trabajo: { nombre: string } | { nombre: string }[] | null;
@@ -50,13 +50,13 @@ function NovedadGestionCells({
   initialTipoId,
   initialDetalle,
 }: {
-  campaignId: string;
-  votanteId: string;
+  campaignId: number;
+  votanteId: number;
   tipos: TipoNovedad[];
-  initialTipoId: string | null;
+  initialTipoId: number | null;
   initialDetalle: string | null;
 }) {
-  const [tipoId, setTipoId] = useState(initialTipoId ?? "");
+  const [tipoId, setTipoId] = useState(initialTipoId != null ? String(initialTipoId) : "");
   const [detalle, setDetalle] = useState(initialDetalle ?? "");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -65,7 +65,7 @@ function NovedadGestionCells({
     setFeedback(null);
     startTransition(async () => {
       const result = await updateVotanteNovedadAction(campaignId, votanteId, {
-        id_tipo_novedad: tipoId || null,
+        id_tipo_novedad: tipoId ? Number(tipoId) : null,
         detalle_novedad: detalle.trim() || null,
       });
       if (result.error) {
@@ -137,7 +137,7 @@ function NovedadGestionCells({
 }
 
 type Props = {
-  campaignId: string;
+  campaignId: number;
   rows: VotanteListRow[];
   tiposNovedad: TipoNovedad[];
   emptyMessage: string;

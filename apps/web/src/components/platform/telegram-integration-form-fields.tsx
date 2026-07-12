@@ -24,7 +24,7 @@ export function TelegramIntegrationFormFields({
 }: {
   configuracion: Record<string, unknown>;
   configured: boolean;
-  idCampana?: string;
+  idCampana?: number;
 }) {
   const tgConfig = configuracion as TelegramConfig;
   const appOrigin = useSyncExternalStore(

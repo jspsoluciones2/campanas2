@@ -11,10 +11,10 @@ CREATE TYPE rol_miembro_campana AS ENUM (
   'administrador_campana'
 );
 CREATE TYPE proveedor_integracion AS ENUM (
-  'twilio',
   'resolutor_captcha',
   'telegram',
-  'ia_e14'
+  'ia_e14',
+  'supabase'
 );
 
 -- Procesos electorales (agrupa campañas para E14 compartido)

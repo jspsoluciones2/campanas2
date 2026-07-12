@@ -24,7 +24,7 @@ import {
 } from "@/components/platform/platform-ui";
 
 type CampanaRow = {
-  id: string;
+  id: number;
   nombre: string;
   clientes: { nombre: string } | { nombre: string }[] | null;
 };
@@ -75,7 +75,7 @@ export default async function MaestrasApisPage({
   const campaignRows = (campanas ?? []) as CampanaRow[];
   const campaignIds = campaignRows.map((c) => c.id);
 
-  const integracionesByCampana = new Map<string, SavedCampaignIntegration[]>();
+  const integracionesByCampana = new Map<number, SavedCampaignIntegration[]>();
 
   if (campaignIds.length > 0) {
     const { data: integraciones } = await supabase
@@ -84,7 +84,7 @@ export default async function MaestrasApisPage({
       .in("id_campana", campaignIds);
 
     for (const row of (integraciones ?? []) as (SavedCampaignIntegration & {
-      id_campana: string;
+      id_campana: number;
     })[]) {
       const list = integracionesByCampana.get(row.id_campana) ?? [];
       list.push({
@@ -136,7 +136,7 @@ export default async function MaestrasApisPage({
     <>
       <PageHeader
         title="APIs por campaña"
-        description="Twilio e IA E14 con control de gastos por campaña. Telegram se configura aparte como canal sin costo."
+        description="IA E14 con control de gastos por campaña. Telegram se configura aparte como canal sin costo."
       />
 
       <Card
@@ -146,7 +146,7 @@ export default async function MaestrasApisPage({
         <ApisListFilter q={q} />
         <DataTable
           data={campaignRows}
-          rowKey={(c) => c.id}
+          rowKey={(c) => String(c.id)}
           emptyMessage={emptyMessage}
           columns={[
             {

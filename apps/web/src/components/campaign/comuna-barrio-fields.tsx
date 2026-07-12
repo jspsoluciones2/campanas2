@@ -3,29 +3,33 @@
 import { useMemo, useState } from "react";
 import { FormField, platformSelectClass } from "@/components/platform/platform-ui";
 
-export type ComunaOption = { id: string; nombre: string };
-export type BarrioOption = { id: string; nombre: string; id_comuna: string };
+export type ComunaOption = { id: number; nombre: string };
+export type BarrioOption = { id: number; nombre: string; id_comuna: number };
 
 type Props = {
   comunas: ComunaOption[];
   barrios: BarrioOption[];
-  defaultComunaId?: string;
-  defaultBarrioId?: string;
+  defaultComunaId?: number | null;
+  defaultBarrioId?: number | null;
   disabled?: boolean;
 };
 
 export function ComunaBarrioFields({
   comunas,
   barrios,
-  defaultComunaId = "",
-  defaultBarrioId = "",
+  defaultComunaId,
+  defaultBarrioId,
   disabled = false,
 }: Props) {
-  const [comunaId, setComunaId] = useState(defaultComunaId);
-  const [barrioId, setBarrioId] = useState(defaultBarrioId);
+  const [comunaId, setComunaId] = useState(
+    defaultComunaId != null ? String(defaultComunaId) : ""
+  );
+  const [barrioId, setBarrioId] = useState(
+    defaultBarrioId != null ? String(defaultBarrioId) : ""
+  );
 
   const barriosFiltrados = useMemo(
-    () => barrios.filter((barrio) => barrio.id_comuna === comunaId),
+    () => barrios.filter((barrio) => barrio.id_comuna === Number(comunaId)),
     [barrios, comunaId]
   );
 

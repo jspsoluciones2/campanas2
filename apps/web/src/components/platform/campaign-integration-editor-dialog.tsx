@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import type { PlatformApiProveedor } from "@/lib/platform/api-integrations";
 
 export type CampaignIntegrationEditorRow = {
-  idCampana: string;
+  idCampana: number;
   proveedor: PlatformApiProveedor;
   label: string;
   activa: boolean;

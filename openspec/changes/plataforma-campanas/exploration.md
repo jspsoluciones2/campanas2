@@ -97,7 +97,7 @@ Cada registro MUST incluir: `created_by`, `channel`, `campaign_id`, `timestamp`,
 
 ### Supuesto técnico
 
-- WhatsApp: **Twilio** (sin integración directa Meta en la app)
+- WhatsApp: fuera de alcance en la implementación actual
 - Telegram: Bot API con webhook a Supabase Edge Function
 - Web: Next.js con Supabase Auth
 

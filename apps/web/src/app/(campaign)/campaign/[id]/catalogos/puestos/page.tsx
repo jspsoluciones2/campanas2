@@ -39,6 +39,7 @@ export default async function CatalogPuestosPage({
   searchParams: Promise<{ q?: string; page?: string; error?: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
   const {
     q: qRaw = "",
     page: pageRaw = "1",
@@ -51,18 +52,18 @@ export default async function CatalogPuestosPage({
   const from = (page - 1) * CATALOG_PAGE_SIZE;
   const to = from + CATALOG_PAGE_SIZE - 1;
 
-  const { supabase } = await requireCampaignAccess(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const { data: comunas } = await supabase
     .from("comunas")
     .select("id, nombre")
-    .eq("id_campana", id)
+    .eq("id_campana", campaignId)
     .order("nombre");
 
   const { data: barrios } = await supabase
     .from("barrios")
     .select("id, nombre, id_comuna, comunas!inner(id_campana)")
-    .eq("comunas.id_campana", id)
+    .eq("comunas.id_campana", campaignId)
     .order("nombre");
 
   const comunasList = comunas ?? [];
@@ -75,13 +76,13 @@ export default async function CatalogPuestosPage({
   const term = escapeIlikeTerm(q);
   const { rows, count: total, error: listError } = await fetchPuestosList(
     supabase,
-    id,
+    campaignId,
     { q: term, from, to }
   );
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(catalogListHref(id, "puestos", filters, totalPages));
+    redirect(catalogListHref(campaignId, "puestos", filters, totalPages));
   }
 
   const list = rows;
@@ -118,10 +119,10 @@ export default async function CatalogPuestosPage({
         </div>
       ) : null}
 
-      <CatalogBulkUpload campaignId={id} segment="puestos" />
+       <CatalogBulkUpload campaignId={campaignId} segment="puestos" />
 
       <Card title="Nuevo puesto de votación">
-        <form action={createPuestoFormAction.bind(null, id)}>
+        <form action={createPuestoFormAction.bind(null, campaignId)}>
           <FormRow className="flex-col items-stretch lg:flex-row lg:flex-wrap">
             <FormField label="Nombre">
               <input name="nombre" required className={platformInputClass} />
@@ -177,14 +178,14 @@ export default async function CatalogPuestosPage({
 
       <Card title="Creados" description={`${total} puesto(s)`}>
         <CatalogListFilter
-          campaignId={id}
+          campaignId={campaignId}
           segment="puestos"
           q={q}
           placeholder="Nombre, municipio o ID del puesto"
         />
         <DataTable
           data={list}
-          rowKey={(p) => p.id}
+          rowKey={(p) => String(p.id)}
           emptyMessage={emptyMessage}
           columns={[
             {
@@ -235,7 +236,7 @@ export default async function CatalogPuestosPage({
               className: "text-center",
               cell: (p) => (
                 <PuestoRowActions
-                  campaignId={id}
+                  campaignId={campaignId}
                   puesto={p}
                   comunas={comunasList}
                   barrios={barriosList}
@@ -245,7 +246,7 @@ export default async function CatalogPuestosPage({
           ]}
         />
         <CatalogPagination
-          campaignId={id}
+          campaignId={campaignId}
           segment="puestos"
           page={page}
           totalPages={totalPages}

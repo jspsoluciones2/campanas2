@@ -39,7 +39,7 @@ export function resolveAppPublicUrl(options?: {
   return normalizeAppOrigin(fromEnv || "http://localhost:3000");
 }
 
-export function telegramWebhookUrl(campaignId: string, appOrigin?: string) {
+export function telegramWebhookUrl(campaignId: number, appOrigin?: string) {
   const base = normalizeAppOrigin(appOrigin ?? resolveAppPublicUrl());
   return `${base}/api/webhooks/telegram/${campaignId}`;
 }

@@ -6,7 +6,7 @@ export type CatalogListFilters = {
 };
 
 export function catalogListHref(
-  campaignId: string,
+  campaignId: number,
   segment: string,
   filters: CatalogListFilters,
   page: number

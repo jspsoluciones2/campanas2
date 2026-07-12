@@ -30,6 +30,7 @@ export default async function CatalogBarriosPage({
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
   const { q: qRaw = "", page: pageRaw = "1" } = await searchParams;
   const q = qRaw.trim();
   const filters = { q };
@@ -37,12 +38,12 @@ export default async function CatalogBarriosPage({
   const from = (page - 1) * CATALOG_PAGE_SIZE;
   const to = from + CATALOG_PAGE_SIZE - 1;
 
-  const { supabase } = await requireCampaignAccess(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const { data: comunas } = await supabase
     .from("comunas")
     .select("id, nombre")
-    .eq("id_campana", id)
+    .eq("id_campana", campaignId)
     .order("nombre");
 
   const comunasList = comunas ?? [];
@@ -53,7 +54,7 @@ export default async function CatalogBarriosPage({
       "id, nombre, codigo, id_comuna, creado_en, comunas!inner(nombre, id_campana)",
       { count: "exact" }
     )
-    .eq("comunas.id_campana", id)
+    .eq("comunas.id_campana", campaignId)
     .order("codigo");
 
   const term = escapeIlikeTerm(q);
@@ -70,7 +71,7 @@ export default async function CatalogBarriosPage({
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(catalogListHref(id, "barrios", filters, totalPages));
+    redirect(catalogListHref(campaignId, "barrios", filters, totalPages));
   }
 
   const list = rows ?? [];
@@ -87,10 +88,10 @@ export default async function CatalogBarriosPage({
         description="Barrios asociados a cada comuna de la campaña."
       />
 
-      <CatalogBulkUpload campaignId={id} segment="barrios" />
+       <CatalogBulkUpload campaignId={campaignId} segment="barrios" />
 
       <Card title="Nuevo barrio">
-        <form action={createBarrioFormAction.bind(null, id)}>
+        <form action={createBarrioFormAction.bind(null, campaignId)}>
           <FormRow className="flex-col items-stretch sm:flex-row sm:flex-wrap">
             <FormField label="Comuna">
               <select
@@ -126,14 +127,14 @@ export default async function CatalogBarriosPage({
 
       <Card title="Creados" description={`${total} barrio(s)`}>
         <CatalogListFilter
-          campaignId={id}
+          campaignId={campaignId}
           segment="barrios"
           q={q}
           placeholder="ID o nombre del barrio"
         />
         <DataTable
           data={list}
-          rowKey={(b) => b.id}
+          rowKey={(b) => String(b.id)}
           emptyMessage={emptyMessage}
           columns={[
             {
@@ -170,7 +171,7 @@ export default async function CatalogBarriosPage({
               className: "text-center",
               cell: (b) => (
                 <BarrioRowActions
-                  campaignId={id}
+                  campaignId={campaignId}
                   barrio={b}
                   comunas={comunasList}
                 />
@@ -179,7 +180,7 @@ export default async function CatalogBarriosPage({
           ]}
         />
         <CatalogPagination
-          campaignId={id}
+          campaignId={campaignId}
           segment="barrios"
           page={page}
           totalPages={totalPages}

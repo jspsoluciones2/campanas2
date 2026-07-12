@@ -6,9 +6,9 @@ Captura de votantes vía WhatsApp, Telegram y formulario web con flujos conversa
 
 ## Requirements
 
-### Requirement: Canal WhatsApp vía Twilio
+### Requirement: Canal WhatsApp fuera de alcance
 
-The system MUST procesar mensajes entrantes de WhatsApp usando **Twilio** como proveedor (sin integración directa con Meta Cloud API). Webhook en Edge Function con validación de firma Twilio. Recolectores MUST vincular su número antes de capturar. Flujo conversacional MUST recolectar los campos definidos en el esquema de votante (detalle en fase de base de datos).
+El sistema no incluye un canal de WhatsApp. La captura se realiza mediante Telegram y formularios web.
 
 #### Scenario: Flujo completo WhatsApp
 

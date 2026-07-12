@@ -37,7 +37,7 @@ type ProvisionResult = { userId: string } | { error: string };
 export async function provisionCampaignMemberAuthUser(
   identifier: string,
   password: string,
-  campaignId: string,
+  campaignId: number,
   nombre?: string | null
 ): Promise<ProvisionResult> {
   const identifierError = validateAuthIdentifier(identifier);

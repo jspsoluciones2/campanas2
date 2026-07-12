@@ -29,7 +29,7 @@ const ETIQUETAS_ESTADO: Record<string, string> = {
 };
 
 type CampanaRow = {
-  id: string;
+  id: number;
   codigo: number | null;
   nombre: string;
   estado: string;
@@ -118,7 +118,7 @@ export default async function MaestrasCampanasPage({
         />
         <DataTable
           data={rows}
-          rowKey={(c) => c.id}
+          rowKey={(c) => String(c.id)}
           emptyMessage={emptyMessage}
           columns={[
             {

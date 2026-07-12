@@ -8,7 +8,8 @@ export default async function ReportesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase } = await requireCampaignAccess(id);
+  const campaignId = Number(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const [
     { count: total },
@@ -20,40 +21,40 @@ export default async function ReportesPage({
     supabase
       .from("votantes")
       .select("*", { count: "exact", head: true })
-      .eq("id_campana", id),
+      .eq("id_campana", campaignId),
     supabase
       .from("roles")
       .select("id, nombre")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("nombre"),
     supabase
       .from("puestos_votacion")
       .select("id, nombre")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("nombre"),
     supabase
       .from("tipos_novedad")
       .select("id, novedad")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("novedad"),
     supabase
       .from("votantes")
       .select(
         `id, nombres, apellidos, documento, tipo_documento, sexo, telefono, fecha_nacimiento, direccion, estado, creado_en, id_tipo_novedad, detalle_novedad, roles(nombre), lugares_trabajo(nombre)`
       )
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("creado_en", { ascending: false })
       .limit(100),
   ]);
 
   return (
     <ReportesView
-      campaignId={id}
+      campaignId={Number(id)}
       initialTotal={total ?? 0}
-      initialRoles={(roles ?? []) as { id: string; nombre: string }[]}
-      initialPuestos={(puestos ?? []) as { id: string; nombre: string }[]}
+      initialRoles={(roles ?? []) as { id: number; nombre: string }[]}
+      initialPuestos={(puestos ?? []) as { id: number; nombre: string }[]}
       initialTiposNovedad={
-        (tiposNovedad ?? []) as { id: string; novedad: string }[]
+        (tiposNovedad ?? []) as { id: number; novedad: string }[]
       }
       initialVotantes={(votantes ?? []) as unknown as VotanteListRow[]}
     />

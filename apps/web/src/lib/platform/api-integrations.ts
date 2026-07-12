@@ -6,17 +6,7 @@ import {
 
 export type { TelegramConfig };
 
-export type PlatformApiProveedor =
-  | "twilio"
-  | "ia_e14"
-  | "telegram";
-
-export type TwilioConfig = {
-  account_sid?: string;
-  auth_token?: string;
-  messaging_service_sid?: string;
-  whatsapp_from?: string;
-};
+export type PlatformApiProveedor = "ia_e14" | "telegram";
 
 export type IaE14Config = {
   api_key?: string;
@@ -24,21 +14,13 @@ export type IaE14Config = {
   base_url?: string;
 };
 
-export type PlatformApiConfig =
-  | TwilioConfig
-  | IaE14Config
-  | TelegramConfig;
+export type PlatformApiConfig = IaE14Config | TelegramConfig;
 
 export const CAMPAIGN_BILLABLE_API_PROVIDERS: {
   id: PlatformApiProveedor;
   label: string;
   description: string;
 }[] = [
-  {
-    id: "twilio",
-    label: "Twilio",
-    description: "WhatsApp y mensajería",
-  },
   {
     id: "ia_e14",
     label: "IA E14",
@@ -70,7 +52,7 @@ export const PLATFORM_API_PROVIDERS = CAMPAIGN_BILLABLE_API_PROVIDERS;
 export function isBillableIntegrationProvider(
   proveedor: string
 ): proveedor is Exclude<PlatformApiProveedor, "telegram"> {
-  return proveedor !== "telegram";
+  return proveedor === "ia_e14";
 }
 
 export function providerLabel(proveedor: string): string {
@@ -131,7 +113,6 @@ export type SavedCampaignIntegration = {
 };
 
 export type CampaignFeatureFlag =
-  | "whatsapp"
   | "resolutor_captcha"
   | "auditoria_e14"
   | "telegram";
@@ -144,8 +125,6 @@ export function campaignFeatureFlagForProvider(
   proveedor: PlatformApiProveedor
 ): CampaignFeatureFlag | null {
   switch (proveedor) {
-    case "twilio":
-      return "whatsapp";
     case "ia_e14":
       return "auditoria_e14";
     case "telegram":
@@ -156,7 +135,7 @@ export function campaignFeatureFlagForProvider(
 }
 
 export function buildCampaignIntegrationRows(
-  idCampana: string,
+  idCampana: number,
   savedRows: SavedCampaignIntegration[],
   providers: ReadonlyArray<{
     id: PlatformApiProveedor;
@@ -194,19 +173,6 @@ export function mergeApiConfig(
   const next = { ...existing };
   const str = (key: string) => String(formData.get(key) ?? "").trim();
 
-  if (proveedor === "twilio") {
-    const accountSid = str("account_sid");
-    const authToken = str("auth_token");
-    const messagingSid = str("messaging_service_sid");
-    const whatsappFrom = str("whatsapp_from");
-    if (accountSid) next.account_sid = accountSid;
-    if (authToken && !isConfiguredSecretPlaceholder(authToken)) {
-      next.auth_token = authToken;
-    }
-    next.messaging_service_sid = messagingSid || undefined;
-    next.whatsapp_from = whatsappFrom || undefined;
-  }
-
   if (proveedor === "ia_e14") {
     const apiKey = str("api_key");
     const modelo = str("modelo");
@@ -240,10 +206,6 @@ export function validateApiConfig(
   proveedor: PlatformApiProveedor,
   config: Record<string, unknown>
 ): string | null {
-  if (proveedor === "twilio") {
-    if (!config.account_sid) return "El Account SID es obligatorio.";
-    if (!config.auth_token) return "El Auth Token es obligatorio.";
-  }
   if (proveedor === "ia_e14" && !config.api_key) {
     return "La API key es obligatoria.";
   }
@@ -258,13 +220,6 @@ export function configSummary(
   config: Record<string, unknown>
 ): string {
   switch (proveedor) {
-    case "twilio": {
-      const c = config as TwilioConfig;
-      const parts: string[] = [];
-      if (c.account_sid) parts.push(`SID ${maskSecret(c.account_sid)}`);
-      if (c.whatsapp_from) parts.push(c.whatsapp_from);
-      return parts.length ? parts.join(" · ") : "Sin credenciales";
-    }
     case "ia_e14": {
       const c = config as IaE14Config;
       const parts: string[] = [];

@@ -14,6 +14,7 @@ export default async function CampaignLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
 
   if (!isSupabaseConfigured()) {
     return (
@@ -23,10 +24,10 @@ export default async function CampaignLayout({
     );
   }
 
-  const { user, campana } = await requireCampaignAccess(id);
+  const { user, campana } = await requireCampaignAccess(campaignId);
 
   const platformBrand = await loadPlatformBrand();
-  const canManageTeam = await userCanManageCampaignTeam(user.id, id);
+  const canManageTeam = await userCanManageCampaignTeam(user.id, campaignId);
 
   return (
     <div
@@ -34,7 +35,7 @@ export default async function CampaignLayout({
       style={platformBrandToStyle(platformBrand)}
     >
       <CampaignSidebar
-        campaignId={id}
+        campaignId={campaignId}
         campaignName={campana.nombre}
         clientName={campana.nombreCliente}
         userEmail={

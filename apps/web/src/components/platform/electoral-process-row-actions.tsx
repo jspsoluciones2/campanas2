@@ -15,7 +15,7 @@ import {
 } from "@/components/platform/platform-ui";
 
 export type ProcesoElectoralRow = {
-  id: string;
+  id: number;
   nombre: string;
   fecha_eleccion: string | null;
 };

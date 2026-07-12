@@ -207,19 +207,11 @@ The system MUST permitir solo a `platform_owner` crear, activar y desactivar cam
 Solo `platform_owner` MUST configurar en `/platform/campaigns/{id}/integrations` las credenciales **propias de cada campaña** para servicios externos. MUST almacenarse cifradas en `campaign_integrations` con `campaign_id` + `provider`.
 
 Integraciones configurables por campaña:
-- **Twilio/WhatsApp**: subaccount o Messaging Service + número WhatsApp propio
 - **CAPTCHA Solver**: API key y URL base
 - **Telegram**: bot token
 - **IA (E14)**: proveedor, API key, modelo
 
 Cada campaña MUST usar **sus** credenciales al invocar servicios externos — nunca mezclar números ni keys entre campañas.
-
-#### Scenario: Dueño configura WhatsApp de campaña
-
-- GIVEN campaña nueva sin integraciones
-- WHEN `platform_owner` guarda credenciales Twilio y número WA de esa campaña
-- THEN mensajes de esa campaña MUST salir solo por ese número
-- AND otra campaña MUST NOT usar esas credenciales
 
 #### Scenario: CAPTCHA Solver por campaña
 

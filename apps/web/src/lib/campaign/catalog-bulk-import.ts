@@ -30,7 +30,7 @@ function enteroNoNegativo(value: string, label: string) {
 
 export async function importCatalogRows(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   segment: CatalogSegment,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
@@ -92,7 +92,7 @@ function buildResult(
 
 async function importComunas(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
   const { data: existentes } = await supabase
@@ -139,26 +139,26 @@ async function importComunas(
   return buildResult(created, skipped, errors);
 }
 
-async function loadComunaMap(supabase: SupabaseClient, campaignId: string) {
+async function loadComunaMap(supabase: SupabaseClient, campaignId: number) {
   const { data } = await supabase
     .from("comunas")
     .select("id, nombre")
     .eq("id_campana", campaignId);
 
-  const map = new Map<string, string>();
+  const map = new Map<string, number>();
   for (const row of data ?? []) {
     map.set(claveNombre(row.nombre), row.id);
   }
   return map;
 }
 
-async function loadBarrioMap(supabase: SupabaseClient, campaignId: string) {
+async function loadBarrioMap(supabase: SupabaseClient, campaignId: number) {
   const { data } = await supabase
     .from("barrios")
     .select("id, nombre, id_comuna, comunas!inner(id_campana)")
     .eq("comunas.id_campana", campaignId);
 
-  const map = new Map<string, string>();
+  const map = new Map<string, number>();
   for (const row of data ?? []) {
     const clave = `${row.id_comuna}::${claveNombre(row.nombre)}`;
     map.set(clave, row.id);
@@ -168,7 +168,7 @@ async function loadBarrioMap(supabase: SupabaseClient, campaignId: string) {
 
 async function importBarrios(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
   const comunaMap = await loadComunaMap(supabase, campaignId);
@@ -235,7 +235,7 @@ async function importBarrios(
 
 async function importPuestos(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
   const comunaMap = await loadComunaMap(supabase, campaignId);
@@ -348,7 +348,7 @@ async function importPuestos(
 
 async function importRoles(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
   const { data: existentes } = await supabase
@@ -413,7 +413,7 @@ async function importRoles(
 
 async function importTiposNovedad(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
   const { data: existentes } = await supabase
@@ -465,7 +465,7 @@ async function importTiposNovedad(
 
 async function importLugaresTrabajo(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
   const comunaMap = await loadComunaMap(supabase, campaignId);
@@ -498,8 +498,8 @@ async function importLugaresTrabajo(
 
     const comunaNombre = row.values.comuna ?? "";
     const barrioNombre = row.values.barrio ?? "";
-    let idComuna: string | null = null;
-    let idBarrio: string | null = null;
+    let idComuna: number | null = null;
+    let idBarrio: number | null = null;
 
     if (comunaNombre.trim()) {
       idComuna = comunaMap.get(claveNombre(comunaNombre)) ?? null;

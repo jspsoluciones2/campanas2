@@ -9,7 +9,8 @@ export default async function CampaignVotantesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase } = await requireCampaignAccess(id);
+  const campaignId = Number(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const [
     { data: votantes },
@@ -27,35 +28,35 @@ export default async function CampaignVotantesPage({
          id_tipo_novedad, detalle_novedad,
          roles(nombre), lugares_trabajo(nombre)`
       )
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("creado_en", { ascending: false })
       .limit(100),
     supabase
       .from("roles")
       .select("id, nombre, nivel_jerarquia")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("nivel_jerarquia"),
     supabase
       .from("puestos_votacion")
       .select("id, nombre, municipio, comunas(nombre)")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("nombre"),
     supabase
       .from("lugares_trabajo")
       .select("id, nombre")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("nombre"),
     supabase
       .from("votantes")
       .select("id, nombres, apellidos, documento, id_rol, roles(nivel_jerarquia)")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .in("estado", ["activo", "registrado", "pendiente_verificacion"])
       .order("apellidos")
       .limit(200),
     supabase
       .from("tipos_novedad")
       .select("id, novedad")
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .order("novedad"),
   ]);
 
@@ -84,7 +85,7 @@ export default async function CampaignVotantesPage({
       />
 
       <VotanteRegisterForm
-        campaignId={id}
+        campaignId={campaignId}
         roles={roles ?? []}
         puestos={puestos ?? []}
         lugaresTrabajo={lugaresTrabajo ?? []}
@@ -96,7 +97,7 @@ export default async function CampaignVotantesPage({
         description={`${rows.length} votante(s) mostrados (máx. 100)`}
       >
         <VotantesTable
-          campaignId={id}
+          campaignId={campaignId}
           rows={rows}
           tiposNovedad={tiposNovedad ?? []}
           emptyMessage="Sin votantes. Configura catálogos y registra el primero arriba."

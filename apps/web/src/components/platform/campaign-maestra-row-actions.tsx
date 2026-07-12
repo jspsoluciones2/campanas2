@@ -12,7 +12,7 @@ import {
 import { FormField, platformInputClass } from "@/components/platform/platform-ui";
 
 export type CampanaMaestraRow = {
-  id: string;
+  id: number;
   nombre: string;
 };
 

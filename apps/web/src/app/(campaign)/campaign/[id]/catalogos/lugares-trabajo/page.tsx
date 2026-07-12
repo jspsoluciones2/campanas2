@@ -30,6 +30,7 @@ export default async function CatalogLugaresTrabajoPage({
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
   const { q: qRaw = "", page: pageRaw = "1" } = await searchParams;
   const q = qRaw.trim();
   const filters = { q };
@@ -37,12 +38,12 @@ export default async function CatalogLugaresTrabajoPage({
   const from = (page - 1) * CATALOG_PAGE_SIZE;
   const to = from + CATALOG_PAGE_SIZE - 1;
 
-  const { supabase } = await requireCampaignAccess(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const { data: comunas } = await supabase
     .from("comunas")
     .select("id, nombre")
-    .eq("id_campana", id)
+    .eq("id_campana", campaignId)
     .order("nombre");
 
   const comunasList = comunas ?? [];
@@ -70,7 +71,7 @@ export default async function CatalogLugaresTrabajoPage({
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(catalogListHref(id, "lugares-trabajo", filters, totalPages));
+    redirect(catalogListHref(campaignId, "lugares-trabajo", filters, totalPages));
   }
 
   const list = rows ?? [];
@@ -85,10 +86,10 @@ export default async function CatalogLugaresTrabajoPage({
         description="Empresas, oficinas o sitios donde trabajan los votantes de la campaña."
       />
 
-      <CatalogBulkUpload campaignId={id} segment="lugares-trabajo" />
+       <CatalogBulkUpload campaignId={campaignId} segment="lugares-trabajo" />
 
       <Card title="Nuevo lugar de trabajo">
-        <form action={createLugarTrabajoFormAction.bind(null, id)}>
+        <form action={createLugarTrabajoFormAction.bind(null, campaignId)}>
           <FormRow className="flex-col items-stretch lg:flex-row lg:flex-wrap">
             <FormField label="Nombre">
               <input name="nombre" required className={platformInputClass} />
@@ -115,14 +116,14 @@ export default async function CatalogLugaresTrabajoPage({
 
       <Card title="Creados" description={`${total} lugar(es)`}>
         <CatalogListFilter
-          campaignId={id}
+          campaignId={campaignId}
           segment="lugares-trabajo"
           q={q}
           placeholder="ID, nombre o dirección"
         />
         <DataTable
           data={list}
-          rowKey={(l) => l.id}
+          rowKey={(l) => String(l.id)}
           emptyMessage={emptyMessage}
           columns={[
             {
@@ -162,7 +163,7 @@ export default async function CatalogLugaresTrabajoPage({
               className: "text-center",
               cell: (l) => (
                 <LugarTrabajoRowActions
-                  campaignId={id}
+                  campaignId={campaignId}
                   lugar={l}
                   comunas={comunasList}
                 />
@@ -171,7 +172,7 @@ export default async function CatalogLugaresTrabajoPage({
           ]}
         />
         <CatalogPagination
-          campaignId={id}
+          campaignId={campaignId}
           segment="lugares-trabajo"
           page={page}
           totalPages={totalPages}

@@ -29,6 +29,7 @@ export default async function CatalogComunasPage({
   searchParams: Promise<{ q?: string; page?: string; error?: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
   const {
     q: qRaw = "",
     page: pageRaw = "1",
@@ -41,18 +42,18 @@ export default async function CatalogComunasPage({
   const from = (page - 1) * CATALOG_PAGE_SIZE;
   const to = from + CATALOG_PAGE_SIZE - 1;
 
-  const { supabase } = await requireCampaignAccess(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const term = escapeIlikeTerm(q);
   const { rows, count: total, error: listError } = await fetchComunasList(
     supabase,
-    id,
+    campaignId,
     { q: term, from, to }
   );
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(catalogListHref(id, "comunas", filters, totalPages));
+    redirect(catalogListHref(campaignId, "comunas", filters, totalPages));
   }
 
   const list = rows;
@@ -87,13 +88,13 @@ export default async function CatalogComunasPage({
         </div>
       ) : null}
 
-      <CatalogBulkUpload campaignId={id} segment="comunas" />
+       <CatalogBulkUpload campaignId={campaignId} segment="comunas" />
 
       <Card
         title={`Nueva ${COMUNA_LABEL_CREACION.toLowerCase()}`}
         description="En algunos municipios no aplica el término comuna; registra aquí la subdivisión territorial que use tu campaña (localidad, corregimiento, etc.)."
       >
-        <form action={createComunaFormAction.bind(null, id)}>
+        <form action={createComunaFormAction.bind(null, campaignId)}>
           <FormRow>
             <FormField label={COMUNA_LABEL_CREACION}>
               <input
@@ -112,14 +113,14 @@ export default async function CatalogComunasPage({
 
       <Card title="Creadas" description={`${total} comuna(s)`}>
         <CatalogListFilter
-          campaignId={id}
+          campaignId={campaignId}
           segment="comunas"
           q={q}
           placeholder="ID o nombre de comuna"
         />
         <DataTable
           data={list}
-          rowKey={(c) => c.id}
+          rowKey={(c) => String(c.id)}
           emptyMessage={emptyMessage}
           columns={[
             {
@@ -145,13 +146,13 @@ export default async function CatalogComunasPage({
               header: "Acciones",
               className: "text-center",
               cell: (c) => (
-                <ComunaRowActions campaignId={id} comuna={c} />
+                <ComunaRowActions campaignId={campaignId} comuna={c} />
               ),
             },
           ]}
         />
         <CatalogPagination
-          campaignId={id}
+          campaignId={campaignId}
           segment="comunas"
           page={page}
           totalPages={totalPages}

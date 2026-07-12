@@ -18,7 +18,7 @@ import {
 } from "@/components/platform/platform-ui";
 
 export type ClienteRow = {
-  id: string;
+  id: number;
   nombre: string;
   documento: string | null;
   telefono: string | null;

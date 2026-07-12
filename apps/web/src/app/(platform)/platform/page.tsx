@@ -12,7 +12,7 @@ import {
 } from "@/components/platform/platform-ui";
 
 type CampanaRow = {
-  id: string;
+  id: number;
   nombre: string;
   clientes: { nombre: string } | { nombre: string }[] | null;
 };
@@ -75,7 +75,7 @@ export default async function PlatformHomePage() {
       >
         <DataTable
           data={filas}
-          rowKey={(c) => c.id}
+          rowKey={(c) => String(c.id)}
           emptyMessage="Sin campañas. Créalas en Maestras → Campañas."
           columns={[
             {
@@ -98,12 +98,6 @@ export default async function PlatformHomePage() {
                   {c.nombre}
                 </Link>
               ),
-            },
-            {
-              key: "twilio",
-              header: "Costo Twilio",
-              cell: (c) => formatCosto(costosPorCampana(c.id, uso).twilio),
-              className: "tabular-nums text-neutral-600",
             },
             {
               key: "ia",

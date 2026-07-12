@@ -10,5 +10,5 @@ export default async function CampaignCatalogosIndexPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(catalogSegmentPath(id, CATALOG_DEFAULT_SEGMENT));
+  redirect(catalogSegmentPath(Number(id), CATALOG_DEFAULT_SEGMENT));
 }

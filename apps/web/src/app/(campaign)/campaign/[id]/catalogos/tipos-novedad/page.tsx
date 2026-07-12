@@ -29,6 +29,7 @@ export default async function CatalogTiposNovedadPage({
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
   const { q: qRaw = "", page: pageRaw = "1" } = await searchParams;
   const q = qRaw.trim();
   const filters = { q };
@@ -36,12 +37,12 @@ export default async function CatalogTiposNovedadPage({
   const from = (page - 1) * CATALOG_PAGE_SIZE;
   const to = from + CATALOG_PAGE_SIZE - 1;
 
-  const { supabase } = await requireCampaignAccess(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   let query = supabase
     .from("tipos_novedad")
     .select("id, novedad, codigo, creado_en", { count: "exact" })
-    .eq("id_campana", id)
+    .eq("id_campana", campaignId)
     .order("codigo");
 
   const term = escapeIlikeTerm(q);
@@ -58,7 +59,7 @@ export default async function CatalogTiposNovedadPage({
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(catalogListHref(id, "tipos-novedad", filters, totalPages));
+    redirect(catalogListHref(campaignId, "tipos-novedad", filters, totalPages));
   }
 
   const list = rows ?? [];
@@ -73,10 +74,10 @@ export default async function CatalogTiposNovedadPage({
         description="Catálogo de novedades aplicables a votantes."
       />
 
-      <CatalogBulkUpload campaignId={id} segment="tipos-novedad" />
+       <CatalogBulkUpload campaignId={campaignId} segment="tipos-novedad" />
 
       <Card title="Nuevo tipo de novedad">
-        <form action={createTipoNovedadFormAction.bind(null, id)}>
+        <form action={createTipoNovedadFormAction.bind(null, campaignId)}>
           <FormRow>
             <FormField label="Descripción" className="flex-[2]">
               <input name="novedad" required className={platformInputClass} />
@@ -90,14 +91,14 @@ export default async function CatalogTiposNovedadPage({
 
       <Card title="Creados" description={`${total} tipo(s)`}>
         <CatalogListFilter
-          campaignId={id}
+          campaignId={campaignId}
           segment="tipos-novedad"
           q={q}
           placeholder="ID o descripción de la novedad"
         />
         <DataTable
           data={list}
-          rowKey={(t) => t.id}
+          rowKey={(t) => String(t.id)}
           emptyMessage={emptyMessage}
           columns={[
             {
@@ -123,13 +124,13 @@ export default async function CatalogTiposNovedadPage({
               header: "Acciones",
               className: "text-center",
               cell: (t) => (
-                <TipoNovedadRowActions campaignId={id} tipo={t} />
+                <TipoNovedadRowActions campaignId={campaignId} tipo={t} />
               ),
             },
           ]}
         />
         <CatalogPagination
-          campaignId={id}
+          campaignId={campaignId}
           segment="tipos-novedad"
           page={page}
           totalPages={totalPages}

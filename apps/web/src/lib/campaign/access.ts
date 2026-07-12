@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 
 export type CampanaBasica = {
-  id: string;
+  id: number;
   nombre: string;
   estado: string;
   nombreCliente: string | null;
@@ -16,7 +16,7 @@ function nombreClienteRelacion(
   return rel.nombre ?? null;
 }
 
-export async function requireCampaignAccess(campaignId: string) {
+export async function requireCampaignAccess(campaignId: number) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +46,7 @@ export async function requireCampaignAccess(campaignId: string) {
 
 export async function userCanAccessCampaign(
   userId: string,
-  campaignId: string
+  campaignId: number
 ): Promise<boolean> {
   const supabase = await createClient();
 
@@ -69,7 +69,7 @@ export async function userCanAccessCampaign(
 
 export async function userCanEditCampaign(
   userId: string,
-  campaignId: string
+  campaignId: number
 ): Promise<boolean> {
   const supabase = await createClient();
 
@@ -94,7 +94,7 @@ export async function userCanEditCampaign(
 
 export async function userCanManageCampaignTeam(
   userId: string,
-  campaignId: string
+  campaignId: number
 ): Promise<boolean> {
   const supabase = await createClient();
 
@@ -116,7 +116,7 @@ export async function userCanManageCampaignTeam(
   return member?.rol === "administrador_campana";
 }
 
-export async function requireCampaignTeamManager(campaignId: string) {
+export async function requireCampaignTeamManager(campaignId: number) {
   const access = await requireCampaignAccess(campaignId);
   const canManage = await userCanManageCampaignTeam(
     access.user.id,

@@ -6,7 +6,7 @@
 - [x] 0.2 Crear `services/python/` — Flask 3, `requirements.txt`, estructura `app/api/`, `app/modules/`
 - [x] 0.3 `supabase init` + link remoto; `supabase/migrations`, `supabase/functions`
 - [x] 0.4 Scaffold route groups `(platform)`, `(campaign)`, `(capture)`, `(auth)` en `apps/web/`
-- [x] 0.5 `.env.example`: Supabase, `FLASK_API_URL`, Twilio, CAPTCHA Solver, IA
+- [x] 0.5 `.env.example`: Supabase, `FLASK_API_URL`, CAPTCHA Solver, IA
 - [x] 0.6 Script dev local: Next.js + Flask + Supabase (`package.json` + `Makefile` o `docker-compose.yml`)
 
 ## Phase 1: platform-core
@@ -56,7 +56,6 @@
 
 ## Phase 7: capture-channels (WA + TG)
 
-- [ ] 7.1 Edge Function webhook Twilio → Flask
 - [ ] 7.2 Flask flujo WA; `campaign_integrations`
 - [ ] 7.3 Bot Telegram
 

@@ -15,7 +15,7 @@ export function CampaignIntegrationClearButton({
   onCleared,
   className = "h-10 shrink-0 px-6",
 }: {
-  idCampana: string;
+  idCampana: number;
   proveedor: PlatformApiProveedor;
   label: string;
   campaignName?: string;

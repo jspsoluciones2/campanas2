@@ -21,7 +21,7 @@ const ETIQUETAS_ESTADO: Record<string, string> = {
 };
 
 type CuarentenaRow = {
-  id: string;
+  id: number;
   nombres: string;
   apellidos: string;
   documento: string;
@@ -44,7 +44,8 @@ export default async function QuarantinePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase } = await requireCampaignAccess(id);
+  const campaignId = Number(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   const { data: rows } = await supabase
     .from("cuarentena_votantes")
@@ -69,7 +70,7 @@ export default async function QuarantinePage({
       )
     `
     )
-    .eq("id_campana", id)
+    .eq("id_campana", campaignId)
     .order("creado_en", { ascending: false })
     .limit(100);
 
@@ -107,7 +108,7 @@ export default async function QuarantinePage({
         ) : (
           <DataTable
             data={pendientes as CuarentenaRow[]}
-            rowKey={(r) => r.id}
+            rowKey={(r) => String(r.id)}
             emptyMessage="Sin registros."
             columns={[
               {
@@ -157,7 +158,7 @@ export default async function QuarantinePage({
                 header: "Acciones",
                 cell: (r) => (
                   <QuarantineResolveButtons
-                    campaignId={id}
+                    campaignId={campaignId}
                     quarantineId={r.id}
                   />
                 ),
@@ -171,7 +172,7 @@ export default async function QuarantinePage({
         <Card title="Historial resuelto" description={`${historial.length} registro(s)`}>
           <DataTable
             data={historial as CuarentenaRow[]}
-            rowKey={(r) => r.id}
+            rowKey={(r) => String(r.id)}
             emptyMessage="Sin historial."
             columns={[
               {

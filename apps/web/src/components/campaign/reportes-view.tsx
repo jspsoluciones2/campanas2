@@ -24,11 +24,11 @@ import { cn } from "@/lib/utils";
 import gsap from "gsap";
 
 type Props = {
-  campaignId: string;
+  campaignId: number;
   initialTotal: number;
-  initialRoles: { id: string; nombre: string }[];
-  initialPuestos: { id: string; nombre: string }[];
-  initialTiposNovedad: { id: string; novedad: string }[];
+  initialRoles: { id: number; nombre: string }[];
+  initialPuestos: { id: number; nombre: string }[];
+  initialTiposNovedad: { id: number; novedad: string }[];
   initialVotantes: VotanteListRow[];
 };
 
@@ -44,17 +44,17 @@ const TABS: { id: TabId; label: string }[] = [
 type Filters = {
   search: string;
   sexo: string;
-  id_rol: string;
+  id_rol: number;
   estado: string;
-  id_puesto_votacion: string;
+  id_puesto_votacion: number;
 };
 
 const DEFAULT_FILTERS: Filters = {
   search: "",
   sexo: "",
-  id_rol: "",
+  id_rol: 0,
   estado: "",
-  id_puesto_votacion: "",
+  id_puesto_votacion: 0,
 };
 
 type CardConfig = {
@@ -315,7 +315,10 @@ export function ReportesView({
   }
 
   function handleSelectFilter(key: keyof Filters, value: string) {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({
+      ...prev,
+      [key]: key === "id_rol" || key === "id_puesto_votacion" ? Number(value) : value,
+    }));
   }
 
   function TabButton({ tab }: { tab: (typeof TABS)[number] }) {

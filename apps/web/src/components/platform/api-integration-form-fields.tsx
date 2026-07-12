@@ -16,45 +16,11 @@ export function ApiIntegrationFormFields({
   proveedor: PlatformApiProveedor;
   configuracion: Record<string, unknown>;
   configured: boolean;
-  idCampana?: string;
+  idCampana?: number;
 }) {
   const c = configuracion;
 
   switch (proveedor) {
-    case "twilio":
-      return (
-        <>
-          <FormField label="Account SID">
-            <input
-              name="account_sid"
-              defaultValue={String(c.account_sid ?? "")}
-              placeholder="ACxxxxxxxx"
-              className={platformInputClass}
-            />
-          </FormField>
-          <FormField label="Auth Token">
-            <ConfiguredSecretInput name="auth_token" configured={configured} />
-          </FormField>
-          <FormRow>
-            <FormField label="Messaging Service SID">
-              <input
-                name="messaging_service_sid"
-                defaultValue={String(c.messaging_service_sid ?? "")}
-                placeholder="MGxxxxxxxx (opcional)"
-                className={platformInputClass}
-              />
-            </FormField>
-            <FormField label="WhatsApp From">
-              <input
-                name="whatsapp_from"
-                defaultValue={String(c.whatsapp_from ?? "")}
-                placeholder="whatsapp:+57… (opcional)"
-                className={platformInputClass}
-              />
-            </FormField>
-          </FormRow>
-        </>
-      );
     case "ia_e14":
       return (
         <>

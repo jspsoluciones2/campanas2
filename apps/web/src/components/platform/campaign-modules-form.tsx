@@ -27,14 +27,14 @@ const MODULOS: Array<{
 ];
 
 type Props = {
-  campaignId: string;
+  campaignId: number;
   modules: CampaignModules;
 };
 
 type ActionState = { error?: string; ok?: boolean };
 
 async function submitModules(
-  campaignId: string,
+  campaignId: number,
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {

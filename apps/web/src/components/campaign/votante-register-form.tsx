@@ -21,16 +21,16 @@ import {
 const TIPOS_DOCUMENTO = ["CC", "TI", "CE", "PA", "PEP", "PPT"] as const;
 const SIN_LIDER_VALUE = "__sin_lider__";
 
-type Rol = { id: string; nombre: string; nivel_jerarquia: number };
+type Rol = { id: number; nombre: string; nivel_jerarquia: number };
 type Puesto = {
-  id: string;
+  id: number;
   nombre: string;
   municipio: string | null;
   comunas: { nombre: string } | { nombre: string }[] | null;
 };
-type LugarTrabajo = { id: string; nombre: string };
+type LugarTrabajo = { id: number; nombre: string };
 type Lider = {
-  id: string;
+  id: number;
   nombres: string;
   apellidos: string;
   documento: string;
@@ -38,7 +38,7 @@ type Lider = {
 };
 
 type Props = {
-  campaignId: string;
+  campaignId: number;
   roles: Rol[];
   puestos: Puesto[];
   lugaresTrabajo: LugarTrabajo[];
@@ -53,7 +53,7 @@ type ActionState = {
 };
 
 async function submitVotante(
-  campaignId: string,
+  campaignId: number,
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
@@ -94,7 +94,7 @@ export function VotanteRegisterForm({
     [municipio, puestos]
   );
   const comunaPuesto = useMemo(() => {
-    const puesto = puestos.find((p) => p.id === puestoId);
+    const puesto = puestos.find((p) => p.id === Number(puestoId));
     if (!puesto?.comunas) return null;
     const rel = puesto.comunas;
     if (Array.isArray(rel)) return rel[0]?.nombre ?? null;
@@ -102,7 +102,7 @@ export function VotanteRegisterForm({
   }, [puestoId, puestos]);
   const sinLiderDirecto = liderId === SIN_LIDER_VALUE;
   const liderSeleccionado = useMemo(
-    () => lideres.find((l) => l.id === liderId),
+    () => lideres.find((l) => l.id === Number(liderId)),
     [liderId, lideres]
   );
   const rolesDisponibles = useMemo(() => {

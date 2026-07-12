@@ -1,4 +1,4 @@
--- Configuración global de APIs (Twilio, Capsolver, IA) — solo dueños de plataforma.
+-- Configuración global de APIs (Capsolver, IA) — solo dueños de plataforma.
 
 CREATE TABLE configuracion_integracion_plataforma (
   proveedor proveedor_integracion PRIMARY KEY,
@@ -7,7 +7,7 @@ CREATE TABLE configuracion_integracion_plataforma (
   creado_en timestamptz NOT NULL DEFAULT now(),
   actualizado_en timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT configuracion_integracion_plataforma_proveedor_check CHECK (
-    proveedor IN ('twilio', 'resolutor_captcha', 'ia_e14')
+    proveedor IN ('resolutor_captcha', 'ia_e14')
   )
 );
 

@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   // Permite cargar la app vía túnel ngrok en desarrollo (Next 16 bloquea orígenes externos por defecto).
   allowedDevOrigins: [
+    "192.168.31.115",
     "*.ngrok-free.dev",
     "*.ngrok-free.app",
     "*.ngrok.io",

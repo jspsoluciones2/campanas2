@@ -1,6 +1,6 @@
 # Plataforma de Campañas
 
-SaaS multi-campaña para campañas políticas en Colombia: votantes, cuarentena, WhatsApp (Twilio), Telegram, web pública, CAPTCHA Solver, E14+IA, estadísticas y export al cierre.
+SaaS multi-campaña para campañas políticas en Colombia: votantes, cuarentena, WhatsApp, Telegram, web pública, CAPTCHA Solver, E14+IA, estadísticas y export al cierre.
 
 ## Stack
 

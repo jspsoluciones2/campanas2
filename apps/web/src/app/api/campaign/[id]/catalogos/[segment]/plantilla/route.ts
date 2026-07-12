@@ -26,7 +26,7 @@ export async function GET(
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const puedeAcceder = await userCanAccessCampaign(user.id, id);
+  const puedeAcceder = await userCanAccessCampaign(user.id, Number(id));
   if (!puedeAcceder) {
     return NextResponse.json({ error: "Sin acceso a la campaña." }, { status: 403 });
   }

@@ -2,13 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 
 export type PuestoListRow = {
-  id: string;
+  id: number;
   nombre: string;
   municipio: string | null;
   direccion: string | null;
   codigo: number | null;
-  id_comuna: string | null;
-  id_barrio: string | null;
+  id_comuna: number | null;
+  id_barrio: number | null;
   votantes_hombres_admite: number;
   votantes_mujeres_admite: number;
   cantidad_mesas: number;
@@ -22,7 +22,7 @@ const PUESTO_SELECT =
 
 export async function fetchPuestosList(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   options: { q: string; from: number; to: number }
 ) {
   const term = options.q.trim();
@@ -62,8 +62,8 @@ export async function insertPuestoRow(
 
 export async function updatePuestoRow(
   supabase: SupabaseClient,
-  campaignId: string,
-  id: string,
+  campaignId: number,
+  id: number,
   row: Record<string, unknown>
 ) {
   const { error } = await supabase

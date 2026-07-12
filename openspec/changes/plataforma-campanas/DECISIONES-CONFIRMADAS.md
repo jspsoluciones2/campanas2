@@ -37,24 +37,9 @@
 
 ---
 
-## 4. WhatsApp — Twilio (evitar Meta directo)
+## 4. WhatsApp
 
-**Confirmado.** Preferencia por **no integrar Meta Cloud API directamente** en la aplicación.
-
-**Cómo funciona con Twilio:**
-- Tu app solo se comunica con la **API de Twilio**
-- Twilio gestiona el WhatsApp Business Account, plantillas y webhooks
-- No necesitas manejar tokens Meta ni endpoints de Meta en tu código
-- Webhook entrante → Supabase Edge Function → flujo conversacional
-
-**Limitación honesta:** WhatsApp oficial siempre usa la infraestructura de Meta. Twilio no elimina WhatsApp, pero **sí elimina la integración directa** y reduce carga operativa. Si WhatsApp tiene caídas de red, Telegram y el formulario web por enlace siguen activos.
-
-**Pasos de alto nivel (implementación):**
-1. Crear cuenta Twilio
-2. Registrar sender WhatsApp (vía Twilio)
-3. Aprobar plantillas de mensaje
-4. Configurar webhook a nuestra Edge Function
-5. Validar firma Twilio en cada mensaje entrante
+La integración de proveedor de WhatsApp fue retirada. Telegram y el formulario web por enlace permanecen como canales operativos.
 
 ---
 
@@ -199,13 +184,13 @@ Cuando **dos recolectores del mismo político** registran al **mismo votante** e
 
 | Integración | Por campaña | Para controlar gastos |
 |-------------|-------------|------------------------|
-| **WhatsApp (Twilio)** | **Sí** — número y subaccount propios | Factura WA separada por cliente |
+| **WhatsApp** | No incluido en la plataforma | — |
 | **CAPTCHA Solver** | **Sí** — API key propia | Consultas medidas por campaña |
 | **Telegram** | **Sí** — bot token propio | Aislamiento operativo |
 | **IA (E14)** | **Sí** — API key / modelo propio | Tokens IA por cliente |
 | **Supabase** | **No** — **uno solo** para toda la plataforma | Un plan; datos aislados con RLS |
 
-**¿Por qué no un Supabase por político?** Multiplicaría costos fijos, perdería el panel único de administración y complicaría el mantenimiento. El aislamiento de datos ya lo da RLS por `campaign_id`. El control de gastos por cliente se logra en **Twilio, CAPTCHA e IA** — que son los consumos variables.
+**¿Por qué no un Supabase por político?** Multiplicaría costos fijos, perdería el panel único de administración y complicaría el mantenimiento. El aislamiento de datos ya lo da RLS por `campaign_id`. El control de gastos por cliente se logra en **CAPTCHA e IA** — que son los consumos variables.
 
 **Panel de uso:** `/platform/campaigns/{id}/usage` — **solo ustedes** (`platform_owner`). El equipo del político **nunca** ve gastos.
 

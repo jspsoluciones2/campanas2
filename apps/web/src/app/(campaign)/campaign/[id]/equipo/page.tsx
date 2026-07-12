@@ -11,8 +11,9 @@ export default async function CampaignTeamPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase } = await requireCampaignTeamManager(id);
-  const miembros = await listCampaignMembersWithProfiles(supabase, id);
+  const campaignId = Number(id);
+  const { supabase } = await requireCampaignTeamManager(campaignId);
+  const miembros = await listCampaignMembersWithProfiles(supabase, campaignId);
 
   return (
     <>

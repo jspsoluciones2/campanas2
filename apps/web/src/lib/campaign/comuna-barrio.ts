@@ -1,15 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ComunaBarrioIds = {
-  idComuna: string;
-  idBarrio: string;
+  idComuna: number;
+  idBarrio: number;
 };
 
 export async function validarComunaBarrioPuesto(
   supabase: SupabaseClient,
-  campaignId: string,
-  idComuna: string,
-  idBarrio: string
+  campaignId: number,
+  idComuna: number,
+  idBarrio: number
 ): Promise<ComunaBarrioIds | { error: string }> {
   if (!idComuna) {
     return { error: "La comuna es obligatoria para el puesto de votación." };
@@ -40,7 +40,7 @@ export async function validarComunaBarrioPuesto(
     return { error: "El barrio seleccionado no pertenece a esta campaña." };
   }
 
-  if (barrio.id_comuna !== idComuna) {
+  if (barrio.id_comuna !== Number(idComuna)) {
     return {
       error: "El barrio no corresponde a la comuna seleccionada.",
     };

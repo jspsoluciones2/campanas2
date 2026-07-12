@@ -7,7 +7,8 @@ export default async function CampaignE14Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireCampaignAccess(id);
+  const campaignId = Number(id);
+  await requireCampaignAccess(campaignId);
 
   return (
     <>

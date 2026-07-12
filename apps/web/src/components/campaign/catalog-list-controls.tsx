@@ -10,7 +10,7 @@ import {
 import type { CatalogListFilters } from "@/lib/campaign/catalog-list";
 
 type CatalogListFilterProps = {
-  campaignId: string;
+  campaignId: number;
   segment: string;
   q: string;
   placeholder: string;
@@ -37,7 +37,7 @@ export function CatalogListFilter({
 }
 
 type CatalogPaginationProps = {
-  campaignId: string;
+  campaignId: number;
   segment: string;
   page: number;
   totalPages: number;
@@ -77,7 +77,7 @@ export function CatalogPagination({
 export { MASTER_PAGE_SIZE as CATALOG_PAGE_SIZE };
 
 export function catalogListHref(
-  campaignId: string,
+  campaignId: number,
   segment: string,
   filters: CatalogListFilters,
   page: number

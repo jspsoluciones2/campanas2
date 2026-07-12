@@ -54,7 +54,6 @@ Servicio externo configurado por campaña.
 
 | Valor | Significado |
 |-------|-------------|
-| `twilio` | WhatsApp / mensajería |
 | `resolutor_captcha` | CAPTCHA Solver + consulta registraduría |
 | `telegram` | Bot de Telegram |
 | `ia_e14` | Análisis IA de formularios E14 |
@@ -95,7 +94,7 @@ Por dónde entró el registro del votante.
 
 | Valor | Significado |
 |-------|-------------|
-| `whatsapp` | Bot WhatsApp (Twilio) |
+| `whatsapp` | Canal WhatsApp (fuera de alcance) |
 | `telegram` | Bot Telegram |
 | `web` | Formulario web autenticado |
 | `web_publico` | Formulario por enlace/token sin login |
@@ -233,13 +232,13 @@ Vínculo opcional usuario ↔ cliente, para re-asignar personas entre campañas 
 ---
 
 ### `integraciones_campana`
-Credenciales **por campaña** (Twilio, CAPTCHA, etc.). Solo visible para dueños de plataforma.
+Credenciales **por campaña** (CAPTCHA, Telegram e IA). Solo visible para dueños de plataforma.
 
 | Campo | Tipo | Obl. | Función |
 |-------|------|------|---------|
 | `id` | uuid | Sí | Identificador |
 | `id_campana` | uuid | Sí | Campaña dueña de la integración |
-| `proveedor` | proveedor_integracion | Sí | Qué servicio (twilio, resolutor_captcha…) |
+| `proveedor` | proveedor_integracion | Sí | Qué servicio (resolutor_captcha, telegram, ia_e14…) |
 | `configuracion_cifrada` | text | Sí | JSON con API keys, números, tokens (cifrar en app) |
 | `activa` | boolean | Sí | Si la integración está en uso |
 | `creado_en` | timestamptz | Sí | Alta |

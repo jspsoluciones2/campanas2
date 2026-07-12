@@ -15,7 +15,6 @@ Ver detalle en [DECISIONES-CONFIRMADAS.md](DECISIONES-CONFIRMADAS.md).
 | 1 | Multi-campaña SaaS | **Sí** — producto vendible a distintos políticos |
 | 2 | Formulario web público | **Sí** — solo por enlace único, sin login |
 | 3 | Verificación registraduría | **CAPTCHA Solver** (resolución captchas + puesto) |
-| 4 | WhatsApp | **Twilio** — sin integración directa Meta en la app |
 | 5 | Campos del votante | **Diferido** — se definen al construir BD Supabase |
 | 6 | Admin de plataforma | **Un módulo para dueños** — asignan usuarios a cada campaña |
 | 7 | Coincidencias | **Crítico** — solo dentro de la misma campaña; políticos no se cruzan |
@@ -35,7 +34,7 @@ Ver detalle en [DECISIONES-CONFIRMADAS.md](DECISIONES-CONFIRMADAS.md).
 - [x] 8 módulos cubren MVP (renombrado: `captcha-solver-integration`)
 - [x] Orden MVP aceptable
 - [x] Cuarentena de duplicados definida
-- [x] Canales WA (Twilio), TG y web pública por enlace
+- [x] Canales TG y web pública por enlace
 - [x] Branding de plataforma (no por político)
 - [x] Cierre con export acotado + purga discrecional
 - [ ] CAPTCHA Solver — contrato API (pendiente docs del proveedor)

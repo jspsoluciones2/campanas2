@@ -102,7 +102,7 @@ export default async function CampaignIntegrationsPage({
   const { data: campana } = await supabase
     .from("campanas")
     .select("id, nombre, clientes(nombre)")
-    .eq("id", id)
+    .eq("id", Number(id))
     .single();
 
   if (!campana) notFound();
@@ -115,7 +115,7 @@ export default async function CampaignIntegrationsPage({
   const { data: integraciones } = await supabase
     .from("integraciones_campana")
     .select("proveedor, configuracion_cifrada, activa, actualizado_en")
-    .eq("id_campana", id);
+    .eq("id_campana", Number(id));
 
   const savedRows = (integraciones ?? []).map((row) => {
     const r = row as IntegrationRow;
@@ -137,7 +137,7 @@ export default async function CampaignIntegrationsPage({
       description: string;
     }>
   ) =>
-    buildCampaignIntegrationRows(id, savedRows, providers).map((row) => ({
+    buildCampaignIntegrationRows(Number(id), savedRows, providers).map((row) => ({
       ...row,
       actualizado_en: byProveedor.get(row.proveedor)?.actualizado_en ?? null,
     }));
@@ -156,7 +156,7 @@ export default async function CampaignIntegrationsPage({
 
       <Card
         title="APIs con costo"
-        description="Twilio e IA E14. El consumo se registra en Uso y gastos."
+        description="IA E14. El consumo se registra en Uso y gastos."
       >
         <DataTable
           data={apiRows}

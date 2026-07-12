@@ -33,6 +33,7 @@ export default async function CatalogRolesPage({
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const { id } = await params;
+  const campaignId = Number(id);
   const { q: qRaw = "", page: pageRaw = "1" } = await searchParams;
   const q = qRaw.trim();
   const filters = { q };
@@ -40,12 +41,12 @@ export default async function CatalogRolesPage({
   const from = (page - 1) * CATALOG_PAGE_SIZE;
   const to = from + CATALOG_PAGE_SIZE - 1;
 
-  const { supabase } = await requireCampaignAccess(id);
+  const { supabase } = await requireCampaignAccess(campaignId);
 
   let query = supabase
     .from("roles")
     .select("id, nombre, codigo, nivel_jerarquia, creado_en", { count: "exact" })
-    .eq("id_campana", id)
+    .eq("id_campana", campaignId)
     .order("codigo");
 
   const term = escapeIlikeTerm(q);
@@ -62,7 +63,7 @@ export default async function CatalogRolesPage({
   const totalPages = Math.max(1, Math.ceil(total / CATALOG_PAGE_SIZE));
 
   if (total > 0 && page > totalPages) {
-    redirect(catalogListHref(id, "roles", filters, totalPages));
+    redirect(catalogListHref(campaignId, "roles", filters, totalPages));
   }
 
   const list = rows ?? [];
@@ -70,7 +71,7 @@ export default async function CatalogRolesPage({
   const { data: nivelesRows } = await supabase
     .from("roles")
     .select("nivel_jerarquia")
-    .eq("id_campana", id);
+    .eq("id_campana", campaignId);
   const nivelesExistentes = (nivelesRows ?? []).map((r) => r.nivel_jerarquia);
   const nivelSugerido = siguienteNivelJerarquia(nivelesExistentes);
 
@@ -82,10 +83,10 @@ export default async function CatalogRolesPage({
     <>
       <PageHeader title="Roles" />
 
-      <CatalogBulkUpload campaignId={id} segment="roles" />
+       <CatalogBulkUpload campaignId={campaignId} segment="roles" />
 
       <Card title="Nuevo rol">
-        <form action={createRolFormAction.bind(null, id)}>
+        <form action={createRolFormAction.bind(null, campaignId)}>
           <FormRow>
             <FormField label="Nombre">
               <input name="nombre" required className={platformInputClass} />
@@ -110,14 +111,14 @@ export default async function CatalogRolesPage({
 
       <Card title="Creados" description={`${total} rol(es)`}>
         <CatalogListFilter
-          campaignId={id}
+          campaignId={campaignId}
           segment="roles"
           q={q}
           placeholder="ID o nombre del rol"
         />
         <DataTable
           data={list}
-          rowKey={(r) => r.id}
+          rowKey={(r) => String(r.id)}
           emptyMessage={emptyMessage}
           columns={[
             {
@@ -147,12 +148,12 @@ export default async function CatalogRolesPage({
               key: "acciones",
               header: "Acciones",
               className: "text-center",
-              cell: (r) => <RolRowActions campaignId={id} rol={r} />,
+              cell: (r) => <RolRowActions campaignId={campaignId} rol={r} />,
             },
           ]}
         />
         <CatalogPagination
-          campaignId={id}
+          campaignId={campaignId}
           segment="roles"
           page={page}
           totalPages={totalPages}

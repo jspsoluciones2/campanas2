@@ -11,7 +11,7 @@ import {
   platformSelectClass,
 } from "@/components/platform/platform-ui";
 
-type Option = { id: string; nombre: string };
+type Option = { id: number; nombre: string };
 
 export function CreateCampaignForm({
   clientes,

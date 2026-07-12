@@ -3,7 +3,7 @@ schema: spec-driven
 context: |
   Proyecto: Plataforma de campañas políticas (Colombia)
   Stack: Next.js 15 + Tailwind + shadcn/ui (UI) | Python 3.12 + Flask (stats, IA, export) | Supabase (Postgres, Auth, Storage)
-  Integraciones: WhatsApp (Twilio), Telegram, CAPTCHA Solver, IA para E14
+  Integraciones: WhatsApp, Telegram, CAPTCHA Solver, IA para E14
   Arquitectura: Monorepo híbrido — apps/web + services/python + supabase; SaaS multi-campaña, RLS
   Estado: Greenfield — sin código de aplicación aún
   Persistencia SDD: hybrid (openspec + Engram)

@@ -14,7 +14,7 @@ import {
 } from "@/lib/platform/api-integrations";
 
 export type CampaignApisManagerProps = {
-  campaignId: string;
+  campaignId: number;
   campaignName: string;
   integrations: CampaignIntegrationEditorRow[];
   variant?: "row" | "cell";
@@ -177,14 +177,14 @@ export function CampaignApisManager({
               ? renderIntegrationList(
                   panelIntegrations,
                   "APIs con costo",
-                  "Twilio e IA E14 — consumo en Uso y gastos."
+                  "IA E14 — consumo en Uso y gastos."
                 )
               : (
                 <>
                   {renderIntegrationList(
                     billableIntegrations,
                     "APIs con costo",
-                    "Twilio e IA E14 — consumo en Uso y gastos."
+                    "IA E14 — consumo en Uso y gastos."
                   )}
                   {renderIntegrationList(
                     telegramIntegrations,

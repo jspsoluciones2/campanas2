@@ -1,12 +1,11 @@
 type UsoRow = {
-  id_campana: string;
+  id_campana: number;
   proveedor: string;
   metrica: string;
   cantidad: number | string;
 };
 
 export type CostosCampana = {
-  twilio: number;
   ia: number;
   total: number;
 };
@@ -21,7 +20,7 @@ function sumarCosto(rows: UsoRow[]): number {
 }
 
 export function costosPorCampana(
-  campaignId: string,
+  campaignId: number,
   uso: UsoRow[] | null | undefined
 ): CostosCampana {
   const rows = (uso ?? []).filter((u) => u.id_campana === campaignId);
@@ -29,13 +28,11 @@ export function costosPorCampana(
   const porProveedor = (proveedor: string) =>
     sumarCosto(rows.filter((r) => r.proveedor === proveedor));
 
-  const twilio = porProveedor("twilio");
   const ia = porProveedor("ia_e14");
 
   return {
-    twilio,
     ia,
-    total: twilio + ia,
+    total: ia,
   };
 }
 

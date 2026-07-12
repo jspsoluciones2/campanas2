@@ -8,7 +8,7 @@ Stack **híbrido y sencillo** — cada capa con el lenguaje que mejor le corresp
 |------|------------|-----------------|
 | **UI** | Next.js 15 + TypeScript + Tailwind + shadcn/ui | Interfaz limpia, moderna y profesional; solo presentación y flujos de usuario |
 | **Datos e IA** | **Python 3.12 + Flask** | Estadísticas, ciencia de datos, IA (E14), export ZIP, PDF de cierre, jobs pesados |
-| **Backend** | Supabase | Postgres + RLS, Auth, Storage; Edge Functions **solo** para webhooks ligeros (Twilio/Telegram) |
+| **Backend** | Supabase | Postgres + RLS, Auth, Storage; Edge Functions **solo** para webhooks ligeros de Telegram |
 
 Monorepo:
 ```
@@ -32,7 +32,7 @@ Ocho módulos de negocio se mantienen como bounded contexts; la lógica de datos
 **División de responsabilidades:**
 - **Next.js**: login, dashboards, formularios, cuarentena UI, admin plataforma
 - **Flask**: agregaciones stats, `estadisticas-cierre.pdf`, export ZIP, pipeline E14, cola CAPTCHA Solver, purga batch
-- **Supabase Edge Functions**: solo webhooks Twilio/Telegram (receptor delgado → Flask o Postgres)
+- **Supabase Edge Functions**: solo webhooks de Telegram (receptor delgado → Flask o Postgres)
 
 ### Decision: UI limpia y moderna (sin sobre-ingeniería)
 
@@ -116,39 +116,30 @@ active → paused → ended ──► export disponible (entrega al político)
 
 ### Decision: Integraciones externas por campaña; Supabase compartido
 
-**Choice**: Tras crear campaña, `platform_owner` configura en `/platform/campaigns/{id}/integrations` credenciales **propias por campaña**: Twilio/WA (número propio, subaccount ISV), CAPTCHA Solver, Telegram, IA E14. Tabla `campaign_integrations` cifrada. **Un solo Supabase** para toda la plataforma — no un proyecto Supabase por político.  
+**Choice**: Tras crear campaña, `platform_owner` configura en `/platform/campaigns/{id}/integrations` credenciales **propias por campaña**: CAPTCHA Solver, Telegram e IA E14. Tabla `campaign_integrations` cifrada. **Un solo Supabase** para toda la plataforma — no un proyecto Supabase por político.
 **Alternatives considered**: APIs globales compartidas (un WA para todos); Supabase por cliente (tier premium).  
-**Rationale**: El PO quiere **controlar gastos** por campaña/cliente. Twilio subaccounts y API keys separadas permiten atribuir costos. Supabase compartido mantiene un panel, un RLS y evita multiplicar costos fijos de infra × N políticos.
+**Rationale**: El PO quiere **controlar gastos** por campaña/cliente. Las API keys separadas permiten atribuir costos. Supabase compartido mantiene un panel, un RLS y evita multiplicar costos fijos de infra × N políticos.
 
 **Control de gastos:**
 ```
-Gasto atribuible por campaña     →  Twilio, CAPTCHA, IA (keys/números propios + campaign_usage)
+Gasto atribuible por campaña     →  CAPTCHA e IA (keys propias + campaign_usage)
 Gasto infra compartido           →  Supabase, hosting (un plan; optimizar con purga)
 Apagar módulo caro               →  campaign_features (sin redeploy)
 ```
 
 | Servicio | ¿Por campaña? | Motivo |
 |----------|---------------|--------|
-| WhatsApp/Twilio | **Sí** | Número y facturación propios |
+| WhatsApp | No incluido | — |
 | CAPTCHA Solver | **Sí** | Medir consultas por cliente |
 | Telegram | **Sí** | Bot propio por campaña |
 | IA E14 | **Sí** | Limitar tokens por cliente |
 | Supabase | **No** (compartido) | Un edificio, apartamentos con RLS |
 
-### Decision: WhatsApp vía Twilio (sin integración directa Meta)
+### Decision: WhatsApp fuera de alcance
 
-**Choice**: Twilio Programmable Messaging para WhatsApp — webhooks a Supabase Edge Functions, Messaging Service por campaña (subaccounts en modelo ISV).  
+**Choice**: No se implementará un proveedor de WhatsApp.
 **Alternatives considered**: Meta Cloud API directa; APIs no oficiales; solo Telegram/web.  
-**Rationale**: El PO prefiere **no integrar Meta directamente** en la aplicación. Twilio abstrae onboarding WABA, plantillas, webhooks y reintentos. La app solo habla con Twilio.  
-**Nota técnica**: WhatsApp oficial siempre transita la red de Meta; Twilio elimina la dependencia operativa directa (tokens Meta, webhooks Meta, rotación) en nuestro código. Si WhatsApp falla a nivel red, Telegram + web público por enlace siguen operativos.
-
-**Proceso Twilio (resumen para implementación)**:
-1. Cuenta Twilio (+ subaccount por campaña cliente en modelo ISV)
-2. Registrar WhatsApp Sender vía Twilio Console o Channels API
-3. Aprobar plantillas de mensaje (Meta vía Twilio)
-4. Configurar webhook inbound → Edge Function `webhook-whatsapp`
-5. Validar firma `X-Twilio-Signature` en cada request
-6. Responder con TwiML o Messages API según flujo conversacional
+**Rationale**: La plataforma mantiene Telegram y el formulario web como canales de captura operativos.
 
 ### Decision: Jobs async — Python Flask (no Edge Functions pesadas)
 
@@ -180,7 +171,7 @@ Apagar módulo caro               →  campaign_features (sin redeploy)
 │                         Supabase                              │
 │   Postgres+RLS │ Auth │ Storage │ Edge Fn (webhooks delgados) │
 └────────────────────────────┬─────────────────────────────────┘
-         Twilio WA │ Telegram │ CAPTCHA Solver │ OpenAI/etc.
+          Telegram │ CAPTCHA Solver │ OpenAI/etc.
 ```
 
 ## Data Flow — Registro con cuarentena
@@ -239,7 +230,7 @@ Flask worker → CaptchaSolverAdapter.verify()
 | `campaign_members` | platform-core | Usuarios asignados por dueños → campaña + rol |
 | `platform_brand_config` | brand-config | Logo, colores, tipografía — solo plataforma |
 | `campaign_features` | platform-core | Feature flags |
-| `campaign_integrations` | platform-core | Credenciales cifradas por campaña (Twilio, CAPTCHA, TG, IA) |
+| `campaign_integrations` | platform-core | Credenciales cifradas por campaña (CAPTCHA, TG, IA) |
 | `campaign_usage` | platform-core | Contadores consumo — **solo visible a platform_owner** |
 | `voters` | voter-registry | Registro maestro |
 | `voter_history` | voter-registry | Auditoría cambios |
@@ -277,7 +268,7 @@ services/python/                   ← Flask (datos, stats, IA)
 ├── app/
 │   ├── api/                       ← blueprints: stats, export, e14, jobs
 │   ├── modules/                   ← 8 bounded contexts (lógica)
-│   ├── adapters/                  ← supabase, captcha, ia, twilio
+│   ├── adapters/                  ← supabase, captcha, ia, telegram
 │   └── worker.py                  ← job_queue consumer
 ├── requirements.txt
 └── pyproject.toml
@@ -337,20 +328,10 @@ type RegisterVoterResult =
 // Response: { nombre, puesto, municipio, departamento, mesa? }
 ```
 
-### Webhook WhatsApp (Twilio)
-
-```
-POST /api/webhooks/whatsapp
-→ Edge Function: validate signature
-→ capture-channels.handleIncomingMessage()
-→ respuesta TwiML / API reply
-```
-
 ## Edge Functions
 
 | Function | Trigger | Responsabilidad |
 |----------|---------|-----------------|
-| `webhook-whatsapp` | HTTP POST Twilio | Mensajes entrantes WA |
 | `webhook-telegram` | HTTP POST Telegram | Mensajes entrantes TG |
 | `process-verification-queue` | Cron 1min | Jobs CAPTCHA Solver |
 | `process-e14-analysis` | Cron / trigger | Pipeline IA E14 |
@@ -363,7 +344,7 @@ POST /api/webhooks/whatsapp
 | Unit | Reglas duplicados, normalización, estados | Vitest en `src/modules/*/domain/` |
 | Integration | RLS policies, adapters Supabase | Supabase local + test client |
 | E2E | Flujo web captura, cuarentena UI | Playwright |
-| Contract | CAPTCHA Solver mock, Twilio webhooks | MSW + fixtures |
+| Contract | CAPTCHA Solver mock, Telegram webhooks | MSW + fixtures |
 
 ## Migration / Rollout
 
@@ -371,7 +352,7 @@ POST /api/webhooks/whatsapp
 2. **Fase 2**: voter-registry + quarantine + web capture
 3. **Fase 3**: brand + analytics
 4. **Fase 4**: CAPTCHA Solver (mock → prod)
-5. **Fase 5**: WhatsApp (Twilio) + Telegram
+5. **Fase 5**: Telegram
 6. **Fase 6**: E14 + IA
 
 Feature flags en `campaign_features` permiten activar módulos por campaña sin redeploy.
@@ -380,7 +361,7 @@ Feature flags en `campaign_features` permiten activar módulos por campaña sin 
 
 - RLS en todas las tablas de negocio
 - API keys en `campaign_integrations` cifradas (Supabase Vault o env)
-- Webhooks con validación de firma (Twilio, Telegram)
+- Webhooks con validación de firma de Telegram
 - PDFs E14 solo roles legal/admin
 - Rate limiting en Edge Functions
 - Habeas Data: política de retención configurable

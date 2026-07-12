@@ -9,7 +9,7 @@ export function TelegramWebhookRegisterButton({
   idCampana,
   httpsReady,
 }: {
-  idCampana: string;
+  idCampana: number;
   httpsReady: boolean;
 }) {
   const [pending, startTransition] = useTransition();

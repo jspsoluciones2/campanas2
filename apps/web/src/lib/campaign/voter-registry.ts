@@ -20,22 +20,22 @@ export type RegisterVoterInput = {
   telefono?: string | null;
   fecha_nacimiento?: string | null;
   direccion?: string | null;
-  id_puesto_votacion?: string | null;
-  id_lugar_trabajo?: string | null;
+  id_puesto_votacion?: number | null;
+  id_lugar_trabajo?: number | null;
   mesa?: string | null;
-  id_rol?: string | null;
-  id_lider_directo?: string | null;
+  id_rol?: number | null;
+  id_lider_directo?: number | null;
   canal_origen?: string;
 };
 
 export type RegisterVoterResult =
-  | { outcome: "created"; voter_id: string }
-  | { outcome: "quarantined"; quarantine_id: string; match_type: string }
+  | { outcome: "created"; voter_id: number }
+  | { outcome: "quarantined"; quarantine_id: number; match_type: string }
   | { outcome: "validation_error"; errors: string[] };
 
 export async function registerVoter(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   userId: string,
   payload: RegisterVoterInput
 ): Promise<RegisterVoterResult> {
@@ -157,11 +157,11 @@ export async function registerVoter(
 
 async function resolverLiderDirecto(
   supabase: SupabaseClient,
-  campaignId: string,
-  idRol: string | null | undefined,
-  idLider: string | null | undefined,
+  campaignId: number,
+  idRol: number | null | undefined,
+  idLider: number | null | undefined,
   documentoVotante?: string | null
-): Promise<{ value: string | null; error?: string }> {
+): Promise<{ value: number | null; error?: string }> {
   if (!idRol) {
     return { value: idLider || null };
   }
@@ -258,7 +258,7 @@ function validarCampos(payload: RegisterVoterInput) {
 
 async function buscarPorDocumento(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   documento: string,
   tipoDocumento: string
 ) {
@@ -277,7 +277,7 @@ async function buscarPorDocumento(
 
 async function buscarPorTelefonoYNombre(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   telefono: string,
   nombres: string,
   apellidos: string
@@ -307,7 +307,7 @@ async function buscarPorTelefonoYNombre(
 async function crearCuarentena(
   supabase: SupabaseClient,
   options: {
-    campaignId: string;
+    campaignId: number;
     userId: string;
     payload: RegisterVoterInput;
     documento: string;
@@ -315,7 +315,7 @@ async function crearCuarentena(
     tipoDocumento: string;
     canal: string;
     tipoCoincidencia: string;
-    idVotanteConflicto: string;
+    idVotanteConflicto: number;
     similitud: number | null;
   }
 ) {
@@ -347,13 +347,13 @@ async function crearCuarentena(
     .single();
 
   if (error) return null;
-  return data.id as string;
+  return data.id as number;
 }
 
 async function insertarVotante(
   supabase: SupabaseClient,
   options: {
-    campaignId: string;
+    campaignId: number;
     userId: string;
     payload: RegisterVoterInput;
     documento: string;
@@ -361,7 +361,7 @@ async function insertarVotante(
     tipoDocumento: string;
     canal: string;
   }
-): Promise<string | { error: string }> {
+): Promise<number | { error: string }> {
   const { error, data } = await supabase
     .from("votantes")
     .insert({
@@ -401,5 +401,5 @@ async function insertarVotante(
     return { error: error.message };
   }
 
-  return data.id as string;
+  return data.id as number;
 }

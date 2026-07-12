@@ -57,7 +57,7 @@ async function appOriginFromRequest(): Promise<string> {
 
 async function syncCampaignFeatureFlag(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  idCampana: string,
+  idCampana: number,
   proveedor: PlatformApiProveedor,
   activa: boolean
 ): Promise<string | null> {
@@ -143,7 +143,7 @@ export async function updateClientAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const correo = correoNormalizado(String(formData.get("correo_contacto") ?? ""));
   const documento = textoTituloOpcional(String(formData.get("documento") ?? ""));
@@ -207,12 +207,12 @@ export async function updateClientAction(formData: FormData) {
   return { ok: true };
 }
 
-export async function deleteClientAction(clientId: string) {
+export async function deleteClientAction(clientId: number) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = clientId.trim();
+  const id = clientId;
 
   if (!id) return { error: "Cliente no identificado." };
 
@@ -260,12 +260,12 @@ export async function deleteClientAction(clientId: string) {
   return { ok: true };
 }
 
-export async function resetClientPasswordAction(clientId: string) {
+export async function resetClientPasswordAction(clientId: number) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = clientId.trim();
+  const id = clientId;
   if (!id) return { error: "Cliente no identificado." };
 
   const { data: cliente } = await supabase
@@ -327,7 +327,7 @@ export async function updateElectoralProcessAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const fechaEleccion = String(formData.get("fecha_eleccion") ?? "").trim();
 
@@ -349,12 +349,12 @@ export async function updateElectoralProcessAction(formData: FormData) {
   return { ok: true };
 }
 
-export async function deleteElectoralProcessAction(processId: string) {
+export async function deleteElectoralProcessAction(processId: number) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = processId.trim();
+  const id = processId;
   if (!id) return { error: "Proceso no identificado." };
 
   const { count } = await supabase
@@ -388,8 +388,8 @@ export async function createCampaignAction(formData: FormData) {
   const nombre = textoTitulo(
     String(formData.get("nombre") ?? formData.get("name") ?? "")
   );
-  const idCliente = String(formData.get("id_cliente") ?? formData.get("client_id") ?? "");
-  const idProceso = String(formData.get("id_proceso_electoral") ?? formData.get("electoral_process_id") ?? "");
+  const idCliente = Number(formData.get("id_cliente") ?? formData.get("client_id") ?? "");
+  const idProceso = Number(formData.get("id_proceso_electoral") ?? formData.get("electoral_process_id") ?? "");
 
   if (!nombre || !idCliente || !idProceso) {
     return { error: "Nombre, cliente y proceso electoral son obligatorios." };
@@ -459,7 +459,7 @@ export async function updateCampaignAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = String(formData.get("id") ?? "").trim();
+  const id = Number(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
 
   if (!id) return { error: "Campaña no identificada." };
@@ -485,14 +485,14 @@ function moduloActivo(formData: FormData, campo: string): boolean {
 }
 
 export async function updateCampaignModulesAction(
-  campaignId: string,
+  campaignId: number,
   formData: FormData
 ) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = campaignId.trim();
+  const id = campaignId;
   if (!id) return { error: "Campaña no identificada." };
 
   const payload = {
@@ -530,12 +530,12 @@ export async function updateCampaignModulesAction(
   return { ok: true };
 }
 
-export async function deleteCampaignAction(campaignId: string) {
+export async function deleteCampaignAction(campaignId: number) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const id = campaignId.trim();
+  const id = campaignId;
   if (!id) return { error: "Campaña no identificada." };
 
   const { data: campana } = await supabase
@@ -574,7 +574,7 @@ const TRANSICIONES_ESTADO: Record<EstadoCampana, EstadoCampana[]> = {
 };
 
 export async function updateCampaignStatusAction(
-  campaignId: string,
+  campaignId: number,
   nuevoEstado: EstadoCampana
 ) {
   const supabase = await createClient();
@@ -625,9 +625,9 @@ export async function assignCampaignMemberAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const idCampana = String(
+  const idCampana = Number(
     formData.get("id_campana") ?? formData.get("campaign_id") ?? ""
-  ).trim();
+  );
   const correo = String(
     formData.get("usuario") ??
       formData.get("correo") ??
@@ -696,7 +696,7 @@ export async function assignCampaignMemberFormAction(
 }
 
 export async function submitCampaignStatusUpdate(
-  campaignId: string,
+  campaignId: number,
   nuevoEstado: EstadoCampana
 ): Promise<void> {
   await updateCampaignStatusAction(campaignId, nuevoEstado);
@@ -713,7 +713,7 @@ export async function saveCampaignIntegrationAction(formData: FormData) {
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const idCampana = String(formData.get("id_campana") ?? "").trim();
+  const idCampana = Number(formData.get("id_campana") ?? "");
   if (!idCampana) return { error: "Campaña no indicada." };
 
   const proveedor = String(formData.get("proveedor") ?? "").trim();
@@ -834,12 +834,12 @@ export async function saveCampaignIntegrationAction(formData: FormData) {
   return { ok: true };
 }
 
-export async function registerCampaignTelegramWebhookAction(idCampanaRaw: string) {
+export async function registerCampaignTelegramWebhookAction(idCampanaRaw: number) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const idCampana = idCampanaRaw.trim();
+  const idCampana = idCampanaRaw;
   if (!idCampana) return { error: "Campaña no indicada." };
 
   const { data: row } = await supabase
@@ -927,14 +927,14 @@ export async function registerCampaignTelegramWebhookAction(idCampanaRaw: string
 }
 
 export async function deleteCampaignIntegrationAction(
-  idCampanaRaw: string,
+  idCampanaRaw: number,
   proveedorRaw: string
 ) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
   if ("error" in auth && auth.error) return { error: auth.error };
 
-  const idCampana = idCampanaRaw.trim();
+  const idCampana = idCampanaRaw;
   const proveedor = proveedorRaw.trim();
   if (!idCampana) return { error: "Campaña no indicada." };
   if (!isPlatformApiProveedor(proveedor)) {

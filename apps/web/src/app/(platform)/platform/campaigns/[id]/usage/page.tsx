@@ -20,7 +20,7 @@ export default async function CampaignUsagePage({
   const { data: campana } = await supabase
     .from("campanas")
     .select("id, nombre")
-    .eq("id", id)
+    .eq("id", Number(id))
     .single();
 
   if (!campana) notFound();
@@ -28,7 +28,7 @@ export default async function CampaignUsagePage({
   const { data: uso } = await supabase
     .from("uso_campana")
     .select("proveedor, metrica, cantidad, registrado_en")
-    .eq("id_campana", id)
+    .eq("id_campana", Number(id))
     .order("registrado_en", { ascending: false })
     .limit(50);
 
@@ -47,7 +47,7 @@ export default async function CampaignUsagePage({
 
       <Card
         title="Consumo reciente"
-        description="Solo Twilio e IA E14. Telegram no genera costos medibles aquí."
+        description="Solo IA E14. Telegram no genera costos medibles aquí."
       >
         <DataTable
           data={rows}

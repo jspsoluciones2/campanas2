@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
 
 export type ComunaListRow = {
-  id: string;
+  id: number;
   nombre: string;
   codigo: number | null;
   creado_en: string;
@@ -13,7 +13,7 @@ export const COMUNA_LABEL_CREACION = "Comuna / subdivisión administrativa";
 
 export async function fetchComunasList(
   supabase: SupabaseClient,
-  campaignId: string,
+  campaignId: number,
   options: { q: string; from: number; to: number }
 ) {
   const term = options.q.trim();

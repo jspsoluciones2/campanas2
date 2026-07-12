@@ -18,7 +18,7 @@ type BulkUploadState = {
 };
 
 async function submitBulkUpload(
-  campaignId: string,
+  campaignId: number,
   segment: CatalogSegment,
   _prev: BulkUploadState,
   formData: FormData
@@ -27,7 +27,7 @@ async function submitBulkUpload(
 }
 
 type Props = {
-  campaignId: string;
+  campaignId: number;
   segment: CatalogSegment;
 };
 

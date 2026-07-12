@@ -1,10 +1,10 @@
 export const CATALOG_DEFAULT_SEGMENT = "comunas";
 
-export function catalogBasePath(campaignId: string) {
+export function catalogBasePath(campaignId: number) {
   return `/campaign/${campaignId}/catalogos`;
 }
 
-export function catalogSegmentPath(campaignId: string, segment: string) {
+export function catalogSegmentPath(campaignId: number, segment: string) {
   return `${catalogBasePath(campaignId)}/${segment}`;
 }
 
@@ -19,14 +19,14 @@ export const CATALOG_MENU = [
 
 export type CatalogSegment = (typeof CATALOG_MENU)[number]["segment"];
 
-export function catalogPathsForCampaign(campaignId: string): string[] {
+export function catalogPathsForCampaign(campaignId: number): string[] {
   return [
     catalogBasePath(campaignId),
     ...CATALOG_MENU.map(({ segment }) => catalogSegmentPath(campaignId, segment)),
   ];
 }
 
-export function isCatalogPath(pathname: string, campaignId: string) {
+export function isCatalogPath(pathname: string, campaignId: number) {
   const base = catalogBasePath(campaignId);
   return pathname === base || pathname.startsWith(`${base}/`);
 }

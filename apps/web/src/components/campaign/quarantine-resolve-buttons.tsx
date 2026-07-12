@@ -15,8 +15,8 @@ const ETIQUETAS_ACCION: Record<QuarantineResolveAction, string> = {
 };
 
 type Props = {
-  campaignId: string;
-  quarantineId: string;
+  campaignId: number;
+  quarantineId: number;
   disabled?: boolean;
 };
 

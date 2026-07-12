@@ -21,7 +21,8 @@ export default async function CampaignDashboardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase, campana } = await requireCampaignAccess(id);
+  const campaignId = Number(id);
+  const { supabase, campana } = await requireCampaignAccess(campaignId);
 
   const [
     { count: totalVotantes },
@@ -32,19 +33,19 @@ export default async function CampaignDashboardPage({
     supabase
       .from("votantes")
       .select("*", { count: "exact", head: true })
-      .eq("id_campana", id),
+      .eq("id_campana", campaignId),
     supabase
       .from("comunas")
       .select("*", { count: "exact", head: true })
-      .eq("id_campana", id),
+      .eq("id_campana", campaignId),
     supabase
       .from("roles")
       .select("*", { count: "exact", head: true })
-      .eq("id_campana", id),
+      .eq("id_campana", campaignId),
     supabase
       .from("votantes")
       .select("*", { count: "exact", head: true })
-      .eq("id_campana", id)
+      .eq("id_campana", campaignId)
       .eq("estado", "en_cuarentena"),
   ]);
 
