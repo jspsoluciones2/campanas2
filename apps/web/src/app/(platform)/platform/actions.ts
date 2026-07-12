@@ -389,15 +389,15 @@ export async function createDepartamentoAction(formData: FormData) {
 
   const id = String(formData.get("id") ?? "").trim();
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
-  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+  const latitud = parseCoordenada(formData.get("latitud"));
+  const longitud = parseCoordenada(formData.get("longitud"));
 
   if (!id) return { error: "El ID del departamento es obligatorio." };
   if (!nombre) return { error: "El nombre del departamento es obligatorio." };
-  if (latitud != null && (Number.isNaN(latitud) || latitud < -90 || latitud > 90)) {
+  if (latitud != null && (latitud < -90 || latitud > 90)) {
     return { error: "Latitud inválida. Debe ser un número entre -90 y 90." };
   }
-  if (longitud != null && (Number.isNaN(longitud) || longitud < -180 || longitud > 180)) {
+  if (longitud != null && (longitud < -180 || longitud > 180)) {
     return { error: "Longitud inválida. Debe ser un número entre -180 y 180." };
   }
 
@@ -418,8 +418,8 @@ export async function updateDepartamentoAction(formData: FormData) {
 
   const id = String(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
-  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+  const latitud = parseCoordenada(formData.get("latitud"));
+  const longitud = parseCoordenada(formData.get("longitud"));
 
   if (!id) return { error: "Departamento no identificado." };
   if (!nombre) return { error: "El nombre del departamento es obligatorio." };
@@ -463,8 +463,8 @@ export async function createMunicipioAction(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const idDepartamento = String(formData.get("id_departamento") ?? "");
-  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
-  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+  const latitud = parseCoordenada(formData.get("latitud"));
+  const longitud = parseCoordenada(formData.get("longitud"));
 
   if (!id) return { error: "El ID del municipio es obligatorio." };
   if (!nombre) return { error: "El nombre del municipio es obligatorio." };
@@ -495,8 +495,8 @@ export async function updateMunicipioAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
   const idDepartamento = String(formData.get("id_departamento") ?? "");
-  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
-  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+  const latitud = parseCoordenada(formData.get("latitud"));
+  const longitud = parseCoordenada(formData.get("longitud"));
 
   if (!id) return { error: "Municipio no identificado." };
   if (!nombre) return { error: "El nombre del municipio es obligatorio." };
@@ -1418,6 +1418,14 @@ async function parseMaestrasWorkbook(
   return { rows };
 }
 
+function parseCoordenada(value: FormDataEntryValue | null): number | null {
+  if (value == null) return null;
+  const s = String(value).trim().replace(",", ".").replace(/\s+/g, "");
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function bulkUploadDepartamentosAction(formData: FormData) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
@@ -1450,8 +1458,8 @@ export async function bulkUploadDepartamentosAction(formData: FormData) {
       continue;
     }
 
-    const latitud = row.values.latitud ? Number(row.values.latitud) : null;
-    const longitud = row.values.longitud ? Number(row.values.longitud) : null;
+    const latitud = parseCoordenada(row.values.latitud ?? "");
+    const longitud = parseCoordenada(row.values.longitud ?? "");
 
     const { error } = await supabase.from("departamentos").insert({ id, nombre, latitud, longitud });
     if (error) {
@@ -1516,8 +1524,8 @@ export async function bulkUploadMunicipiosAction(formData: FormData) {
       continue;
     }
 
-    const latitud = row.values.latitud ? Number(row.values.latitud) : null;
-    const longitud = row.values.longitud ? Number(row.values.longitud) : null;
+    const latitud = parseCoordenada(row.values.latitud ?? "");
+    const longitud = parseCoordenada(row.values.longitud ?? "");
 
     const { error } = await supabase.from("municipios").insert({
       id, nombre, id_departamento: idDepartamento, latitud, longitud,
