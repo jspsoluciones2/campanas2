@@ -518,6 +518,27 @@ export type Database = {
           },
         ]
       }
+      departamentos: {
+        Row: {
+          id: number
+          latitud: number | null
+          longitud: number | null
+          nombre: string
+        }
+        Insert: {
+          id?: never
+          latitud?: number | null
+          longitud?: number | null
+          nombre: string
+        }
+        Update: {
+          id?: never
+          latitud?: number | null
+          longitud?: number | null
+          nombre?: string
+        }
+        Relationships: []
+      }
       exportaciones_campana: {
         Row: {
           creado_en: string
@@ -724,6 +745,38 @@ export type Database = {
           rol?: Database["public"]["Enums"]["rol_plataforma"]
         }
         Relationships: []
+      }
+      municipios: {
+        Row: {
+          id: number
+          id_departamento: number
+          latitud: number | null
+          longitud: number | null
+          nombre: string
+        }
+        Insert: {
+          id?: never
+          id_departamento: number
+          latitud?: number | null
+          longitud?: number | null
+          nombre: string
+        }
+        Update: {
+          id?: never
+          id_departamento?: number
+          latitud?: number | null
+          longitud?: number | null
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "municipios_id_departamento_fkey"
+            columns: ["id_departamento"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       novedades: {
         Row: {
