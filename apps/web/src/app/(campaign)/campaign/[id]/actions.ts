@@ -52,7 +52,6 @@ export async function createComunaAction(campaignId: number, formData: FormData)
   if (!idMunicipio) return { error: "El municipio es obligatorio." };
 
   const { error } = await supabase.from("comunas").insert({
-    id_campana: campaignId,
     nombre,
     id_municipio: idMunicipio,
   });
@@ -127,7 +126,6 @@ export async function createPuestoAction(campaignId: number, formData: FormData)
   if ("error" in ubicacion) return ubicacion;
 
   const error = await insertPuestoRow(supabase, {
-    id_campana: campaignId,
     nombre,
     municipio,
     direccion,

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
+import { fetchTerritorioAlcance } from "@/lib/campaign/comunas";
 
 export type PuestoListRow = {
   id: number;
@@ -25,12 +26,19 @@ export async function fetchPuestosList(
   options: { q: string; from: number; to: number }
 ) {
   const term = options.q.trim();
+  const alcance = await fetchTerritorioAlcance(supabase, campaignId);
 
   let query = supabase
     .from("puestos_votacion")
     .select(PUESTO_SELECT, { count: "exact" })
-    .eq("id_campana", campaignId)
     .order("id");
+
+  if (alcance.departamentos.length > 0) {
+    query = query.in("comunas.municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    query = query.in("comunas.id_municipio", alcance.municipios);
+  }
 
   if (term) {
     if (isNumericSearchTerm(term)) {
@@ -68,7 +76,6 @@ export async function updatePuestoRow(
   const { error } = await supabase
     .from("puestos_votacion")
     .update(row)
-    .eq("id", id)
-    .eq("id_campana", campaignId);
+    .eq("id", id);
   return error;
 }

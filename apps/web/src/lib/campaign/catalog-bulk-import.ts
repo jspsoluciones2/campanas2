@@ -146,7 +146,6 @@ async function importComunas(
     }
 
     const { error } = await supabase.from("comunas").insert({
-      id_campana: campaignId,
       nombre,
       id_municipio: idMunicipio,
     });
@@ -347,7 +346,6 @@ async function importPuestos(
     }
 
     const error = await insertPuestoRow(supabase, {
-      id_campana: campaignId,
       nombre,
       municipio: textoTituloOpcional(row.values.municipio ?? ""),
       direccion: textoTituloOpcional(row.values.direccion ?? ""),

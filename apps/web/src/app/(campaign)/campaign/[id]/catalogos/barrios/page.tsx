@@ -21,6 +21,7 @@ import {
   platformInputClass,
   platformSelectClass,
 } from "@/components/platform/platform-ui";
+import { fetchTerritorioAlcance } from "@/lib/campaign/comunas";
 
 export default async function CatalogBarriosPage({
   params,
@@ -40,22 +41,37 @@ export default async function CatalogBarriosPage({
 
   const { supabase } = await requireCampaignAccess(campaignId);
 
-  const { data: comunas } = await supabase
+  const alcance = await fetchTerritorioAlcance(supabase, campaignId);
+
+  let comunasQuery = supabase
     .from("comunas")
     .select("id, nombre")
-    .eq("id_campana", campaignId)
     .order("nombre");
 
+  if (alcance.departamentos.length > 0) {
+    comunasQuery = comunasQuery.in("municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    comunasQuery = comunasQuery.in("id_municipio", alcance.municipios);
+  }
+
+  const { data: comunas } = await comunasQuery;
   const comunasList = comunas ?? [];
 
   let query = supabase
     .from("barrios")
     .select(
-      "id, nombre, id_comuna, creado_en, comunas!inner(nombre, id_campana)",
+      "id, nombre, id_comuna, creado_en, comunas!inner(nombre, municipios!inner(id_departamento))",
       { count: "exact" }
     )
-    .eq("comunas.id_campana", campaignId)
     .order("id");
+
+  if (alcance.departamentos.length > 0) {
+    query = query.in("comunas.municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    query = query.in("comunas.id_municipio", alcance.municipios);
+  }
 
   const term = escapeIlikeTerm(q);
   if (term) {

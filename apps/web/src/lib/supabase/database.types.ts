@@ -43,6 +43,46 @@ export type Database = {
           },
         ]
       }
+      campana_territorio: {
+        Row: {
+          id_campana: number
+          id_departamento: number | null
+          id_municipio: number | null
+        }
+        Insert: {
+          id_campana: number
+          id_departamento?: number | null
+          id_municipio?: number | null
+        }
+        Update: {
+          id_campana?: number
+          id_departamento?: number | null
+          id_municipio?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campana_territorio_id_campana_fkey"
+            columns: ["id_campana"]
+            isOneToOne: false
+            referencedRelation: "campanas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campana_territorio_id_departamento_fkey"
+            columns: ["id_departamento"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campana_territorio_id_municipio_fkey"
+            columns: ["id_municipio"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campanas: {
         Row: {
           actualizado_en: string
@@ -175,32 +215,22 @@ export type Database = {
         Row: {
           creado_en: string
           id: number
-          id_campana: number
           id_municipio: number | null
           nombre: string
         }
         Insert: {
           creado_en?: string
           id?: never
-          id_campana: number
           id_municipio?: number | null
           nombre: string
         }
         Update: {
           creado_en?: string
           id?: never
-          id_campana?: number
           id_municipio?: number | null
           nombre?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "comunas_id_campana_fkey"
-            columns: ["id_campana"]
-            isOneToOne: false
-            referencedRelation: "campanas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "comunas_id_municipio_fkey"
             columns: ["id_municipio"]
@@ -862,7 +892,6 @@ export type Database = {
           fuente: string
           id: number
           id_barrio: number | null
-          id_campana: number
           id_comuna: number | null
           municipio: string | null
           nombre: string
@@ -879,7 +908,6 @@ export type Database = {
           fuente?: string
           id?: never
           id_barrio?: number | null
-          id_campana: number
           id_comuna?: number | null
           municipio?: string | null
           nombre: string
@@ -896,7 +924,6 @@ export type Database = {
           fuente?: string
           id?: never
           id_barrio?: number | null
-          id_campana?: number
           id_comuna?: number | null
           municipio?: string | null
           nombre?: string
@@ -909,13 +936,6 @@ export type Database = {
             columns: ["id_barrio"]
             isOneToOne: false
             referencedRelation: "barrios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "puestos_votacion_id_campana_fkey"
-            columns: ["id_campana"]
-            isOneToOne: false
-            referencedRelation: "campanas"
             referencedColumns: ["id"]
           },
           {
