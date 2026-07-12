@@ -19,7 +19,6 @@ import {
 } from "@/components/platform/platform-ui";
 import { Button } from "@/components/ui/button";
 import { MaestrasBulkUpload } from "@/components/platform/maestras-bulk-upload";
-import { bulkUploadDepartamentosAction } from "@/app/(platform)/platform/actions";
 import { MAESTRAS_BULK_DEFS } from "@/lib/platform/maestras-bulk-config";
 
 export default async function MaestrasDepartamentosPage({
@@ -119,7 +118,7 @@ export default async function MaestrasDepartamentosPage({
       </Card>
 
       <MaestrasBulkUpload
-        action={bulkUploadDepartamentosAction}
+        tipo="departamentos"
         templateHref="/api/maestras/plantilla/departamentos"
         instructions={MAESTRAS_BULK_DEFS.departamentos.instructions}
         columnas={MAESTRAS_BULK_DEFS.departamentos.columns.map((c) => c.header).join(", ")}
