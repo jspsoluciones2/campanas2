@@ -1,0 +1,99 @@
+"use client";
+
+import { useActionState } from "react";
+import { Download, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, platformButtonClass } from "@/components/platform/platform-ui";
+
+type BulkState = {
+  error?: string;
+  ok?: boolean;
+  message?: string;
+  created?: number;
+  errors?: { row: number; message: string }[];
+  archivo_error?: string;
+};
+
+type Props = {
+  action: (formData: FormData) => Promise<BulkState>;
+  templateHref: string;
+  instructions: string;
+  columnas: string;
+  entityLabel: string;
+};
+
+export function MaestrasBulkUpload({
+  action,
+  templateHref,
+  instructions,
+  columnas,
+  entityLabel,
+}: Props) {
+  const [state, formAction, pending] = useActionState(
+    async (_prev: BulkState, formData: FormData) => action(formData),
+    {}
+  );
+
+  return (
+    <Card title="Carga masiva" description={`${instructions} Columnas: ${columnas}.`}>
+      <form action={formAction} className="flex flex-wrap items-center gap-2">
+        <a href={templateHref} className={`${platformButtonClass} gap-1.5 px-3`}>
+          <Download className="size-4 shrink-0" />
+          Plantilla
+        </a>
+        <input
+          id="bulk-file"
+          name="archivo"
+          type="file"
+          accept=".xlsx,.xls"
+          required
+          aria-label="Archivo Excel"
+          className="h-10 min-w-0 flex-1 text-sm text-neutral-700 file:mr-2 file:rounded-md file:border-0 file:bg-neutral-100 file:px-2.5 file:py-1.5 file:text-sm file:font-medium file:text-neutral-800 hover:file:bg-neutral-200"
+        />
+        <Button type="submit" disabled={pending} className="h-10 shrink-0 px-4">
+          <Upload className="size-4" />
+          {pending ? "Importando…" : "Importar"}
+        </Button>
+      </form>
+
+      {state.message ? (
+        <div
+          className={`mt-3 rounded-lg px-3 py-2 text-sm ${
+            state.error
+              ? "bg-amber-50 text-amber-900"
+              : "bg-emerald-50 text-emerald-900"
+          }`}
+        >
+          {state.message}
+        </div>
+      ) : null}
+
+      {state.errors && state.errors.length > 0 ? (
+        <>
+          <ul className="mt-2 max-h-32 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/50 px-3 py-2 text-sm text-amber-950">
+            {state.errors.slice(0, 20).map((item) => (
+              <li key={`${item.row}-${item.message}`}>
+                Fila {item.row}: {item.message}
+              </li>
+            ))}
+            {state.errors.length > 20 ? (
+              <li className="text-amber-700">
+                … y {state.errors.length - 20} error(es) más.
+              </li>
+            ) : null}
+          </ul>
+          {state.archivo_error ? (
+            <a
+              href={`data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${state.archivo_error}`}
+              download={`errores-${entityLabel}.xlsx`}
+              className={`${platformButtonClass} mt-2 gap-1.5 px-3`}
+            >
+              <Download className="size-4 shrink-0" />
+              Descargar errores
+            </a>
+          ) : null}
+        </>
+      ) : null}
+    </Card>
+  );
+}

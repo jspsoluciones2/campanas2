@@ -18,6 +18,9 @@ import {
   platformInputClass,
 } from "@/components/platform/platform-ui";
 import { Button } from "@/components/ui/button";
+import { MaestrasBulkUpload } from "@/components/platform/maestras-bulk-upload";
+import { bulkUploadDepartamentosAction } from "@/app/(platform)/platform/actions";
+import { MAESTRAS_BULK_DEFS } from "@/lib/platform/maestras-bulk-config";
 
 export default async function MaestrasDepartamentosPage({
   searchParams,
@@ -106,6 +109,14 @@ export default async function MaestrasDepartamentosPage({
           </FormRow>
         </form>
       </Card>
+
+      <MaestrasBulkUpload
+        action={bulkUploadDepartamentosAction}
+        templateHref="/api/maestras/plantilla/departamentos"
+        instructions={MAESTRAS_BULK_DEFS.departamentos.instructions}
+        columnas={MAESTRAS_BULK_DEFS.departamentos.columns.map((c) => c.header).join(", ")}
+        entityLabel="departamentos"
+      />
 
       <Card title="Creados" description={`${total} departamento(s)`}>
         <DepartamentosListFilter q={q} />

@@ -1348,3 +1348,176 @@ export async function updatePlatformBrandFormAction(
 
 // Alias para compatibilidad en páginas
 export type CampaignStatus = EstadoCampana;
+
+// ── Bulk Upload Maestras ──
+
+import * as XLSX from "xlsx";
+import { MAESTRAS_BULK_DEFS } from "@/lib/platform/maestras-bulk-config";
+import {
+  normalizeBulkHeader,
+  validateNoUnknownHeaders,
+  buildHeaderIndexMap,
+} from "@/lib/campaign/catalog-bulk-config";
+
+async function parseMaestrasWorkbook(
+  buffer: ArrayBuffer,
+  tipo: "departamentos" | "municipios"
+): Promise<{ rows: { rowNumber: number; values: Record<string, string> }[] } | { error: string }> {
+  const def = MAESTRAS_BULK_DEFS[tipo];
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(buffer, { type: "array" });
+  } catch {
+    return { error: "No se pudo leer el archivo. Usa un Excel .xlsx válido." };
+  }
+
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return { error: "El archivo no tiene hojas de cálculo." };
+
+  const sheet = workbook.Sheets[sheetName];
+  const matrix = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
+    header: 1, defval: "", raw: false,
+  });
+
+  if (matrix.length < 2) {
+    return { error: "El archivo debe tener encabezados y al menos una fila de datos." };
+  }
+
+  const headerRow = matrix[0].map((cell) => String(cell ?? ""));
+  const headerMap = buildHeaderIndexMap(headerRow, def as any);
+  if ("error" in headerMap) return { error: headerMap.error };
+
+  const unknownError = validateNoUnknownHeaders(headerRow, def as any);
+  if (unknownError) return { error: unknownError };
+
+  const rows: { rowNumber: number; values: Record<string, string>; raw: string[] }[] = [];
+
+  for (let i = 1; i < matrix.length; i++) {
+    const rawRow = matrix[i];
+    const raw = rawRow
+      ? Array.from({ length: headerRow.length }, (_, ci) => String(rawRow[ci] ?? "").trim())
+      : [];
+    if (raw.every((cell) => cell === "")) continue;
+
+    const values: Record<string, string> = {};
+    for (const column of def.columns) {
+      const index = headerMap.get(column.key);
+      if (index == null) continue;
+      values[column.key] = raw[index] ?? "";
+    }
+
+    rows.push({ rowNumber: i + 1, values, raw });
+  }
+
+  if (rows.length === 0) return { error: "No hay filas con datos para importar." };
+  return { rows };
+}
+
+export async function bulkUploadDepartamentosAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const archivo = formData.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { error: "Selecciona un archivo Excel (.xlsx)." };
+  }
+  if (archivo.size > 5 * 1024 * 1024) {
+    return { error: "El archivo no puede superar 5 MB." };
+  }
+
+  const parsed = await parseMaestrasWorkbook(await archivo.arrayBuffer(), "departamentos");
+  if ("error" in parsed) return { error: parsed.error };
+
+  let created = 0;
+  let skipped = 0;
+  const errors: { row: number; message: string }[] = [];
+
+  for (const row of parsed.rows) {
+    const nombre = textoTitulo(row.values.nombre ?? "");
+    if (!nombre) {
+      errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
+      continue;
+    }
+
+    const latitud = row.values.latitud ? Number(row.values.latitud) : null;
+    const longitud = row.values.longitud ? Number(row.values.longitud) : null;
+
+    const { error } = await supabase.from("departamentos").insert({ nombre, latitud, longitud });
+    if (error) {
+      if (error.code === "23505") {
+        errors.push({ row: row.rowNumber, message: `"${nombre}" ya existe.` });
+        continue;
+      }
+      errors.push({ row: row.rowNumber, message: error.message });
+      continue;
+    }
+    created++;
+  }
+
+  const message = `Se importaron ${created} departamento(s)${errors.length > 0 ? `, ${errors.length} con errores.` : "."}`;
+  return { ok: errors.length === 0, message, created, skipped, errors };
+}
+
+export async function bulkUploadMunicipiosAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const archivo = formData.get("archivo");
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { error: "Selecciona un archivo Excel (.xlsx)." };
+  }
+  if (archivo.size > 5 * 1024 * 1024) {
+    return { error: "El archivo no puede superar 5 MB." };
+  }
+
+  const parsed = await parseMaestrasWorkbook(await archivo.arrayBuffer(), "municipios");
+  if ("error" in parsed) return { error: parsed.error };
+
+  const { data: deptos } = await supabase.from("departamentos").select("id, nombre");
+  const deptoMap = new Map((deptos ?? []).map((d) => [d.nombre.toLocaleLowerCase("es-CO"), d.id]));
+
+  let created = 0;
+  let skipped = 0;
+  const errors: { row: number; message: string }[] = [];
+
+  for (const row of parsed.rows) {
+    const nombre = textoTitulo(row.values.nombre ?? "");
+    const deptoRaw = row.values.departamento ?? "";
+
+    if (!nombre) {
+      errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
+      continue;
+    }
+    if (!deptoRaw) {
+      errors.push({ row: row.rowNumber, message: "El departamento es obligatorio." });
+      continue;
+    }
+
+    const idDepartamento = deptoMap.get(deptoRaw.trim().toLocaleLowerCase("es-CO"));
+    if (!idDepartamento) {
+      errors.push({ row: row.rowNumber, message: `Departamento "${deptoRaw}" no encontrado.` });
+      continue;
+    }
+
+    const latitud = row.values.latitud ? Number(row.values.latitud) : null;
+    const longitud = row.values.longitud ? Number(row.values.longitud) : null;
+
+    const { error } = await supabase.from("municipios").insert({
+      nombre, id_departamento: idDepartamento, latitud, longitud,
+    });
+    if (error) {
+      if (error.code === "23505") {
+        errors.push({ row: row.rowNumber, message: `"${nombre}" ya existe en este departamento.` });
+        continue;
+      }
+      errors.push({ row: row.rowNumber, message: error.message });
+      continue;
+    }
+    created++;
+  }
+
+  const message = `Se importaron ${created} municipio(s)${errors.length > 0 ? `, ${errors.length} con errores.` : "."}`;
+  return { ok: errors.length === 0, message, created, skipped, errors };
+}

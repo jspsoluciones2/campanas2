@@ -19,6 +19,9 @@ import {
   platformSelectClass,
 } from "@/components/platform/platform-ui";
 import { Button } from "@/components/ui/button";
+import { MaestrasBulkUpload } from "@/components/platform/maestras-bulk-upload";
+import { bulkUploadMunicipiosAction } from "@/app/(platform)/platform/actions";
+import { MAESTRAS_BULK_DEFS } from "@/lib/platform/maestras-bulk-config";
 
 export default async function MaestrasMunicipiosPage({
   searchParams,
@@ -129,6 +132,14 @@ export default async function MaestrasMunicipiosPage({
           </FormRow>
         </form>
       </Card>
+
+      <MaestrasBulkUpload
+        action={bulkUploadMunicipiosAction}
+        templateHref="/api/maestras/plantilla/municipios"
+        instructions={MAESTRAS_BULK_DEFS.municipios.instructions}
+        columnas={MAESTRAS_BULK_DEFS.municipios.columns.map((c) => c.header).join(", ")}
+        entityLabel="municipios"
+      />
 
       <Card title="Creados" description={`${total} municipio(s)`}>
         <MunicipiosListFilter q={q} />
