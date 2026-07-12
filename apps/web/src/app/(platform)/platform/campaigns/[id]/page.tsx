@@ -20,6 +20,8 @@ import {
 import { AssignTeamMemberForm } from "@/components/campaign/assign-team-member-form";
 import { CampaignTeamMemberList } from "@/components/campaign/campaign-team-member-list";
 import { listCampaignMembersWithProfiles } from "@/lib/campaign/team";
+import { TerritorioAlcanceEditor } from "@/components/platform/territorio-alcance-editor";
+import { updateCampaignAlcanceFormAction } from "../../actions";
 
 const ETIQUETAS_ESTADO: Record<EstadoCampana, string> = {
   activa: "Activa",
@@ -86,6 +88,22 @@ export default async function CampaignDetailPage({
     captura_web: caracteristicas?.captura_web ?? true,
   };
 
+  const [alcanceData, departamentos, municipios] = await Promise.all([
+    supabase
+      .from("campana_territorio")
+      .select("id_departamento, id_municipio")
+      .eq("id_campana", Number(id)),
+    supabase.from("departamentos").select("id, nombre").order("nombre"),
+    supabase
+      .from("municipios")
+      .select("id, nombre, id_departamento")
+      .order("nombre"),
+  ]);
+  const currentAlcance = (alcanceData.data ?? []).map((r) => ({
+    id_departamento: r.id_departamento!,
+    ...(r.id_municipio ? { id_municipio: r.id_municipio } : {}),
+  }));
+
   return (
     <>
       <PageHeader
@@ -134,6 +152,20 @@ export default async function CampaignDetailPage({
 
         <CampaignModulesForm campaignId={Number(id)} modules={modulos} />
       </div>
+
+      <Card title="Territorio" description="Departamentos y municipios que cubre esta campaña.">
+        <form action={updateCampaignAlcanceFormAction}>
+          <input type="hidden" name="id_campana" value={id} />
+          <TerritorioAlcanceEditor
+            departamentos={departamentos.data ?? []}
+            municipios={municipios.data ?? []}
+            initialAlcance={currentAlcance}
+          />
+          <div className="mt-3 flex justify-end">
+            <Button type="submit" size="sm">Guardar alcance</Button>
+          </div>
+        </form>
+      </Card>
 
       <Card
         title="Equipo asignado"

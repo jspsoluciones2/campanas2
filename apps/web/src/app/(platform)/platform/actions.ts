@@ -597,7 +597,60 @@ export async function createCampaignAction(formData: FormData) {
   revalidatePath("/platform/campaigns");
   revalidatePath("/platform/maestras/campanas");
   revalidatePath("/platform/maestras");
+
+  await syncCampaignAlcance(supabase, campana.id, formData);
+
   return { ok: true };
+}
+
+async function syncCampaignAlcance(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  campaignId: number,
+  formData: FormData
+) {
+  const raw = String(formData.get("alcance") ?? "");
+  if (!raw) return;
+
+  let parsed: { tipo: string; entries?: { id_departamento: number; id_municipio?: number }[] };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  if (parsed.tipo !== "especifico" || !parsed.entries?.length) {
+    await supabase.from("campana_territorio").delete().eq("id_campana", campaignId);
+    return;
+  }
+
+  const rows = parsed.entries.map((e) => ({
+    id_campana: campaignId,
+    id_departamento: e.id_departamento,
+    id_municipio: e.id_municipio ?? null,
+  }));
+
+  await supabase.from("campana_territorio").delete().eq("id_campana", campaignId);
+  if (rows.length > 0) {
+    await supabase.from("campana_territorio").insert(rows);
+  }
+}
+
+export async function updateCampaignAlcanceAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const campaignId = Number(formData.get("id_campana") ?? 0);
+  if (!campaignId) return { error: "Campaña no identificada." };
+
+  await syncCampaignAlcance(supabase, campaignId, formData);
+
+  revalidatePath(`/platform/campaigns/${campaignId}`);
+  return { ok: true };
+}
+
+export async function updateCampaignAlcanceFormAction(formData: FormData): Promise<void> {
+  await updateCampaignAlcanceAction(formData);
 }
 
 export async function updateCampaignAction(formData: FormData) {

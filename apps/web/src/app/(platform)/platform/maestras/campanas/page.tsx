@@ -78,10 +78,14 @@ export default async function MaestrasCampanasPage({
     { data: campanas, count },
     { data: clientes },
     { data: procesos },
+    { data: departamentos },
+    { data: municipios },
   ] = await Promise.all([
     campanasQuery.range(from, to),
     supabase.from("clientes").select("id, nombre").order("nombre"),
     supabase.from("procesos_electorales").select("id, nombre").order("nombre"),
+    supabase.from("departamentos").select("id, nombre").order("nombre"),
+    supabase.from("municipios").select("id, nombre, id_departamento").order("nombre"),
   ]);
 
   const total = count ?? 0;
@@ -107,6 +111,8 @@ export default async function MaestrasCampanasPage({
         <CreateCampaignForm
           clientes={clientes ?? []}
           procesos={procesos ?? []}
+          departamentos={departamentos ?? []}
+          municipios={municipios ?? []}
         />
       </Card>
 

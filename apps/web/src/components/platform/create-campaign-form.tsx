@@ -10,15 +10,21 @@ import {
   platformInputClass,
   platformSelectClass,
 } from "@/components/platform/platform-ui";
+import { TerritorioAlcanceEditor } from "@/components/platform/territorio-alcance-editor";
+import type { MunicipioOption, DepartamentoOption } from "@/lib/campaign/comunas";
 
 type Option = { id: number; nombre: string };
 
 export function CreateCampaignForm({
   clientes,
   procesos,
+  departamentos = [],
+  municipios = [],
 }: {
   clientes: Option[];
   procesos: Option[];
+  departamentos?: DepartamentoOption[];
+  municipios?: MunicipioOption[];
 }) {
   const [error, setError] = useState("");
   const router = useRouter();
@@ -87,10 +93,18 @@ export function CreateCampaignForm({
             ))}
           </select>
         </FormField>
+      </FormRow>
+      <div className="mt-4">
+        <TerritorioAlcanceEditor
+          departamentos={departamentos}
+          municipios={municipios}
+        />
+      </div>
+      <div className="mt-4 flex justify-end">
         <Button type="submit" className="h-10 shrink-0 px-6">
           Crear campaña
         </Button>
-      </FormRow>
+      </div>
     </form>
   );
 }
