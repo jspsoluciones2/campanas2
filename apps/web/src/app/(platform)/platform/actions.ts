@@ -380,6 +380,152 @@ export async function deleteElectoralProcessAction(processId: number) {
   return { ok: true };
 }
 
+// ── Departamentos ──
+
+export async function createDepartamentoAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
+  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+
+  if (!nombre) return { error: "El nombre del departamento es obligatorio." };
+  if (latitud != null && (Number.isNaN(latitud) || latitud < -90 || latitud > 90)) {
+    return { error: "Latitud inválida. Debe ser un número entre -90 y 90." };
+  }
+  if (longitud != null && (Number.isNaN(longitud) || longitud < -180 || longitud > 180)) {
+    return { error: "Longitud inválida. Debe ser un número entre -180 y 180." };
+  }
+
+  const { error } = await supabase.from("departamentos").insert({ nombre, latitud, longitud });
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un departamento con ese nombre." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/departamentos");
+  return { ok: true };
+}
+
+export async function updateDepartamentoAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const id = Number(formData.get("id") ?? 0);
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
+  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+
+  if (!id) return { error: "Departamento no identificado." };
+  if (!nombre) return { error: "El nombre del departamento es obligatorio." };
+
+  const { error } = await supabase
+    .from("departamentos")
+    .update({ nombre, latitud, longitud })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un departamento con ese nombre." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/departamentos");
+  return { ok: true };
+}
+
+export async function deleteDepartamentoAction(departamentoId: number) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const { error } = await supabase.from("departamentos").delete().eq("id", departamentoId);
+  if (error) {
+    if (error.code === "23503") return { error: "No se puede eliminar: hay municipios vinculados a este departamento." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/departamentos");
+  return { ok: true };
+}
+
+// ── Municipios ──
+
+export async function createMunicipioAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idDepartamento = Number(formData.get("id_departamento") ?? 0);
+  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
+  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+
+  if (!nombre) return { error: "El nombre del municipio es obligatorio." };
+  if (!idDepartamento) return { error: "El departamento es obligatorio." };
+
+  const { error } = await supabase.from("municipios").insert({
+    nombre,
+    id_departamento: idDepartamento,
+    latitud,
+    longitud,
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un municipio con ese nombre en este departamento." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/municipios");
+  return { ok: true };
+}
+
+export async function updateMunicipioAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const id = Number(formData.get("id") ?? 0);
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idDepartamento = Number(formData.get("id_departamento") ?? 0);
+  const latitud = formData.get("latitud") ? Number(formData.get("latitud")) : null;
+  const longitud = formData.get("longitud") ? Number(formData.get("longitud")) : null;
+
+  if (!id) return { error: "Municipio no identificado." };
+  if (!nombre) return { error: "El nombre del municipio es obligatorio." };
+  if (!idDepartamento) return { error: "El departamento es obligatorio." };
+
+  const { error } = await supabase
+    .from("municipios")
+    .update({ nombre, id_departamento: idDepartamento, latitud, longitud })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un municipio con ese nombre en este departamento." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/municipios");
+  return { ok: true };
+}
+
+export async function deleteMunicipioAction(municipioId: number) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const { error } = await supabase.from("municipios").delete().eq("id", municipioId);
+  if (error) {
+    if (error.code === "23503") return { error: "No se puede eliminar: hay comunas vinculadas a este municipio." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/municipios");
+  return { ok: true };
+}
+
 export async function createCampaignAction(formData: FormData) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);

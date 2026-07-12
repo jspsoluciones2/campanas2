@@ -31,6 +31,8 @@ const MAESTRAS_MENU = [
   { href: "/platform/maestras/apis", label: "APIs y canales" },
   { href: "/platform/maestras/campanas", label: "Campañas" },
   { href: "/platform/maestras/clientes", label: "Clientes" },
+  { href: "/platform/maestras/departamentos", label: "Departamentos" },
+  { href: "/platform/maestras/municipios", label: "Municipios" },
   {
     href: "/platform/maestras/proceso-electoral",
     label: "Proceso electoral",
@@ -43,6 +45,8 @@ const MAESTRAS_PATHS = [
   "/platform/maestras/campanas",
   "/platform/maestras/proceso-electoral",
   "/platform/maestras/clientes",
+  "/platform/maestras/departamentos",
+  "/platform/maestras/municipios",
 ];
 
 type PlatformSidebarProps = {
