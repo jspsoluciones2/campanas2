@@ -66,7 +66,43 @@ type MasterListPaginationProps = {
   entityLabel: string;
   filterLabels?: Record<string, string>;
   ariaLabel: string;
+  siblingCount?: number;
 };
+
+function buildPaginationRange(page: number, total: number, sibling: number) {
+  const totalNumbers = sibling * 2 + 5; // siblings + first + last + current + 2 ellipsis
+  if (totalNumbers >= total) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const leftSibling = Math.max(page - sibling, 1);
+  const rightSibling = Math.min(page + sibling, total);
+
+  const showLeftEllipsis = leftSibling > 2;
+  const showRightEllipsis = rightSibling < total - 1;
+
+  if (!showLeftEllipsis && !showRightEllipsis) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const items: (number | "...")[] = [1];
+
+  if (showLeftEllipsis) {
+    items.push("...");
+  }
+
+  for (let i = leftSibling; i <= rightSibling; i++) {
+    items.push(i);
+  }
+
+  if (showRightEllipsis) {
+    items.push("...");
+  }
+
+  items.push(total);
+
+  return items;
+}
 
 export function MasterListPagination({
   basePath,
@@ -78,12 +114,13 @@ export function MasterListPagination({
   entityLabel,
   filterLabels = { q: "texto" },
   ariaLabel,
+  siblingCount = 3,
 }: MasterListPaginationProps) {
   if (total === 0) return null;
 
   const from = (page - 1) * MASTER_PAGE_SIZE + 1;
   const to = Math.min(page * MASTER_PAGE_SIZE, total);
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pages = buildPaginationRange(page, totalPages, siblingCount);
 
   const href = (p: number) => masterListHref(basePath, filters, p, filterKeys);
 
@@ -112,21 +149,30 @@ export function MasterListPagination({
             </span>
           )}
 
-          {pages.map((p) => (
-            <Link
-              key={p}
-              href={href(p)}
-              aria-current={p === page ? "page" : undefined}
-              className={cn(
-                "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm tabular-nums",
-                p === page
-                  ? "border-neutral-800 bg-neutral-800 text-white"
-                  : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
-              )}
-            >
-              {p}
-            </Link>
-          ))}
+          {pages.map((p) =>
+            p === "..." ? (
+              <span
+                key={`ellipsis-${Math.random()}`}
+                className="inline-flex h-9 w-9 items-center justify-center text-sm text-neutral-400"
+              >
+                …
+              </span>
+            ) : (
+              <Link
+                key={p}
+                href={href(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={cn(
+                  "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm tabular-nums",
+                  p === page
+                    ? "border-neutral-800 bg-neutral-800 text-white"
+                    : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                )}
+              >
+                {p}
+              </Link>
+            )
+          )}
 
           {page < totalPages ? (
             <Link
