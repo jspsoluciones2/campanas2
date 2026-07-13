@@ -70,7 +70,7 @@ type MasterListPaginationProps = {
 };
 
 function buildPaginationRange(page: number, total: number, sibling: number) {
-  const totalNumbers = sibling * 2 + 5; // siblings + first + last + current + 2 ellipsis
+  const totalNumbers = sibling * 2 + 5;
   if (totalNumbers >= total) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
@@ -85,13 +85,17 @@ function buildPaginationRange(page: number, total: number, sibling: number) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
 
-  const items: (number | "...")[] = [1];
+  const items: (number | "...")[] = [];
+
+  items.push(1);
 
   if (showLeftEllipsis) {
     items.push("...");
   }
 
-  for (let i = leftSibling; i <= rightSibling; i++) {
+  const loopStart = showLeftEllipsis ? leftSibling : 2;
+  const loopEnd = showRightEllipsis ? rightSibling : total - 1;
+  for (let i = loopStart; i <= loopEnd; i++) {
     items.push(i);
   }
 
@@ -99,7 +103,9 @@ function buildPaginationRange(page: number, total: number, sibling: number) {
     items.push("...");
   }
 
-  items.push(total);
+  if (total > 1) {
+    items.push(total);
+  }
 
   return items;
 }
@@ -186,6 +192,40 @@ export function MasterListPagination({
               →
             </span>
           )}
+
+          <form
+            method="get"
+            action={basePath}
+            className="ml-2 flex items-center gap-1"
+            onSubmit={(e) => {
+              const input = (e.target as HTMLFormElement).querySelector("input[name='page']") as HTMLInputElement;
+              const val = Number(input.value);
+              if (val < 1 || val > totalPages || Number.isNaN(val)) {
+                e.preventDefault();
+              }
+            }}
+          >
+            {filterKeys.map((key) => {
+              const val = filters[key];
+              if (!val) return null;
+              return <input key={key} type="hidden" name={key} value={val} />;
+            })}
+            <span className="text-xs text-neutral-400">Ir a</span>
+            <input
+              name="page"
+              type="number"
+              min={1}
+              max={totalPages}
+              placeholder=""
+              className="h-9 w-14 rounded-lg border border-neutral-200 px-2 text-center text-sm tabular-nums text-neutral-700 outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+            <button
+              type="submit"
+              className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-sm text-neutral-700 hover:bg-neutral-50"
+            >
+              Ir
+            </button>
+          </form>
         </nav>
       ) : null}
     </div>
