@@ -1,13 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
-
-export type ComunaListRow = {
-  id: number;
-  nombre: string;
-  creado_en: string;
-  id_municipio: string | null;
-  municipios: { nombre: string } | { nombre: string }[] | null;
-};
 
 export type MunicipioOption = { id: string; nombre: string; id_departamento: string };
 export type DepartamentoOption = { id: string; nombre: string };
@@ -46,21 +37,28 @@ export async function fetchTerritorioAlcance(
   return { departamentos: [...deptos], municipios: [...munis] };
 }
 
-/** Solo UI: la tabla en BD sigue siendo `comunas`. */
-export const COMUNA_LABEL_CREACION = "Comuna / subdivisión administrativa";
-
-export async function fetchComunasList(
+export async function fetchMunicipiosPorDepartamento(
   supabase: SupabaseClient,
-  campaignId: number,
-  options: { q: string; from: number; to: number }
-) {
-  const term = options.q.trim();
+  idDepartamento: string
+): Promise<MunicipioOption[]> {
+  const { data } = await supabase
+    .from("municipios")
+    .select("id, nombre, id_departamento")
+    .eq("id_departamento", idDepartamento)
+    .order("nombre");
+  return (data ?? []) as MunicipioOption[];
+}
+
+export async function fetchComunasPorAlcance(
+  supabase: SupabaseClient,
+  campaignId: number
+): Promise<{ id: number; nombre: string }[]> {
   const alcance = await fetchTerritorioAlcance(supabase, campaignId);
 
   let query = supabase
     .from("comunas")
-    .select("id, nombre, creado_en, id_municipio, municipios!left(nombre)", { count: "exact" })
-    .order("id");
+    .select("id, nombre")
+    .order("nombre");
 
   if (alcance.departamentos.length > 0) {
     query = query.in("municipios.id_departamento", alcance.departamentos);
@@ -69,20 +67,7 @@ export async function fetchComunasList(
     query = query.in("id_municipio", alcance.municipios);
   }
 
-  if (term) {
-    if (isNumericSearchTerm(term)) {
-      query = query.eq("id", term);
-    } else {
-      query = query.ilike("nombre", `%${term}%`);
-    }
-  }
-
-  const { data, count, error } = await query.range(options.from, options.to);
-
-  return {
-    rows: (data ?? []) as ComunaListRow[],
-    count: count ?? 0,
-    error: error?.message ?? null,
-  };
+  const { data } = await query;
+  return data ?? [];
 }
 

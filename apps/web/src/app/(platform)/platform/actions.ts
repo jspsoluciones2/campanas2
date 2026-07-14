@@ -531,6 +531,234 @@ export async function deleteMunicipioAction(municipioId: string) {
   return { ok: true };
 }
 
+// ── Comunas ──
+
+export async function createComunaMaestraAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idMunicipio = String(formData.get("id_municipio") ?? "");
+
+  if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
+  if (!idMunicipio) return { error: "El municipio es obligatorio." };
+
+  const { error } = await supabase.from("comunas").insert({ nombre, id_municipio: idMunicipio });
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe una comuna con ese nombre en este municipio." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/comunas");
+  return { ok: true };
+}
+
+export async function updateComunaMaestraAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const id = Number(formData.get("id") ?? "");
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idMunicipio = String(formData.get("id_municipio") ?? "");
+
+  if (!id) return { error: "Comuna no identificada." };
+  if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
+  if (!idMunicipio) return { error: "El municipio es obligatorio." };
+
+  const { error } = await supabase
+    .from("comunas")
+    .update({ nombre, id_municipio: idMunicipio })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe una comuna con ese nombre en este municipio." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/comunas");
+  return { ok: true };
+}
+
+export async function deleteComunaMaestraAction(comunaId: number) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const { error } = await supabase.from("comunas").delete().eq("id", comunaId);
+  if (error) {
+    if (error.code === "23503") return { error: "No se puede eliminar: hay barrios vinculados a esta comuna." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/comunas");
+  return { ok: true };
+}
+
+// ── Barrios ──
+
+export async function createBarrioMaestraAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idComuna = Number(formData.get("id_comuna") ?? "");
+
+  if (!nombre) return { error: "El nombre del barrio es obligatorio." };
+  if (!idComuna) return { error: "La comuna es obligatoria." };
+
+  const { error } = await supabase.from("barrios").insert({ nombre, id_comuna: idComuna });
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un barrio con ese nombre en esta comuna." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/barrios");
+  return { ok: true };
+}
+
+export async function updateBarrioMaestraAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const id = Number(formData.get("id") ?? "");
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idComuna = Number(formData.get("id_comuna") ?? "");
+
+  if (!id) return { error: "Barrio no identificado." };
+  if (!nombre) return { error: "El nombre del barrio es obligatorio." };
+  if (!idComuna) return { error: "La comuna es obligatoria." };
+
+  const { error } = await supabase
+    .from("barrios")
+    .update({ nombre, id_comuna: idComuna })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un barrio con ese nombre en esta comuna." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/barrios");
+  return { ok: true };
+}
+
+export async function deleteBarrioMaestraAction(barrioId: number) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const { error } = await supabase.from("barrios").delete().eq("id", barrioId);
+  if (error) {
+    if (error.code === "23503") return { error: "No se puede eliminar: hay puestos de votación vinculados a este barrio." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/barrios");
+  return { ok: true };
+}
+
+// ── Puestos de votación ──
+
+export async function createPuestoMaestraAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idComuna = Number(formData.get("id_comuna") ?? "");
+  const idBarrio = Number(formData.get("id_barrio") ?? "");
+  const municipio = textoTitulo(String(formData.get("municipio") ?? ""));
+  const direccion = textoTitulo(String(formData.get("direccion") ?? ""));
+  const cuposH = Number(formData.get("votantes_hombres_admite") ?? "0") || 0;
+  const cuposM = Number(formData.get("votantes_mujeres_admite") ?? "0") || 0;
+  const mesas = Number(formData.get("cantidad_mesas") ?? "0") || 0;
+
+  if (!nombre) return { error: "El nombre del puesto es obligatorio." };
+  if (!idComuna) return { error: "La comuna es obligatoria." };
+  if (!idBarrio) return { error: "El barrio es obligatorio." };
+
+  const { error } = await supabase.from("puestos_votacion").insert({
+    nombre,
+    id_comuna: idComuna,
+    id_barrio: idBarrio,
+    municipio: municipio || null,
+    direccion: direccion || null,
+    votantes_hombres_admite: cuposH,
+    votantes_mujeres_admite: cuposM,
+    cantidad_mesas: mesas,
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un puesto con ese nombre." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/puestos-votacion");
+  return { ok: true };
+}
+
+export async function updatePuestoMaestraAction(formData: FormData) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const id = Number(formData.get("id") ?? "");
+  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
+  const idComuna = Number(formData.get("id_comuna") ?? "");
+  const idBarrio = Number(formData.get("id_barrio") ?? "");
+  const municipio = textoTitulo(String(formData.get("municipio") ?? ""));
+  const direccion = textoTitulo(String(formData.get("direccion") ?? ""));
+  const cuposH = Number(formData.get("votantes_hombres_admite") ?? "0") || 0;
+  const cuposM = Number(formData.get("votantes_mujeres_admite") ?? "0") || 0;
+  const mesas = Number(formData.get("cantidad_mesas") ?? "0") || 0;
+
+  if (!id) return { error: "Puesto no identificado." };
+  if (!nombre) return { error: "El nombre del puesto es obligatorio." };
+  if (!idComuna) return { error: "La comuna es obligatoria." };
+  if (!idBarrio) return { error: "El barrio es obligatorio." };
+
+  const { error } = await supabase
+    .from("puestos_votacion")
+    .update({
+      nombre,
+      id_comuna: idComuna,
+      id_barrio: idBarrio,
+      municipio: municipio || null,
+      direccion: direccion || null,
+      votantes_hombres_admite: cuposH,
+      votantes_mujeres_admite: cuposM,
+      cantidad_mesas: mesas,
+    })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ya existe un puesto con ese nombre." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/puestos-votacion");
+  return { ok: true };
+}
+
+export async function deletePuestoMaestraAction(puestoId: number) {
+  const supabase = await createClient();
+  const auth = await requirePlatformOwner(supabase);
+  if ("error" in auth && auth.error) return { error: auth.error };
+
+  const { error } = await supabase.from("puestos_votacion").delete().eq("id", puestoId);
+  if (error) {
+    if (error.code === "23503") return { error: "No se puede eliminar: el puesto tiene registros asociados." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/platform/maestras/puestos-votacion");
+  return { ok: true };
+}
+
 export async function createCampaignAction(formData: FormData) {
   const supabase = await createClient();
   const auth = await requirePlatformOwner(supabase);
@@ -616,28 +844,39 @@ async function syncCampaignAlcance(
   const raw = String(formData.get("alcance") ?? "");
   if (!raw) return;
 
-  let parsed: { tipo: string; entries?: { id_departamento: string; id_municipio?: string }[] };
+  let parsed: { tipo: string; id_departamento?: string; id_municipio?: string };
   try {
     parsed = JSON.parse(raw);
   } catch {
     return;
   }
 
-  if (parsed.tipo !== "especifico" || !parsed.entries?.length) {
-    await supabase.from("campana_territorio").delete().eq("id_campana", campaignId);
+  // Siempre eliminar filas existentes
+  await supabase.from("campana_territorio").delete().eq("id_campana", campaignId);
+
+  if (parsed.tipo === "nacional") return; // Sin fila = nacional
+
+  if (parsed.tipo !== "nacional" && parsed.tipo !== "departamental" && parsed.tipo !== "municipal") {
+    return; // tipo inválido, no insertar nada
+  }
+
+  if (parsed.tipo === "departamental" && parsed.id_departamento) {
+    await supabase.from("campana_territorio").insert({
+      id_campana: campaignId,
+      id_departamento: parsed.id_departamento,
+      id_municipio: null,
+    });
     return;
   }
 
-  const rows = parsed.entries.map((e) => ({
-    id_campana: campaignId,
-    id_departamento: e.id_departamento,
-    id_municipio: e.id_municipio ?? null,
-  }));
-
-  await supabase.from("campana_territorio").delete().eq("id_campana", campaignId);
-  if (rows.length > 0) {
-    await supabase.from("campana_territorio").insert(rows);
+  if (parsed.tipo === "municipal" && parsed.id_municipio) {
+    await supabase.from("campana_territorio").insert({
+      id_campana: campaignId,
+      id_departamento: null,
+      id_municipio: parsed.id_municipio,
+    });
   }
+  // tipo nacional: ya se hizo delete arriba, no se inserta nada
 }
 
 export async function updateCampaignAlcanceAction(formData: FormData) {
@@ -648,10 +887,77 @@ export async function updateCampaignAlcanceAction(formData: FormData) {
   const campaignId = Number(formData.get("id_campana") ?? 0);
   if (!campaignId) return { error: "Campaña no identificada." };
 
+  const raw = String(formData.get("alcance") ?? "");
+  let parsed: { tipo: string; id_departamento?: string; id_municipio?: string };
+  try { parsed = JSON.parse(raw); } catch { return { error: "Formato de alcance inválido." }; }
+
+  if (parsed.tipo === "departamental" && (!parsed.id_departamento || parsed.id_departamento === "")) {
+    return { error: "Debe seleccionar un departamento para alcance departamental." };
+  }
+  if (parsed.tipo === "municipal" && (!parsed.id_municipio || parsed.id_municipio === "")) {
+    return { error: "Debe seleccionar un municipio para alcance municipal." };
+  }
+  if (parsed.tipo !== "nacional" && parsed.tipo !== "departamental" && parsed.tipo !== "municipal") {
+    return { error: "Tipo de alcance inválido." };
+  }
+
+  // Validar votantes fuera del nuevo alcance
+  let warning: string | undefined;
+
+  if ((parsed.tipo === "municipal" && parsed.id_municipio) || (parsed.tipo === "departamental" && parsed.id_departamento)) {
+    // Obtener IDs de comunas válidas dentro del nuevo alcance
+    let idsComunas: number[] = [];
+
+    if (parsed.tipo === "municipal") {
+      const { data: comunas } = await supabase
+        .from("comunas")
+        .select("id")
+        .eq("id_municipio", parsed.id_municipio);
+      if (comunas) idsComunas = comunas.map((c: { id: number }) => c.id);
+    } else {
+      // departamental: primero obtener municipios del departamento
+      const { data: municipios } = await supabase
+        .from("municipios")
+        .select("id")
+        .eq("id_departamento", parsed.id_departamento);
+      if (municipios && municipios.length > 0) {
+        const idsMunicipios = municipios.map((m: { id: number }) => m.id);
+        const { data: comunas } = await supabase
+          .from("comunas")
+          .select("id")
+          .in("id_municipio", idsMunicipios);
+        if (comunas) idsComunas = comunas.map((c: { id: number }) => c.id);
+      }
+    }
+
+    if (idsComunas.length > 0) {
+      const { data: puestosValidos } = await supabase
+        .from("puestos_votacion")
+        .select("id")
+        .in("id_comuna", idsComunas);
+
+      if (puestosValidos && puestosValidos.length > 0) {
+        const idsPuestos = puestosValidos.map((p: { id: number }) => p.id);
+
+        const { count } = await supabase
+          .from("votantes")
+          .select("*", { count: "exact", head: true })
+          .eq("id_campana", campaignId)
+          .not("id_puesto_votacion", "is", null)
+          .not("id_puesto_votacion", "in", idsPuestos);
+
+        const etiqueta = parsed.tipo === "municipal" ? "municipio" : "departamento";
+        if (count && count > 0) {
+          warning = `${count} votante(s) tienen puestos de votación fuera del ${etiqueta} seleccionado. Los datos no se modifican, pero esos puestos no estarán disponibles para nuevos registros.`;
+        }
+      }
+    }
+  }
+
   await syncCampaignAlcance(supabase, campaignId, formData);
 
   revalidatePath(`/platform/campaigns/${campaignId}`);
-  return { ok: true };
+  return { ok: true, warning };
 }
 
 export async function updateCampaignAlcanceFormAction(formData: FormData): Promise<void> {
@@ -1366,7 +1672,7 @@ import {
 
 async function parseMaestrasWorkbook(
   buffer: ArrayBuffer,
-  tipo: "departamentos" | "municipios"
+  tipo: "departamentos" | "municipios" | "comunas" | "barrios" | "puestos-votacion"
 ): Promise<{ rows: { rowNumber: number; values: Record<string, string> }[] } | { error: string }> {
   const def = MAESTRAS_BULK_DEFS[tipo];
   let workbook: XLSX.WorkBook;

@@ -1,97 +1,74 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { platformSelectClass } from "@/components/platform/platform-ui";
+
+export type AlcanceTipo = "nacional" | "departamental" | "municipal";
 
 type Depto = { id: string; nombre: string };
 type Municipio = { id: string; nombre: string; id_departamento: string };
 
-type AlcanceEntry = { id_departamento: string; id_municipio?: string };
+type AlcanceNacional = { tipo: "nacional" };
+type AlcanceDepartamental = { tipo: "departamental"; id_departamento: string };
+type AlcanceMunicipal = { tipo: "municipal"; id_municipio: string };
+
+export type AlcanceValue =
+  | AlcanceNacional
+  | AlcanceDepartamental
+  | AlcanceMunicipal;
 
 type Props = {
   departamentos: Depto[];
   municipios: Municipio[];
-  initialAlcance?: AlcanceEntry[];
+  /** Si la campaña ya tiene alcance definido, pasar el objeto serializado. */
+  initialAlcance?: AlcanceValue;
 };
+
+function parseInitial(tipo?: AlcanceTipo, row?: { id_departamento?: string | null; id_municipio?: string | null }): AlcanceValue {
+  if (tipo === "departamental" && row?.id_departamento) {
+    return { tipo: "departamental", id_departamento: row.id_departamento };
+  }
+  if (tipo === "municipal" && row?.id_municipio) {
+    return { tipo: "municipal", id_municipio: row.id_municipio };
+  }
+  return { tipo: "nacional" };
+}
 
 export function TerritorioAlcanceEditor({
   departamentos,
   municipios,
   initialAlcance,
 }: Props) {
-  const isTodos = !initialAlcance || initialAlcance.length === 0;
-  const [mode, setMode] = useState<"todos" | "especifico">(
-    isTodos ? "todos" : "especifico"
+  const [tipo, setTipo] = useState<AlcanceTipo>(initialAlcance?.tipo ?? "nacional");
+  const [idDepartamento, setIdDepartamento] = useState(
+    initialAlcance?.tipo === "departamental"
+      ? (initialAlcance as AlcanceDepartamental).id_departamento
+      : ""
   );
-  const initialDeptos = new Set(
-    (initialAlcance ?? []).map((a) => a.id_departamento)
+  const [idMunicipio, setIdMunicipio] = useState(
+    initialAlcance?.tipo === "municipal"
+      ? (initialAlcance as AlcanceMunicipal).id_municipio
+      : ""
   );
-  const initialMunicipios = new Map<string, Set<string>>();
-  for (const a of initialAlcance ?? []) {
-    if (a.id_municipio) {
-      if (!initialMunicipios.has(a.id_departamento)) {
-        initialMunicipios.set(a.id_departamento, new Set());
-      }
-      initialMunicipios.get(a.id_departamento)!.add(a.id_municipio);
-    }
-  }
 
-  const [selectedDeptos, setSelectedDeptos] =
-    useState<Set<string>>(initialDeptos);
-  const [selectedMunicipios, setSelectedMunicipios] =
-    useState<Map<string, Set<string>>>(initialMunicipios);
-  const [expandedDepto, setExpandedDepto] = useState<string | null>(null);
-
-  const municipiosByDepto = useMemo(
+  const municipiosFiltrados = useMemo(
     () =>
-      municipios.reduce(
-        (acc, m) => {
-          if (!acc.has(m.id_departamento)) {
-            acc.set(m.id_departamento, []);
-          }
-          acc.get(m.id_departamento)!.push(m);
-          return acc;
-        },
-        new Map<string, Municipio[]>()
-      ),
-    [municipios]
+      idDepartamento
+        ? municipios.filter((m) => m.id_departamento === idDepartamento)
+        : [],
+    [municipios, idDepartamento]
   );
 
-  function toggleDepto(id: string) {
-    setSelectedDeptos((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleMunicipio(deptoId: string, muniId: string) {
-    setSelectedMunicipios((prev) => {
-      const next = new Map(prev);
-      const set = new Set(next.get(deptoId) ?? []);
-      if (set.has(muniId)) set.delete(muniId);
-      else set.add(muniId);
-      if (set.size === 0) next.delete(deptoId);
-      else next.set(deptoId, set);
-      return next;
-    });
-  }
-
+  /** Serializa según el tipo activo, manteniendo depto/municipio en el hidden input incluso si no se muestran. */
   function jsonAlcance(): string {
-    if (mode === "todos") return JSON.stringify({ tipo: "todos" });
-    const entries: AlcanceEntry[] = [];
-    for (const deptoId of selectedDeptos) {
-      const munis = selectedMunicipios.get(deptoId);
-      if (munis && munis.size > 0) {
-        for (const muniId of munis) {
-          entries.push({ id_departamento: deptoId, id_municipio: muniId });
-        }
-      } else {
-        entries.push({ id_departamento: deptoId });
-      }
+    switch (tipo) {
+      case "nacional":
+        return JSON.stringify({ tipo: "nacional" });
+      case "departamental":
+        return JSON.stringify({ tipo: "departamental", id_departamento: idDepartamento });
+      case "municipal":
+        return JSON.stringify({ tipo: "municipal", id_municipio: idMunicipio });
     }
-    return JSON.stringify({ tipo: "especifico", entries });
   }
 
   return (
@@ -100,112 +77,124 @@ export function TerritorioAlcanceEditor({
         Alcance territorial
       </p>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMode("todos")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === "todos"
-              ? "bg-neutral-800 text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-          }`}
-        >
-          Todos los departamentos
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("especifico")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === "especifico"
-              ? "bg-neutral-800 text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-          }`}
-        >
-          Departamentos específicos
-        </button>
-      </div>
+      {/* Radio buttons */}
+      <fieldset className="flex flex-wrap gap-2">
+        {([
+          { value: "nacional", label: "Nacional" },
+          { value: "departamental", label: "Departamental" },
+          { value: "municipal", label: "Municipal" },
+        ] as const).map((opt) => (
+          <label
+            key={opt.value}
+            className={`cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              tipo === opt.value
+                ? "bg-neutral-800 text-white"
+                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+            }`}
+          >
+            <input
+              type="radio"
+              name="alcance_tipo"
+              value={opt.value}
+              checked={tipo === opt.value}
+              onChange={() => setTipo(opt.value)}
+              className="sr-only"
+            />
+            {opt.label}
+          </label>
+        ))}
+      </fieldset>
 
-      {mode === "especifico" && (
-        <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-neutral-200 p-3">
-          {departamentos.map((d) => {
-            const checked = selectedDeptos.has(d.id);
-            const munis = municipiosByDepto.get(d.id) ?? [];
-            const expanded = expandedDepto === d.id;
-
-            return (
-              <div key={d.id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-neutral-50">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleDepto(d.id)}
-                    className="size-4 rounded border-neutral-300 text-neutral-800 focus:ring-neutral-800"
-                  />
-                  <span className="text-neutral-800">{d.nombre}</span>
-                  {checked && munis.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setExpandedDepto(expanded ? null : d.id);
-                      }}
-                      className="ml-auto text-xs text-neutral-500 hover:text-neutral-800"
-                    >
-                      {expanded ? "▲ municipios" : "▼ municipios"}
-                    </button>
-                  )}
-                </label>
-
-                {checked && expanded && munis.length > 0 && (
-                  <div className="ml-6 space-y-0.5 border-l-2 border-neutral-200 pl-3">
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-50">
-                      <input
-                        type="checkbox"
-                        checked={!selectedMunicipios.has(d.id)}
-                        onChange={() => {
-                          setSelectedMunicipios((prev) => {
-                            const next = new Map(prev);
-                            next.delete(d.id);
-                            return next;
-                          });
-                        }}
-                        className="size-3.5 rounded border-neutral-300 text-neutral-800 focus:ring-neutral-800"
-                      />
-                      Todos los municipios
-                    </label>
-                    {munis.map((m) => {
-                      const mChecked =
-                        selectedMunicipios.get(d.id)?.has(m.id) ?? false;
-                      return (
-                        <label
-                          key={m.id}
-                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs hover:bg-neutral-50"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={mChecked}
-                            onChange={() => toggleMunicipio(d.id, m.id)}
-                            className="size-3.5 rounded border-neutral-300 text-neutral-800 focus:ring-neutral-800"
-                          />
-                          {m.nombre}
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {/* Departamental: dropdown de departamentos */}
+      {tipo === "departamental" && (
+        <div>
+          <label className="text-sm font-medium text-neutral-700">
+            Departamento
+          </label>
+          <select
+            value={idDepartamento}
+            onChange={(e) => setIdDepartamento(e.target.value)}
+            required
+            className={platformSelectClass}
+          >
+            <option value="" disabled>
+              Seleccionar departamento
+            </option>
+            {departamentos.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nombre}
+              </option>
+            ))}
+          </select>
+          {!idDepartamento && (
+            <p className="mt-1 text-xs text-amber-600">
+              Seleccioná un departamento.
+            </p>
+          )}
         </div>
       )}
 
-      <input type="hidden" name="alcance" value={jsonAlcance()} />
-
-      {mode === "especifico" && selectedDeptos.size === 0 && (
-        <p className="text-xs text-amber-600">
-          Seleccioná al menos un departamento.
-        </p>
+      {/* Municipal: dropdown de departamento → dropdown de municipio */}
+      {tipo === "municipal" && (
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">
+              Departamento
+            </label>
+            <select
+              value={idDepartamento}
+              onChange={(e) => {
+                setIdDepartamento(e.target.value);
+                setIdMunicipio("");
+              }}
+              required
+              className={platformSelectClass}
+            >
+              <option value="" disabled>
+                Seleccionar departamento
+              </option>
+              {departamentos.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700">
+              Municipio
+            </label>
+            <select
+              value={idMunicipio}
+              onChange={(e) => setIdMunicipio(e.target.value)}
+              required
+              disabled={!idDepartamento}
+              className={platformSelectClass}
+            >
+              <option value="" disabled>
+                {idDepartamento
+                  ? "Seleccionar municipio"
+                  : "Primero seleccioná un departamento"}
+              </option>
+              {municipiosFiltrados.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nombre}
+                </option>
+              ))}
+            </select>
+            {idDepartamento && !idMunicipio && (
+              <p className="mt-1 text-xs text-amber-600">
+                Seleccioná un municipio.
+              </p>
+            )}
+          </div>
+        </div>
       )}
+
+      {/* Serializado oculto para el form submit */}
+      <input type="hidden" name="alcance" value={jsonAlcance()} />
     </div>
   );
 }
+
+export { parseInitial };
