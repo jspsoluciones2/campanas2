@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { escapeIlikeTerm, MASTER_PAGE_SIZE } from "@/lib/platform/master-list";
 import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
-import { createPuestoMaestraAction } from "@/app/(platform)/platform/actions";
 import { PuestoMaestraRowActions } from "@/components/platform/puesto-maestra-row-actions";
+import { PuestoCreateForm } from "@/components/platform/puesto-create-form";
 import {
   PuestosListFilter,
   PuestosPagination,
@@ -12,13 +12,8 @@ import {
 import {
   Card,
   DataTable,
-  FormField,
-  FormRow,
   PageHeader,
-  platformInputClass,
-  platformSelectClass,
 } from "@/components/platform/platform-ui";
-import { Button } from "@/components/ui/button";
 import { MaestrasBulkUpload } from "@/components/platform/maestras-bulk-upload";
 import { MAESTRAS_BULK_DEFS } from "@/lib/platform/maestras-bulk-config";
 
@@ -44,15 +39,12 @@ export default async function MaestrasPuestosVotacionPage({
 
   const supabase = await createClient();
 
-  const { data: comunas } = await supabase
-    .from("comunas")
-    .select("id, nombre")
-    .order("nombre", { ascending: true });
-
-  const { data: barriosList } = await supabase
-    .from("barrios")
-    .select("id, nombre, id_comuna")
-    .order("nombre", { ascending: true });
+  const [departamentos, municipios, comunas, barriosList] = await Promise.all([
+    supabase.from("departamentos").select("id, nombre").order("nombre"),
+    supabase.from("municipios").select("id, nombre, id_departamento").order("nombre"),
+    supabase.from("comunas").select("id, nombre, id_municipio").order("nombre"),
+    supabase.from("barrios").select("id, nombre, id_comuna").order("nombre"),
+  ]);
 
   let query = supabase
     .from("puestos_votacion")
@@ -91,85 +83,14 @@ export default async function MaestrasPuestosVotacionPage({
 
       <Card
         title="Nuevo puesto"
-        description="Agrega un puesto de votación."
+        description="Selecciona departamento, municipio, comuna, barrio y completa los datos."
       >
-        <form
-          action={createPuestoMaestraAction as unknown as (formData: FormData) => void}
-          id="create-puesto-form"
-        >
-          <FormRow>
-            <FormField label="Nombre">
-              <input
-                name="nombre"
-                placeholder="Ej. Colegio San José"
-                required
-                className={platformInputClass}
-              />
-            </FormField>
-            <FormField label="Dirección">
-              <input
-                name="direccion"
-                placeholder="Ej. Cra 10 # 20-30"
-                className={platformInputClass}
-              />
-            </FormField>
-            <FormField label="Comuna">
-              <select
-                name="id_comuna"
-                required
-                className={platformSelectClass}
-              >
-                <option value="">Seleccionar comuna</option>
-                {(comunas ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="Barrio">
-              <select
-                name="id_barrio"
-                required
-                className={platformSelectClass}
-              >
-                <option value="">Seleccionar barrio</option>
-                {(barriosList ?? []).map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nombre}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="Cupos H">
-              <input
-                name="votantes_hombres_admite"
-                type="number"
-                defaultValue="0"
-                className={platformInputClass}
-              />
-            </FormField>
-            <FormField label="Cupos M">
-              <input
-                name="votantes_mujeres_admite"
-                type="number"
-                defaultValue="0"
-                className={platformInputClass}
-              />
-            </FormField>
-            <FormField label="Mesas">
-              <input
-                name="cantidad_mesas"
-                type="number"
-                defaultValue="0"
-                className={platformInputClass}
-              />
-            </FormField>
-            <Button type="submit" className="h-10 shrink-0 px-6">
-              Crear puesto
-            </Button>
-          </FormRow>
-        </form>
+        <PuestoCreateForm
+          departamentos={departamentos.data ?? []}
+          municipios={municipios.data ?? []}
+          comunas={comunas.data ?? []}
+          barrios={barriosList.data ?? []}
+        />
       </Card>
 
       <MaestrasBulkUpload
@@ -256,8 +177,10 @@ export default async function MaestrasPuestosVotacionPage({
               cell: (p) => (
                 <PuestoMaestraRowActions
                   puesto={p}
-                  comunas={comunas ?? []}
-                  barrios={barriosList ?? []}
+                  departamentos={departamentos.data ?? []}
+                  municipios={municipios.data ?? []}
+                  comunas={comunas.data ?? []}
+                  barrios={barriosList.data ?? []}
                 />
               ),
             },
