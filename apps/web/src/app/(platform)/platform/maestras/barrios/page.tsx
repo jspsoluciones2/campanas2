@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { escapeIlikeTerm, MASTER_PAGE_SIZE } from "@/lib/platform/master-list";
 import { formatCatalogId, isNumericSearchTerm } from "@/lib/campaign/catalog-codigo";
-import { createBarrioMaestraAction } from "@/app/(platform)/platform/actions";
 import { BarrioMaestraRowActions } from "@/components/platform/barrio-maestra-row-actions";
+import { BarrioCreateForm } from "@/components/platform/barrio-create-form";
 import {
   BarriosListFilter,
   BarriosPagination,
@@ -12,13 +12,8 @@ import {
 import {
   Card,
   DataTable,
-  FormField,
-  FormRow,
   PageHeader,
-  platformInputClass,
-  platformSelectClass,
 } from "@/components/platform/platform-ui";
-import { Button } from "@/components/ui/button";
 import { MaestrasBulkUpload } from "@/components/platform/maestras-bulk-upload";
 import { MAESTRAS_BULK_DEFS } from "@/lib/platform/maestras-bulk-config";
 
@@ -36,10 +31,11 @@ export default async function MaestrasBarriosPage({
 
   const supabase = await createClient();
 
-  const { data: comunas } = await supabase
-    .from("comunas")
-    .select("id, nombre")
-    .order("nombre", { ascending: true });
+  const [departamentos, municipios, comunas] = await Promise.all([
+    supabase.from("departamentos").select("id, nombre").order("nombre"),
+    supabase.from("municipios").select("id, nombre, id_departamento").order("nombre"),
+    supabase.from("comunas").select("id, nombre, id_municipio").order("nombre"),
+  ]);
 
   let query = supabase
     .from("barrios")
@@ -66,7 +62,7 @@ export default async function MaestrasBarriosPage({
 
   const rows = barrios ?? [];
   const comunaMap = new Map(
-    (comunas ?? []).map((c) => [c.id, c.nombre])
+    (comunas.data ?? []).map((c) => [c.id, c.nombre])
   );
   const emptyMessage = q
     ? "Sin coincidencias. Prueba otro criterio de búsqueda."
@@ -78,40 +74,13 @@ export default async function MaestrasBarriosPage({
 
       <Card
         title="Nuevo barrio"
-        description="Agrega un barrio dentro de una comuna."
+        description="Selecciona departamento, municipio, comuna y nombra el barrio."
       >
-        <form
-          action={createBarrioMaestraAction as unknown as (formData: FormData) => void}
-          id="create-barrio-form"
-        >
-          <FormRow>
-            <FormField label="Comuna">
-              <select
-                name="id_comuna"
-                required
-                className={platformSelectClass}
-              >
-                <option value="">Seleccionar comuna</option>
-                {(comunas ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="Nombre">
-              <input
-                name="nombre"
-                placeholder="Ej. Barrio Centro"
-                required
-                className={platformInputClass}
-              />
-            </FormField>
-            <Button type="submit" className="h-10 shrink-0 px-6">
-              Crear barrio
-            </Button>
-          </FormRow>
-        </form>
+        <BarrioCreateForm
+          departamentos={departamentos.data ?? []}
+          municipios={municipios.data ?? []}
+          comunas={comunas.data ?? []}
+        />
       </Card>
 
       <MaestrasBulkUpload
@@ -164,7 +133,9 @@ export default async function MaestrasBarriosPage({
               cell: (b) => (
                 <BarrioMaestraRowActions
                   barrio={b}
-                  comunas={comunas ?? []}
+                  comunas={comunas.data ?? []}
+                  departamentos={departamentos.data ?? []}
+                  municipios={municipios.data ?? []}
                 />
               ),
             },

@@ -41,8 +41,10 @@ export const MAESTRAS_BULK_DEFS: Record<string, MaestrasBulkDef> = {
   barrios: {
     label: "Barrios",
     fileName: "plantilla-barrios",
-    instructions: "Indica la comuna existente. Carga comunas antes que barrios.",
+    instructions: "Indica departamento, municipio y comuna existentes. Carga comunas antes que barrios.",
     columns: [
+      { key: "departamento", header: "departamento", required: true, example: "Antioquia" },
+      { key: "municipio", header: "municipio", required: true, example: "Medellín" },
       { key: "comuna", header: "comuna", required: true, example: "Comuna 1" },
       { key: "nombre", header: "nombre", required: true, example: "Barrio Centro" },
     ],

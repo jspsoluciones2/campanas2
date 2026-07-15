@@ -143,8 +143,12 @@ export async function POST(request: Request) {
     const { data: municipios } = await supabase.from("municipios").select("id, nombre");
     municipioMap = new Map((municipios ?? []).map((m) => [m.nombre.toLocaleLowerCase("es-CO"), m.id]));
   } else if (tipo === "barrios" || tipo === "puestos-votacion") {
-    const { data: comunas } = await supabase.from("comunas").select("id, nombre");
-    comunaMap = new Map((comunas ?? []).map((c) => [c.nombre.toLocaleLowerCase("es-CO"), c.id]));
+    const { data: deptos } = await supabase.from("departamentos").select("id, nombre");
+    deptoMap = new Map((deptos ?? []).map((d) => [d.nombre.toLocaleLowerCase("es-CO"), d.id]));
+    const { data: munis } = await supabase.from("municipios").select("id, nombre, id_departamento");
+    municipioMap = new Map((munis ?? []).map((m) => [m.nombre.toLocaleLowerCase("es-CO") + "|" + m.id_departamento, m.id]));
+    const { data: comunas } = await supabase.from("comunas").select("id, nombre, id_municipio");
+    comunaMap = new Map((comunas ?? []).map((c) => [c.nombre.toLocaleLowerCase("es-CO") + "|" + c.id_municipio, c.id]));
   }
 
   const encoder = new TextEncoder();
@@ -207,57 +211,79 @@ export async function POST(request: Request) {
             }
           }
         } else if (tipo === "barrios") {
-          const comunaRaw = row.values.comuna ?? "";
+          const deptoRaw = (row.values.departamento ?? "").trim();
+          const municipioRaw = (row.values.municipio ?? "").trim();
+          const comunaRaw = (row.values.comuna ?? "").trim();
           if (!nombre) { errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." }); }
+          else if (!deptoRaw) { errors.push({ row: row.rowNumber, message: "El departamento es obligatorio." }); }
+          else if (!municipioRaw) { errors.push({ row: row.rowNumber, message: "El municipio es obligatorio." }); }
           else if (!comunaRaw) { errors.push({ row: row.rowNumber, message: "La comuna es obligatoria." }); }
           else {
-            const idComuna = comunaMap!.get(comunaRaw.trim().toLocaleLowerCase("es-CO"));
-            if (!idComuna) {
-              errors.push({ row: row.rowNumber, message: `Comuna "${comunaRaw}" no encontrada.` });
-            } else {
-              const { error } = await supabase.from("barrios").insert({ id_comuna: idComuna, nombre });
-              if (error) {
-                errors.push({ row: row.rowNumber, message: error.code === "23505" ? `"${nombre}" ya existe en esta comuna.` : error.message });
-              } else {
-                created++;
+            const idDepto = deptoMap!.get(deptoRaw.toLocaleLowerCase("es-CO"));
+            if (!idDepto) { errors.push({ row: row.rowNumber, message: `Departamento "${deptoRaw}" no encontrado.` }); }
+            else {
+              const idMunicipio = municipioMap!.get(municipioRaw.toLocaleLowerCase("es-CO") + "|" + idDepto);
+              if (!idMunicipio) { errors.push({ row: row.rowNumber, message: `Municipio "${municipioRaw}" no encontrado en ${deptoRaw}.` }); }
+              else {
+                const idComuna = comunaMap!.get(comunaRaw.toLocaleLowerCase("es-CO") + "|" + idMunicipio);
+                if (!idComuna) { errors.push({ row: row.rowNumber, message: `Comuna "${comunaRaw}" no encontrada en ese municipio.` }); }
+                else {
+                  const { error } = await supabase.from("barrios").insert({ id_comuna: idComuna, nombre });
+                  if (error) {
+                    errors.push({ row: row.rowNumber, message: error.code === "23505" ? `"${nombre}" ya existe en esta comuna.` : error.message });
+                  } else {
+                    created++;
+                  }
+                }
               }
             }
           }
         } else if (tipo === "puestos-votacion") {
-          const comunaRaw = row.values.comuna ?? "";
-          const barrioRaw = row.values.barrio ?? "";
+          const deptoRaw = (row.values.departamento ?? "").trim();
+          const municipioRaw = (row.values.municipio ?? "").trim();
+          const comunaRaw = (row.values.comuna ?? "").trim();
+          const barrioRaw = (row.values.barrio ?? "").trim();
           if (!nombre) { errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." }); }
+          else if (!deptoRaw) { errors.push({ row: row.rowNumber, message: "El departamento es obligatorio." }); }
+          else if (!municipioRaw) { errors.push({ row: row.rowNumber, message: "El municipio es obligatorio." }); }
           else if (!comunaRaw) { errors.push({ row: row.rowNumber, message: "La comuna es obligatoria." }); }
           else if (!barrioRaw) { errors.push({ row: row.rowNumber, message: "El barrio es obligatorio." }); }
           else {
-            const idComuna = comunaMap!.get(comunaRaw.trim().toLocaleLowerCase("es-CO"));
-            if (!idComuna) {
-              errors.push({ row: row.rowNumber, message: `Comuna "${comunaRaw}" no encontrada.` });
-            } else {
-              const { data: barrios } = await supabase
-                .from("barrios")
-                .select("id")
-                .eq("id_comuna", idComuna)
-                .ilike("nombre", barrioRaw.trim());
-              const idBarrio = barrios?.[0]?.id ?? null;
-              if (!idBarrio) {
-                errors.push({ row: row.rowNumber, message: `Barrio "${barrioRaw}" no encontrado en esa comuna.` });
-              } else {
-                const direccion = textoTitulo(row.values.direccion ?? "");
-                const municipio = textoTitulo(row.values.municipio ?? "");
-                const cuposH = parseInt(row.values.cupos_hombres ?? "0", 10) || 0;
-                const cuposM = parseInt(row.values.cupos_mujeres ?? "0", 10) || 0;
-                const mesas = parseInt(row.values.mesas ?? "0", 10) || 0;
+            const idDepto = deptoMap!.get(deptoRaw.toLocaleLowerCase("es-CO"));
+            if (!idDepto) { errors.push({ row: row.rowNumber, message: `Departamento "${deptoRaw}" no encontrado.` }); }
+            else {
+              const idMunicipio = municipioMap!.get(municipioRaw.toLocaleLowerCase("es-CO") + "|" + idDepto);
+              if (!idMunicipio) { errors.push({ row: row.rowNumber, message: `Municipio "${municipioRaw}" no encontrado en ${deptoRaw}.` }); }
+              else {
+                const idComuna = comunaMap!.get(comunaRaw.toLocaleLowerCase("es-CO") + "|" + idMunicipio);
+                if (!idComuna) { errors.push({ row: row.rowNumber, message: `Comuna "${comunaRaw}" no encontrada en ese municipio.` }); }
+                else {
+                  const { data: barrios } = await supabase
+                    .from("barrios")
+                    .select("id")
+                    .eq("id_comuna", idComuna)
+                    .ilike("nombre", barrioRaw.trim());
+                  const idBarrio = barrios?.[0]?.id ?? null;
+                  if (!idBarrio) {
+                    errors.push({ row: row.rowNumber, message: `Barrio "${barrioRaw}" no encontrado en esa comuna.` });
+                  } else {
+                    const direccion = textoTitulo(row.values.direccion ?? "");
+                    const municipio = textoTitulo(row.values.municipio ?? "");
+                    const cuposH = parseInt(row.values.cupos_hombres ?? "0", 10) || 0;
+                    const cuposM = parseInt(row.values.cupos_mujeres ?? "0", 10) || 0;
+                    const mesas = parseInt(row.values.mesas ?? "0", 10) || 0;
 
-                const { error } = await supabase.from("puestos_votacion").insert({
-                  nombre, direccion: direccion || null, municipio: municipio || null,
-                  id_comuna: idComuna, id_barrio: idBarrio,
-                  votantes_hombres_admite: cuposH, votantes_mujeres_admite: cuposM, cantidad_mesas: mesas,
-                });
-                if (error) {
-                  errors.push({ row: row.rowNumber, message: error.code === "23505" ? `"${nombre}" ya existe.` : error.message });
-                } else {
-                  created++;
+                    const { error } = await supabase.from("puestos_votacion").insert({
+                      nombre, direccion: direccion || null, municipio: municipio || null,
+                      id_comuna: idComuna, id_barrio: idBarrio,
+                      votantes_hombres_admite: cuposH, votantes_mujeres_admite: cuposM, cantidad_mesas: mesas,
+                    });
+                    if (error) {
+                      errors.push({ row: row.rowNumber, message: error.code === "23505" ? `"${nombre}" ya existe.` : error.message });
+                    } else {
+                      created++;
+                    }
+                  }
                 }
               }
             }

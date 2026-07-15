@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useIsClient } from "@/hooks/use-is-client";
@@ -15,23 +15,69 @@ import {
   platformSelectClass,
 } from "@/components/platform/platform-ui";
 
+type Depto = { id: string; nombre: string };
+type Municipio = { id: string; nombre: string; id_departamento: string };
+type Comuna = { id: number; nombre: string; id_municipio: number };
+
 export type BarrioRow = {
   id: number;
   nombre: string;
   id_comuna: number;
 };
 
+function findComunaContext(comunaId: number, comunas: Comuna[], municipios: Municipio[]) {
+  const comuna = comunas.find((c) => c.id === comunaId);
+  const municipio = comuna
+    ? municipios.find((m) => Number(m.id) === comuna.id_municipio)
+    : undefined;
+  return { comuna, municipio };
+}
+
 export function BarrioMaestraRowActions({
   barrio,
   comunas,
+  departamentos,
+  municipios,
 }: {
   barrio: BarrioRow;
-  comunas: { id: number; nombre: string }[];
+  comunas: Comuna[];
+  departamentos: Depto[];
+  municipios: Municipio[];
 }) {
   const [editing, setEditing] = useState(false);
   const mounted = useIsClient();
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Estado para cascada en edición
+  const ctx = useMemo(() => findComunaContext(barrio.id_comuna, comunas, municipios), [barrio.id_comuna, comunas, municipios]);
+  const [editDepto, setEditDepto] = useState(() => {
+    if (!ctx.municipio) return "";
+    const depto = departamentos.find((d) => d.id === ctx.municipio!.id_departamento);
+    return depto?.id ?? "";
+  });
+  const [editMunicipio, setEditMunicipio] = useState(() => ctx.municipio?.id ?? "");
+
+  // Resetear cascada al abrir edición
+  useEffect(() => {
+    if (editing) {
+      const c = findComunaContext(barrio.id_comuna, comunas, municipios);
+      const deptoId = c.municipio
+        ? (departamentos.find((d) => d.id === c.municipio!.id_departamento)?.id ?? "")
+        : "";
+      setEditDepto(deptoId);
+      setEditMunicipio(c.municipio?.id ?? "");
+    }
+  }, [editing, barrio.id_comuna, comunas, municipios, departamentos]);
+
+  const editMunicipios = useMemo(
+    () => municipios.filter((m) => m.id_departamento === editDepto),
+    [municipios, editDepto]
+  );
+  const editComunas = useMemo(
+    () => comunas.filter((c) => String(c.id_municipio) === editMunicipio),
+    [comunas, editMunicipio]
+  );
 
   useEffect(() => {
     if (!editing) return;
@@ -109,15 +155,42 @@ export function BarrioMaestraRowActions({
                       className={`${platformInputClass} bg-neutral-50 text-neutral-500`}
                     />
                   </FormField>
+                  <FormField label="Departamento">
+                    <select
+                      value={editDepto}
+                      onChange={(e) => { setEditDepto(e.target.value); setEditMunicipio(""); }}
+                      className={platformSelectClass}
+                    >
+                      <option value="">Seleccionar departamento</option>
+                      {departamentos.map((d) => (
+                        <option key={d.id} value={d.id}>{d.nombre}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Municipio">
+                    <select
+                      value={editMunicipio}
+                      onChange={(e) => setEditMunicipio(e.target.value)}
+                      disabled={!editDepto}
+                      className={platformSelectClass}
+                    >
+                      <option value="">{editDepto ? "Seleccionar municipio" : "Primero elige departamento"}</option>
+                      {editMunicipios.map((m) => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                  </FormField>
                   <FormField label="Comuna">
                     <select
                       name="id_comuna"
+                      key={editMunicipio}
                       defaultValue={barrio.id_comuna}
                       required
+                      disabled={!editMunicipio}
                       className={platformSelectClass}
                     >
-                      <option value="">Seleccionar comuna</option>
-                      {comunas.map((c) => (
+                      <option value="">{editMunicipio ? "Seleccionar comuna" : "Primero elige municipio"}</option>
+                      {editComunas.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.nombre}
                         </option>
