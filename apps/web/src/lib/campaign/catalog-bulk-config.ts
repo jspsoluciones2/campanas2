@@ -18,47 +18,6 @@ export type BulkCatalogDef = {
 export const CATALOG_BULK_MAX_ROWS = 2000;
 
 export const CATALOG_BULK_DEFS: Record<CatalogSegment, BulkCatalogDef> = {
-  comunas: {
-    label: "Comunas",
-    fileName: "plantilla-comunas",
-    instructions:
-      "Indica el municipio existente. Una fila por subdivisión territorial. El ID se asigna automáticamente al importar.",
-    columns: [
-      {
-        key: "municipio",
-        header: "municipio",
-        required: true,
-        example: "Medellín",
-      },
-      {
-        key: "nombre",
-        header: "nombre",
-        required: true,
-        example: "Comuna 1",
-      },
-    ],
-  },
-  barrios: {
-    label: "Barrios",
-    fileName: "plantilla-barrios",
-    instructions:
-      "Indica la comuna existente en la campaña. Carga comunas antes que barrios.",
-    columns: [
-      {
-        key: "comuna",
-        header: "comuna",
-        required: true,
-        example: "Comuna 1",
-        aliases: ["subdivisión", "subdivision"],
-      },
-      {
-        key: "nombre",
-        header: "nombre",
-        required: true,
-        example: "Barrio Centro",
-      },
-    ],
-  },
   puestos: {
     label: "Puestos de votación",
     fileName: "plantilla-puestos",

@@ -4,6 +4,7 @@ import {
 } from "@/lib/campaign/catalog-bulk-config";
 import type { CatalogSegment } from "@/lib/campaign/catalog-nav";
 import { insertPuestoRow } from "@/lib/campaign/puestos";
+import { fetchTerritorioAlcance } from "@/lib/campaign/comunas";
 import { textoTitulo, textoTituloOpcional } from "@/lib/normalize-text";
 import type { ParsedBulkRow } from "@/lib/campaign/catalog-bulk-xlsx";
 
@@ -45,10 +46,6 @@ export async function importCatalogRows(
   }
 
   switch (segment) {
-    case "comunas":
-      return importComunas(supabase, campaignId, rows);
-    case "barrios":
-      return importBarrios(supabase, campaignId, rows);
     case "puestos":
       return importPuestos(supabase, campaignId, rows);
     case "roles":
@@ -90,180 +87,36 @@ function buildResult(
   };
 }
 
-async function importComunas(
-  supabase: SupabaseClient,
-  campaignId: number,
-  rows: ParsedBulkRow[]
-): Promise<BulkImportResult> {
-  const { data: existentes } = await supabase
-    .from("comunas")
-    .select("nombre")
-    .eq("id_campana", campaignId);
-
-  const { data: municipiosData } = await supabase
-    .from("municipios")
-    .select("id, nombre");
-
-  const municipioMap = new Map<string, number>(
-    (municipiosData ?? []).map((m) => [claveNombre(m.nombre), m.id])
-  );
-
-  const usados = new Set(
-    (existentes ?? []).map((row) => claveNombre(row.nombre))
-  );
-  const enArchivo = new Set<string>();
-  const errors: { row: number; message: string }[] = [];
-  let created = 0;
-  let skipped = 0;
-
-  for (const row of rows) {
-    const nombre = textoTitulo(row.values.nombre ?? "");
-    const municipioRaw = row.values.municipio ?? "";
-
-    if (!nombre) {
-      errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
-      continue;
-    }
-
-    if (!municipioRaw) {
-      errors.push({ row: row.rowNumber, message: "El municipio es obligatorio." });
-      continue;
-    }
-
-    const idMunicipio = municipioMap.get(claveNombre(municipioRaw));
-    if (!idMunicipio) {
-      errors.push({
-        row: row.rowNumber,
-        message: `Municipio "${municipioRaw}" no encontrado. Verifica que exista en el catálogo global.`,
-      });
-      continue;
-    }
-
-    const clave = claveNombre(nombre);
-    if (usados.has(clave) || enArchivo.has(clave)) {
-      skipped++;
-      continue;
-    }
-
-    const { error } = await supabase.from("comunas").insert({
-      nombre,
-      id_municipio: idMunicipio,
-    });
-
-    if (error) {
-      errors.push({ row: row.rowNumber, message: error.message });
-      continue;
-    }
-
-    usados.add(clave);
-    enArchivo.add(clave);
-    created++;
-  }
-
-  return buildResult(created, skipped, errors);
-}
-
-async function loadComunaMap(supabase: SupabaseClient, campaignId: number) {
-  const { data } = await supabase
-    .from("comunas")
-    .select("id, nombre")
-    .eq("id_campana", campaignId);
-
-  const map = new Map<string, number>();
-  for (const row of data ?? []) {
-    map.set(claveNombre(row.nombre), row.id);
-  }
-  return map;
-}
-
-async function loadBarrioMap(supabase: SupabaseClient, campaignId: number) {
-  const { data } = await supabase
-    .from("barrios")
-    .select("id, nombre, id_comuna, comunas!inner(id_campana)")
-    .eq("comunas.id_campana", campaignId);
-
-  const map = new Map<string, number>();
-  for (const row of data ?? []) {
-    const clave = `${row.id_comuna}::${claveNombre(row.nombre)}`;
-    map.set(clave, row.id);
-  }
-  return map;
-}
-
-async function importBarrios(
-  supabase: SupabaseClient,
-  campaignId: number,
-  rows: ParsedBulkRow[]
-): Promise<BulkImportResult> {
-  const comunaMap = await loadComunaMap(supabase, campaignId);
-  const { data: existentes } = await supabase
-    .from("barrios")
-    .select("nombre, id_comuna, comunas!inner(id_campana)")
-    .eq("comunas.id_campana", campaignId);
-
-  const usados = new Set(
-    (existentes ?? []).map(
-      (row) => `${row.id_comuna}::${claveNombre(row.nombre)}`
-    )
-  );
-  const enArchivo = new Set<string>();
-  const errors: { row: number; message: string }[] = [];
-  let created = 0;
-  let skipped = 0;
-
-  for (const row of rows) {
-    const comunaNombre = row.values.comuna ?? "";
-    const nombre = textoTitulo(row.values.nombre ?? "");
-
-    if (!comunaNombre.trim()) {
-      errors.push({ row: row.rowNumber, message: "La comuna es obligatoria." });
-      continue;
-    }
-    if (!nombre) {
-      errors.push({ row: row.rowNumber, message: "El nombre es obligatorio." });
-      continue;
-    }
-
-    const idComuna = comunaMap.get(claveNombre(comunaNombre));
-    if (!idComuna) {
-      errors.push({
-        row: row.rowNumber,
-        message: `No existe la comuna "${comunaNombre}" en esta campaña.`,
-      });
-      continue;
-    }
-
-    const clave = `${idComuna}::${claveNombre(nombre)}`;
-    if (usados.has(clave) || enArchivo.has(clave)) {
-      skipped++;
-      continue;
-    }
-
-    const { error } = await supabase.from("barrios").insert({
-      id_comuna: idComuna,
-      nombre,
-    });
-
-    if (error) {
-      errors.push({ row: row.rowNumber, message: error.message });
-      continue;
-    }
-
-    usados.add(clave);
-    enArchivo.add(clave);
-    created++;
-  }
-
-  return buildResult(created, skipped, errors);
-}
-
 async function importPuestos(
   supabase: SupabaseClient,
   campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
-  const comunaMap = await loadComunaMap(supabase, campaignId);
-  const barrioMap = await loadBarrioMap(supabase, campaignId);
+  const alcance = await fetchTerritorioAlcance(supabase, campaignId);
+
+  let comunaQ = supabase.from("comunas").select("id, nombre").order("nombre");
+  if (alcance.departamentos.length > 0) {
+    comunaQ = comunaQ.in("municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    comunaQ = comunaQ.in("id_municipio", alcance.municipios);
+  }
+  const { data: comunaData } = await comunaQ;
+  const comunaMap = new Map<string, number>(
+    (comunaData ?? []).map((c) => [claveNombre(c.nombre), c.id])
+  );
+
+  const comunaIds = [...comunaMap.values()];
+  const { data: barrioData } = await supabase
+    .from("barrios")
+    .select("id, nombre, id_comuna")
+    .in("id_comuna", comunaIds.length > 0 ? comunaIds : [0])
+    .order("nombre");
+  const barrioMap = new Map<string, number>();
+  for (const b of barrioData ?? []) {
+    barrioMap.set(`${b.id_comuna}::${claveNombre(b.nombre)}`, b.id);
+  }
+
   const { data: existentes } = await supabase
     .from("puestos_votacion")
     .select("nombre")
@@ -491,8 +344,31 @@ async function importLugaresTrabajo(
   campaignId: number,
   rows: ParsedBulkRow[]
 ): Promise<BulkImportResult> {
-  const comunaMap = await loadComunaMap(supabase, campaignId);
-  const barrioMap = await loadBarrioMap(supabase, campaignId);
+  const alcance = await fetchTerritorioAlcance(supabase, campaignId);
+
+  let comunaQ = supabase.from("comunas").select("id, nombre").order("nombre");
+  if (alcance.departamentos.length > 0) {
+    comunaQ = comunaQ.in("municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    comunaQ = comunaQ.in("id_municipio", alcance.municipios);
+  }
+  const { data: comunaData } = await comunaQ;
+  const comunaMap = new Map<string, number>(
+    (comunaData ?? []).map((c) => [claveNombre(c.nombre), c.id])
+  );
+
+  const comunaIds = [...comunaMap.values()];
+  const { data: barrioData } = await supabase
+    .from("barrios")
+    .select("id, nombre, id_comuna")
+    .in("id_comuna", comunaIds.length > 0 ? comunaIds : [0])
+    .order("nombre");
+  const barrioMap = new Map<string, number>();
+  for (const b of barrioData ?? []) {
+    barrioMap.set(`${b.id_comuna}::${claveNombre(b.nombre)}`, b.id);
+  }
+
   const { data: existentes } = await supabase
     .from("lugares_trabajo")
     .select("nombre")

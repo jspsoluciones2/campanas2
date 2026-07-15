@@ -121,21 +121,6 @@ export default async function CampaignDashboardPage({
               3
             </span>
             <div>
-              <p className="font-medium text-neutral-900">Puestos de votación</p>
-              <Link
-                href={`/campaign/${id}/catalogos/puestos`}
-                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-neutral-800 hover:underline"
-              >
-                Ir a puestos
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
-              4
-            </span>
-            <div>
               <p className="font-medium text-neutral-900">Roles</p>
               <Link
                 href={`/campaign/${id}/catalogos/roles`}
@@ -148,7 +133,7 @@ export default async function CampaignDashboardPage({
           </li>
           <li className="flex gap-3">
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
-              5
+              4
             </span>
             <div>
               <p className="font-medium text-neutral-900">Tipos de novedad</p>
@@ -163,7 +148,7 @@ export default async function CampaignDashboardPage({
           </li>
           <li className="flex gap-3">
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
-              6
+              5
             </span>
             <div>
               <p className="font-medium text-neutral-900">Lugares de trabajo</p>
@@ -178,7 +163,7 @@ export default async function CampaignDashboardPage({
           </li>
           <li className="flex gap-3">
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-xs font-semibold text-white">
-              7
+              6
             </span>
             <div>
               <p className="font-medium text-neutral-900">Registra votantes</p>

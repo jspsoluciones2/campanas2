@@ -43,45 +43,6 @@ function revalidateCampaign(id: number) {
   }
 }
 
-export async function createComunaAction(campaignId: number, formData: FormData) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const idMunicipio = Number(formData.get("id_municipio") ?? 0);
-
-  if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
-  if (!idMunicipio) return { error: "El municipio es obligatorio." };
-
-  const { error } = await supabase.from("comunas").insert({
-    nombre,
-    id_municipio: idMunicipio,
-  });
-
-  const saveError = catalogSaveError(error, "comuna");
-  if (saveError) return saveError;
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
-export async function createBarrioAction(campaignId: number, formData: FormData) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const idComuna = Number(formData.get("id_comuna") ?? 0);
-  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-
-  if (!idComuna || !nombre) {
-    return { error: "Comuna y nombre del barrio son obligatorios." };
-  }
-
-  const { error } = await supabase.from("barrios").insert({
-    id_comuna: idComuna,
-    nombre,
-  });
-
-  const saveError = catalogSaveError(error, "barrio");
-  if (saveError) return saveError;
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
 export async function createRolAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
@@ -401,97 +362,6 @@ export async function resolveQuarantineAction(
   return { ok: true };
 }
 
-export async function updateComunaAction(campaignId: number, formData: FormData) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const id = Number(formData.get("id") ?? 0);
-  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-  const idMunicipio = Number(formData.get("id_municipio") ?? 0);
-
-  if (!id) return { error: "Comuna no identificada." };
-  if (!nombre) return { error: "El nombre de la comuna es obligatorio." };
-  if (!idMunicipio) return { error: "El municipio es obligatorio." };
-
-  const { error } = await supabase
-    .from("comunas")
-    .update({ nombre, id_municipio: idMunicipio })
-    .eq("id", id)
-    .eq("id_campana", campaignId);
-
-  const saveError = catalogSaveError(error, "comuna");
-  if (saveError) return saveError;
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
-export async function deleteComunaAction(campaignId: number, comunaId: number) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const id = comunaId;
-  if (!id) return { error: "Comuna no identificada." };
-
-  const { count } = await supabase
-    .from("barrios")
-    .select("*", { count: "exact", head: true })
-    .eq("id_comuna", id);
-
-  if (count && count > 0) {
-    return {
-      error: "No se puede eliminar: la comuna tiene barrios asociados.",
-    };
-  }
-
-  const { error } = await supabase
-    .from("comunas")
-    .delete()
-    .eq("id", id)
-    .eq("id_campana", campaignId);
-
-  if (error) return { error: error.message };
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
-export async function updateBarrioAction(campaignId: number, formData: FormData) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const id = Number(formData.get("id") ?? 0);
-  const idComuna = Number(formData.get("id_comuna") ?? 0);
-  const nombre = textoTitulo(String(formData.get("nombre") ?? ""));
-
-  if (!id) return { error: "Barrio no identificado." };
-  if (!idComuna || !nombre) {
-    return { error: "Comuna y nombre del barrio son obligatorios." };
-  }
-
-  const { data: comuna } = await supabase
-    .from("comunas")
-    .select("id")
-    .eq("id", idComuna)
-    .eq("id_campana", campaignId)
-    .maybeSingle();
-
-  if (!comuna) return { error: "La comuna seleccionada no pertenece a esta campaña." };
-
-  const { error } = await supabase
-    .from("barrios")
-    .update({ id_comuna: idComuna, nombre })
-    .eq("id", id);
-
-  const saveError = catalogSaveError(error, "barrio");
-  if (saveError) return saveError;
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
-export async function deleteBarrioAction(campaignId: number, barrioId: number) {
-  const { supabase } = await requireCampaignAccess(campaignId);
-  const id = barrioId;
-  if (!id) return { error: "Barrio no identificado." };
-
-  const { error } = await supabase.from("barrios").delete().eq("id", id);
-  if (error) return { error: error.message };
-  revalidateCampaign(campaignId);
-  return { ok: true };
-}
-
 export async function updateRolAction(campaignId: number, formData: FormData) {
   const { supabase } = await requireCampaignAccess(campaignId);
   const id = Number(formData.get("id") ?? 0);
@@ -803,25 +673,6 @@ export async function bulkUploadCatalogAction(
     archivo_error: archivoError,
     error: result.created === 0 && result.errors.length > 0 ? result.message : undefined,
   };
-}
-
-export async function createComunaFormAction(
-  campaignId: number,
-  formData: FormData
-): Promise<void> {
-  const result = await createComunaAction(campaignId, formData);
-  if (isActionError(result)) {
-    redirect(
-      `${catalogSegmentPath(campaignId, "comunas")}?error=${encodeURIComponent(result.error)}`
-    );
-  }
-}
-
-export async function createBarrioFormAction(
-  campaignId: number,
-  formData: FormData
-): Promise<void> {
-  await createBarrioAction(campaignId, formData);
 }
 
 export async function createRolFormAction(

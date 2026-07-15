@@ -15,7 +15,7 @@ type BulkState = {
 };
 
 type Props = {
-  tipo: "departamentos" | "municipios";
+  tipo: "departamentos" | "municipios" | "comunas" | "barrios" | "puestos-votacion";
   templateHref: string;
   instructions: string;
   columnas: string;

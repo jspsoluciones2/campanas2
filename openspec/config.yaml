@@ -12,7 +12,7 @@ strict_tdd: false
 
 testing:
   strict_tdd: false
-  detected: "2026-06-13"
+  detected: "2026-07-14"
   test_runner:
     command: null
     framework: null
@@ -21,7 +21,14 @@ testing:
     integration: false
     e2e: false
   coverage: false
-  note: "Vitest (web) + pytest (Flask) + Playwright E2E recomendados"
+  linter:
+    name: ESLint 9 (next/core-web-vitals + typescript)
+    command: npm run lint --workspace=web
+  type_checker:
+    name: TypeScript 5 strict
+    command: tsc --noEmit
+  formatter: null
+  note: "Ningún test runner instalado. Recomendado: Vitest + @testing-library/react (web), pytest + pytest-cov + httpx (Flask), Playwright (E2E)."
 
 rules:
   proposal:

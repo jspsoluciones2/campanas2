@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { escapeIlikeTerm } from "@/lib/platform/master-list";
 import { fetchPuestosList } from "@/lib/campaign/puestos";
+import { fetchTerritorioAlcance } from "@/lib/campaign/comunas";
 import { formatCatalogId } from "@/lib/campaign/catalog-codigo";
 import { createPuestoFormAction } from "../../actions";
 import {
@@ -54,16 +55,22 @@ export default async function CatalogPuestosPage({
 
   const { supabase } = await requireCampaignAccess(campaignId);
 
-  const { data: comunas } = await supabase
-    .from("comunas")
-    .select("id, nombre")
-    .eq("id_campana", campaignId)
-    .order("nombre");
+  const alcance = await fetchTerritorioAlcance(supabase, campaignId);
 
+  let comunasQ = supabase.from("comunas").select("id, nombre").order("nombre");
+  if (alcance.departamentos.length > 0) {
+    comunasQ = comunasQ.in("municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    comunasQ = comunasQ.in("id_municipio", alcance.municipios);
+  }
+  const { data: comunas } = await comunasQ;
+
+  const comunaIds = (comunas ?? []).map((c) => c.id);
   const { data: barrios } = await supabase
     .from("barrios")
-    .select("id, nombre, id_comuna, comunas!inner(id_campana)")
-    .eq("comunas.id_campana", campaignId)
+    .select("id, nombre, id_comuna")
+    .in("id_comuna", comunaIds.length > 0 ? comunaIds : [0])
     .order("nombre");
 
   const comunasList = comunas ?? [];

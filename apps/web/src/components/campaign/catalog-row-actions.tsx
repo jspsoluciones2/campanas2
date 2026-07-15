@@ -6,14 +6,10 @@ import { useRouter } from "next/navigation";
 import { useIsClient } from "@/hooks/use-is-client";
 import { Button } from "@/components/ui/button";
 import {
-  deleteBarrioAction,
-  deleteComunaAction,
   deletePuestoAction,
   deleteRolAction,
   deleteTipoNovedadAction,
   deleteLugarTrabajoAction,
-  updateBarrioAction,
-  updateComunaAction,
   updatePuestoAction,
   updateRolAction,
   updateTipoNovedadAction,
@@ -29,7 +25,6 @@ import {
   ComunaBarrioFields,
   type BarrioOption,
 } from "@/components/campaign/comuna-barrio-fields";
-import { DepartamentoMunicipioFields } from "@/components/campaign/departamento-municipio-fields";
 
 type ComunaOption = { id: number; nombre: string };
 
@@ -85,116 +80,6 @@ function ActionButtons({
         Eliminar
       </Button>
     </div>
-  );
-}
-
-export function ComunaRowActions({
-  campaignId,
-  comuna,
-  departamentos,
-  municipios,
-}: {
-  campaignId: number;
-  comuna: { id: number; nombre: string; id_municipio?: string | null };
-  departamentos?: { id: string; nombre: string }[];
-  municipios?: { id: string; nombre: string; id_departamento: string }[];
-}) {
-  const { editing, setEditing, mounted, pending, startTransition, router } =
-    useEditModal();
-
-  const handleDelete = () => {
-    const ok = window.confirm(
-      `¿Eliminar la comuna "${comuna.nombre}"? Esta acción no se puede deshacer.`
-    );
-    if (!ok) return;
-    startTransition(async () => {
-      const result = await deleteComunaAction(campaignId, comuna.id);
-      if (isActionError(result)) window.alert(result.error);
-      else router.refresh();
-    });
-  };
-
-  const modal =
-    editing && mounted
-      ? createPortal(
-          <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-neutral-900/50 p-4 backdrop-blur-[1px]"
-            role="presentation"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setEditing(false);
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <form
-                action={async (formData) => {
-                  const result = await updateComunaAction(campaignId, formData);
-                  if (isActionError(result)) {
-                    window.alert(result.error);
-                    return;
-                  }
-                  setEditing(false);
-                  router.refresh();
-                }}
-                className="p-6"
-              >
-                <input type="hidden" name="id" value={comuna.id} />
-                <h3 className="text-base font-semibold text-neutral-900">
-                  Editar comuna
-                </h3>
-                <div className="mt-5 space-y-3">
-                  <p className="text-sm text-neutral-500">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(comuna.id)}</span>
-                  </p>
-                  {departamentos && municipios ? (
-                    <DepartamentoMunicipioFields
-                      departamentos={departamentos}
-                      municipios={municipios}
-                      defaultMunicipioId={comuna.id_municipio}
-                    />
-                  ) : null}
-                  <FormField label="Nombre">
-                    <input
-                      name="nombre"
-                      defaultValue={comuna.nombre}
-                      required
-                      className={platformInputClass}
-                    />
-                  </FormField>
-                </div>
-                <div className="mt-6 flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 shrink-0 px-6"
-                    onClick={() => setEditing(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="h-10 shrink-0 px-6">
-                    Guardar
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
-
-  return (
-    <>
-      <ActionButtons
-        onEdit={() => setEditing(true)}
-        onDelete={handleDelete}
-        pending={pending}
-      />
-      {modal}
-    </>
   );
 }
 
@@ -295,121 +180,6 @@ export function LugarTrabajoRowActions({
                         </option>
                       ))}
                     </select>
-                  </FormField>
-                </div>
-                <div className="mt-6 flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 shrink-0 px-6"
-                    onClick={() => setEditing(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="h-10 shrink-0 px-6">
-                    Guardar
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
-
-  return (
-    <>
-      <ActionButtons
-        onEdit={() => setEditing(true)}
-        onDelete={handleDelete}
-        pending={pending}
-      />
-      {modal}
-    </>
-  );
-}
-
-export function BarrioRowActions({
-  campaignId,
-  barrio,
-  comunas,
-}: {
-  campaignId: number;
-  barrio: { id: number; nombre: string; id_comuna: number };
-  comunas: ComunaOption[];
-}) {
-  const { editing, setEditing, mounted, pending, startTransition, router } =
-    useEditModal();
-
-  const handleDelete = () => {
-    const ok = window.confirm(
-      `¿Eliminar el barrio "${barrio.nombre}"? Esta acción no se puede deshacer.`
-    );
-    if (!ok) return;
-    startTransition(async () => {
-      const result = await deleteBarrioAction(campaignId, barrio.id);
-      if (isActionError(result)) window.alert(result.error);
-      else router.refresh();
-    });
-  };
-
-  const modal =
-    editing && mounted
-      ? createPortal(
-          <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-neutral-900/50 p-4 backdrop-blur-[1px]"
-            role="presentation"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setEditing(false);
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="w-full max-w-lg overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <form
-                action={async (formData) => {
-                  const result = await updateBarrioAction(campaignId, formData);
-                  if (isActionError(result)) {
-                    window.alert(result.error);
-                    return;
-                  }
-                  setEditing(false);
-                  router.refresh();
-                }}
-                className="p-6"
-              >
-                <input type="hidden" name="id" value={barrio.id} />
-                <h3 className="text-base font-semibold text-neutral-900">
-                  Editar barrio
-                </h3>
-                <div className="mt-5 space-y-3">
-                  <p className="text-sm text-neutral-500">
-                    ID: <span className="font-medium text-neutral-900">{formatCatalogId(barrio.id)}</span>
-                  </p>
-                  <FormField label="Comuna">
-                    <select
-                      name="id_comuna"
-                      required
-                      defaultValue={barrio.id_comuna}
-                      className={platformSelectClass}
-                    >
-                      {comunas.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </FormField>
-                  <FormField label="Nombre">
-                    <input
-                      name="nombre"
-                      defaultValue={barrio.nombre}
-                      required
-                      className={platformInputClass}
-                    />
                   </FormField>
                 </div>
                 <div className="mt-6 flex justify-end gap-2">

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchTerritorioAlcance } from "@/lib/campaign/comunas";
 
 export type ComunaBarrioIds = {
   idComuna: number;
@@ -18,23 +19,32 @@ export async function validarComunaBarrioPuesto(
     return { error: "El barrio es obligatorio para el puesto de votación." };
   }
 
-  const { data: comuna } = await supabase
-    .from("comunas")
-    .select("id")
-    .eq("id", idComuna)
-    .eq("id_campana", campaignId)
-    .maybeSingle();
+  const alcance = await fetchTerritorioAlcance(supabase, campaignId);
+
+  let comunaQ = supabase.from("comunas").select("id").eq("id", idComuna);
+  if (alcance.departamentos.length > 0) {
+    comunaQ = comunaQ.in("municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    comunaQ = comunaQ.in("id_municipio", alcance.municipios);
+  }
+  const { data: comuna } = await comunaQ.maybeSingle();
 
   if (!comuna) {
     return { error: "La comuna seleccionada no pertenece a esta campaña." };
   }
 
-  const { data: barrio } = await supabase
+  let barrioQ = supabase
     .from("barrios")
-    .select("id, id_comuna, comunas!inner(id_campana)")
-    .eq("id", idBarrio)
-    .eq("comunas.id_campana", campaignId)
-    .maybeSingle();
+    .select("id, id_comuna")
+    .eq("id", idBarrio);
+  if (alcance.departamentos.length > 0) {
+    barrioQ = barrioQ.in("comunas.municipios.id_departamento", alcance.departamentos);
+  }
+  if (alcance.municipios.length > 0) {
+    barrioQ = barrioQ.in("comunas.id_municipio", alcance.municipios);
+  }
+  const { data: barrio } = await barrioQ.maybeSingle();
 
   if (!barrio) {
     return { error: "El barrio seleccionado no pertenece a esta campaña." };
