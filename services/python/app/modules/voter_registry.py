@@ -56,6 +56,9 @@ class RegisterVoterInput(TypedDict, total=False):
     direccion: str | None
     id_lugar_trabajo: str | None
     id_puesto_votacion: str | None
+    id_departamento: str | None
+    id_municipio: str | None
+    id_barrio_votante: str | None
     mesa: str | None
     id_rol: str | None
     id_lider_directo: str | None
@@ -179,20 +182,12 @@ def _validar_campos(payload: RegisterVoterInput) -> list[str]:
         errors.append("Apellidos es obligatorio.")
     if not (payload.get("documento") or "").strip():
         errors.append("Documento es obligatorio.")
-    if not (payload.get("fecha_nacimiento") or "").strip():
-        errors.append("Fecha de nacimiento es obligatoria.")
     sexo = payload.get("sexo")
-    if not sexo:
-        errors.append("Sexo es obligatorio.")
-    elif sexo not in ("Masculino", "Femenino"):
+    if sexo and sexo not in ("Masculino", "Femenino"):
         errors.append("Sexo inválido.")
     error_tel = error_telefono_invalido(payload.get("telefono"))
     if error_tel:
         errors.append(error_tel)
-    if not (payload.get("direccion") or "").strip():
-        errors.append("Dirección es obligatoria.")
-    if not (payload.get("mesa") or "").strip():
-        errors.append("Mesa es obligatoria.")
     error_cc = error_cc_menor_edad(
         payload.get("tipo_documento") or "CC",
         payload.get("fecha_nacimiento"),
@@ -379,6 +374,9 @@ def _crear_cuarentena(
         "direccion": payload.get("direccion"),
         "id_lugar_trabajo": payload.get("id_lugar_trabajo"),
         "id_puesto_votacion": payload.get("id_puesto_votacion"),
+        "id_departamento": payload.get("id_departamento"),
+        "id_municipio": payload.get("id_municipio"),
+        "id_barrio_votante": payload.get("id_barrio_votante"),
         "mesa": payload.get("mesa"),
         "id_rol": payload.get("id_rol"),
         "id_lider_directo": payload.get("id_lider_directo"),
@@ -418,6 +416,9 @@ def _insertar_votante(
         "direccion": payload.get("direccion"),
         "id_lugar_trabajo": payload.get("id_lugar_trabajo"),
         "id_puesto_votacion": payload.get("id_puesto_votacion"),
+        "id_departamento": payload.get("id_departamento"),
+        "id_municipio": payload.get("id_municipio"),
+        "id_barrio_votante": payload.get("id_barrio_votante"),
         "mesa": payload.get("mesa"),
         "id_rol": payload.get("id_rol"),
         "id_lider_directo": payload.get("id_lider_directo"),

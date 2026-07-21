@@ -2,6 +2,36 @@ import { requireCampaignAccess } from "@/lib/campaign/access";
 import { VotanteRegisterForm } from "@/components/campaign/votante-register-form";
 import { VotantesTable } from "@/components/campaign/votantes-table";
 import { Card, PageHeader } from "@/components/platform/platform-ui";
+import { fetchDepartamentos, fetchMunicipios } from "@/lib/campaign/comunas";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type BarrioConComuna = {
+  id: number;
+  nombre: string;
+  id_comuna: number;
+  id_municipio: string;
+};
+
+async function fetchBarriosConMunicipio(
+  supabase: SupabaseClient
+): Promise<BarrioConComuna[]> {
+  const { data } = await supabase
+    .from("barrios")
+    .select("id, nombre, id_comuna, comunas!inner(id_municipio)")
+    .order("nombre");
+
+  if (!data) return [];
+
+  return data.map((b) => {
+    const comunaRel = Array.isArray(b.comunas) ? b.comunas[0] : b.comunas;
+    return {
+      id: b.id,
+      nombre: b.nombre,
+      id_comuna: b.id_comuna,
+      id_municipio: String(comunaRel?.id_municipio ?? ""),
+    };
+  }).filter((b) => b.id_municipio);
+}
 
 export default async function CampaignVotantesPage({
   params,
@@ -19,6 +49,9 @@ export default async function CampaignVotantesPage({
     { data: lugaresTrabajo },
     { data: lideres },
     { data: tiposNovedad },
+    departamentos,
+    municipios,
+    barrios,
   ] = await Promise.all([
     supabase
       .from("votantes")
@@ -58,6 +91,9 @@ export default async function CampaignVotantesPage({
       .select("id, novedad")
       .eq("id_campana", campaignId)
       .order("novedad"),
+    fetchDepartamentos(supabase),
+    fetchMunicipios(supabase),
+    fetchBarriosConMunicipio(supabase),
   ]);
 
   const rows = votantes ?? [];
@@ -90,6 +126,9 @@ export default async function CampaignVotantesPage({
         puestos={puestos ?? []}
         lugaresTrabajo={lugaresTrabajo ?? []}
         lideres={lideresConJerarquia}
+        departamentos={departamentos}
+        municipios={municipios}
+        barrios={barrios}
       />
 
       <Card

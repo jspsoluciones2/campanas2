@@ -375,10 +375,13 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_cuarentena"]
           fecha_nacimiento: string | null
           id: number
+          id_barrio_votante: number | null
           id_campana: number
           id_cuarentena_conflicto: number | null
+          id_departamento: string | null
           id_lider_directo: number | null
           id_lugar_trabajo: number | null
+          id_municipio: string | null
           id_puesto_votacion: number | null
           id_rol: number | null
           id_votante_conflicto: number | null
@@ -404,10 +407,13 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_cuarentena"]
           fecha_nacimiento?: string | null
           id?: never
+          id_barrio_votante?: number | null
           id_campana: number
           id_cuarentena_conflicto?: number | null
+          id_departamento?: string | null
           id_lider_directo?: number | null
           id_lugar_trabajo?: number | null
+          id_municipio?: string | null
           id_puesto_votacion?: number | null
           id_rol?: number | null
           id_votante_conflicto?: number | null
@@ -433,10 +439,13 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_cuarentena"]
           fecha_nacimiento?: string | null
           id?: never
+          id_barrio_votante?: number | null
           id_campana?: number
           id_cuarentena_conflicto?: number | null
+          id_departamento?: string | null
           id_lider_directo?: number | null
           id_lugar_trabajo?: number | null
+          id_municipio?: string | null
           id_puesto_votacion?: number | null
           id_rol?: number | null
           id_votante_conflicto?: number | null
@@ -1314,9 +1323,12 @@ export type Database = {
           estado: Database["public"]["Enums"]["estado_votante"]
           fecha_nacimiento: string | null
           id: number
+          id_barrio_votante: number | null
           id_campana: number
+          id_departamento: string | null
           id_lider_directo: number | null
           id_lugar_trabajo: number | null
+          id_municipio: string | null
           id_puesto_votacion: number | null
           id_rol: number | null
           id_tipo_novedad: number | null
@@ -1339,9 +1351,12 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_votante"]
           fecha_nacimiento?: string | null
           id?: never
+          id_barrio_votante?: number | null
           id_campana: number
+          id_departamento?: string | null
           id_lider_directo?: number | null
           id_lugar_trabajo?: number | null
+          id_municipio?: string | null
           id_puesto_votacion?: number | null
           id_rol?: number | null
           id_tipo_novedad?: number | null
@@ -1364,9 +1379,12 @@ export type Database = {
           estado?: Database["public"]["Enums"]["estado_votante"]
           fecha_nacimiento?: string | null
           id?: never
+          id_barrio_votante?: number | null
           id_campana?: number
+          id_departamento?: string | null
           id_lider_directo?: number | null
           id_lugar_trabajo?: number | null
+          id_municipio?: string | null
           id_puesto_votacion?: number | null
           id_rol?: number | null
           id_tipo_novedad?: number | null

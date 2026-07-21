@@ -143,6 +143,9 @@ export async function createVotanteAction(campaignId: number, formData: FormData
   const idRol = Number(formData.get("id_rol") ?? 0);
   const idLider = Number(formData.get("id_lider_directo") ?? 0);
   const idPuesto = Number(formData.get("id_puesto_votacion") ?? 0);
+  const idDepartamento = String(formData.get("id_departamento") ?? "").trim();
+  const idMunicipio = String(formData.get("id_municipio") ?? "").trim();
+  const idBarrioVotante = Number(formData.get("id_barrio_votante") ?? 0);
   const mesa = textoTituloOpcional(String(formData.get("mesa") ?? ""));
   const fechaNacimiento = String(formData.get("fecha_nacimiento") ?? "").trim();
   const direccion = textoTituloOpcional(String(formData.get("direccion") ?? ""));
@@ -165,6 +168,9 @@ export async function createVotanteAction(campaignId: number, formData: FormData
     id_lider_directo: !idLider ? null : idLider,
     id_puesto_votacion: idPuesto || null,
     id_lugar_trabajo: idLugarTrabajo || null,
+    id_departamento: idDepartamento || null,
+    id_municipio: idMunicipio || null,
+    id_barrio_votante: idBarrioVotante || null,
     mesa,
     canal_origen: "manual",
   });

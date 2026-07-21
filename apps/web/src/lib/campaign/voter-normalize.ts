@@ -66,7 +66,7 @@ export function normalizarTelefono(telefono: string | null | undefined) {
 }
 
 export function errorTelefonoInvalido(telefono: string | null | undefined) {
-  if (!telefono?.trim()) return "Teléfono es obligatorio.";
+  if (!telefono?.trim()) return null;
   if (!normalizarTelefono(telefono)) {
     return "Celular inválido. Use 10 dígitos que empiecen por 3 (ej: 3001234567).";
   }

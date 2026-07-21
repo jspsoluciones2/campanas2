@@ -22,6 +22,9 @@ export type RegisterVoterInput = {
   direccion?: string | null;
   id_puesto_votacion?: number | null;
   id_lugar_trabajo?: number | null;
+  id_departamento?: string | null;
+  id_municipio?: string | null;
+  id_barrio_votante?: number | null;
   mesa?: string | null;
   id_rol?: number | null;
   id_lider_directo?: number | null;
@@ -333,6 +336,9 @@ async function crearCuarentena(
       direccion: options.payload.direccion || null,
       id_puesto_votacion: options.payload.id_puesto_votacion || null,
       id_lugar_trabajo: options.payload.id_lugar_trabajo || null,
+      id_departamento: options.payload.id_departamento || null,
+      id_municipio: options.payload.id_municipio || null,
+      id_barrio_votante: options.payload.id_barrio_votante || null,
       mesa: options.payload.mesa || null,
       id_rol: options.payload.id_rol || null,
       id_lider_directo: options.payload.id_lider_directo || null,
@@ -376,12 +382,15 @@ async function insertarVotante(
       direccion: options.payload.direccion || null,
       id_puesto_votacion: options.payload.id_puesto_votacion || null,
       id_lugar_trabajo: options.payload.id_lugar_trabajo || null,
+      id_departamento: options.payload.id_departamento || null,
+      id_municipio: options.payload.id_municipio || null,
+      id_barrio_votante: options.payload.id_barrio_votante || null,
       mesa: options.payload.mesa || null,
       id_rol: options.payload.id_rol || null,
       id_lider_directo: options.payload.id_lider_directo || null,
       canal_origen: options.canal,
       creado_por: options.userId,
-      estado: "registrado",
+      estado: "pendiente_verificacion",
     })
     .select("id")
     .single();

@@ -36,6 +36,14 @@ type Lider = {
   documento: string;
   nivel_jerarquia: number | null;
 };
+type Departamento = { id: string; nombre: string };
+type Municipio = { id: string; nombre: string; id_departamento: string };
+type BarrioConComuna = {
+  id: number;
+  nombre: string;
+  id_comuna: number;
+  id_municipio: string;
+};
 
 type Props = {
   campaignId: number;
@@ -43,6 +51,9 @@ type Props = {
   puestos: Puesto[];
   lugaresTrabajo: LugarTrabajo[];
   lideres: Lider[];
+  departamentos: Departamento[];
+  municipios: Municipio[];
+  barrios: BarrioConComuna[];
 };
 
 type ActionState = {
@@ -66,6 +77,9 @@ export function VotanteRegisterForm({
   puestos,
   lugaresTrabajo,
   lideres,
+  departamentos,
+  municipios,
+  barrios,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     submitVotante.bind(null, campaignId),
@@ -75,7 +89,13 @@ export function VotanteRegisterForm({
   const [rolId, setRolId] = useState("");
   const [municipio, setMunicipio] = useState("");
   const [puestoId, setPuestoId] = useState("");
-  const municipios = useMemo(() => {
+
+  // Estado para ubicación de residencia del votante
+  const [residenciaDeptoId, setResidenciaDeptoId] = useState("");
+  const [residenciaMuniId, setResidenciaMuniId] = useState("");
+  const [residenciaBarrioId, setResidenciaBarrioId] = useState("");
+
+  const municipiosPuesto = useMemo(() => {
     const vistos = new Set<string>();
     const lista: string[] = [];
     for (const puesto of puestos) {
@@ -111,6 +131,25 @@ export function VotanteRegisterForm({
     if (liderSeleccionado?.nivel_jerarquia == null) return [];
     return rolesBajoJerarquia(roles, liderSeleccionado.nivel_jerarquia);
   }, [liderId, sinLiderDirecto, liderSeleccionado, roles]);
+
+  // Filtros para ubicación de residencia
+  const municipiosResidencia = useMemo(
+    () =>
+      residenciaDeptoId
+        ? municipios.filter((m) => m.id_departamento === residenciaDeptoId)
+        : [],
+    [municipios, residenciaDeptoId]
+  );
+  const barriosResidencia = useMemo(
+    () =>
+      residenciaMuniId
+        ? barrios.filter((b) => b.id_municipio === residenciaMuniId)
+        : [],
+    [barrios, residenciaMuniId]
+  );
+  const sinDeptos = departamentos.length === 0;
+  const sinMunisResidencia = municipiosResidencia.length === 0;
+  const sinBarrios = barriosResidencia.length === 0;
 
   return (
     <Card title="Nuevo votante" description="Estado inicial: registrado. Duplicados van a cuarentena.">
@@ -181,12 +220,94 @@ export function VotanteRegisterForm({
               placeholder="3001234567"
               pattern="3[0-9]{9}"
               title="Celular colombiano de 10 dígitos que empiece por 3"
-              required
             />
           </FormField>
           <FormField label="Dirección">
             <input name="direccion" className={platformInputClass} />
           </FormField>
+
+          {/* === UBICACIÓN DE RESIDENCIA DEL VOTANTE === */}
+          <div className="w-full border-t border-neutral-100 pt-4 mt-2">
+            <p className="text-xs font-semibold tracking-wide text-neutral-500 mb-2">
+              UBICACIÓN DE RESIDENCIA
+            </p>
+          </div>
+
+          <FormField label="Departamento">
+            <select
+              name="id_departamento"
+              disabled={sinDeptos}
+              value={residenciaDeptoId}
+              onChange={(e) => {
+                setResidenciaDeptoId(e.target.value);
+                setResidenciaMuniId("");
+                setResidenciaBarrioId("");
+              }}
+              className={platformSelectClass}
+            >
+              <option value="" disabled>
+                {sinDeptos ? "Sin departamentos" : "Seleccionar departamento"}
+              </option>
+              {departamentos.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Municipio">
+            <select
+              name="id_municipio"
+              disabled={!residenciaDeptoId || sinMunisResidencia}
+              value={residenciaMuniId}
+              onChange={(e) => {
+                setResidenciaMuniId(e.target.value);
+                setResidenciaBarrioId("");
+              }}
+              className={platformSelectClass}
+            >
+              <option value="" disabled>
+                {!residenciaDeptoId
+                  ? "Selecciona departamento primero"
+                  : sinMunisResidencia
+                    ? "Sin municipios"
+                    : "Seleccionar municipio"}
+              </option>
+              {municipiosResidencia.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Barrio / Vereda (opcional)">
+            <select
+              name="id_barrio_votante"
+              disabled={!residenciaMuniId || sinBarrios}
+              value={residenciaBarrioId}
+              onChange={(e) => setResidenciaBarrioId(e.target.value)}
+              className={platformSelectClass}
+            >
+              <option value="">
+                {!residenciaMuniId
+                  ? "Selecciona municipio primero"
+                  : sinBarrios
+                    ? "Sin barrios registrados"
+                    : "— Ninguno —"}
+              </option>
+              {barriosResidencia.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.nombre}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-neutral-500">
+              Barrio de residencia del votante. Puedes dejarlo vacío si no lo sabes.
+            </p>
+          </FormField>
+
           <FormField label="Lugar de trabajo">
             <select
               name="id_lugar_trabajo"
@@ -267,6 +388,14 @@ export function VotanteRegisterForm({
               </p>
             ) : null}
           </FormField>
+
+          {/* === PUESTO DE VOTACIÓN (opcional) === */}
+          <div className="w-full border-t border-neutral-100 pt-4 mt-2">
+            <p className="text-xs font-semibold tracking-wide text-neutral-500 mb-2">
+              PUESTO DE VOTACIÓN (OPCIONAL)
+            </p>
+          </div>
+
           <FormField label="Municipio de votación">
             <select
               className={platformSelectClass}
@@ -277,11 +406,11 @@ export function VotanteRegisterForm({
               }}
             >
               <option value="">
-                {municipios.length === 0
+                {municipiosPuesto.length === 0
                   ? "Sin municipios (carga puestos en Catálogos)"
                   : "—"}
               </option>
-              {municipios.map((m) => (
+              {municipiosPuesto.map((m) => (
                 <option key={m} value={m}>
                   {m}
                 </option>
@@ -311,7 +440,7 @@ export function VotanteRegisterForm({
             </select>
             {!municipio ? (
               <p className="mt-1 text-xs text-neutral-500">
-                Disponible después de elegir el municipio.
+                Opcional. Disponible después de elegir el municipio.
               </p>
             ) : null}
             {comunaPuesto ? (
@@ -325,7 +454,7 @@ export function VotanteRegisterForm({
           </FormField>
           <Button
             type="submit"
-            disabled={pending || !liderId || !rolId}
+            disabled={pending}
             className="h-10 shrink-0 self-end"
           >
             {pending ? "Registrando…" : "Registrar votante"}

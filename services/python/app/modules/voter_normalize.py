@@ -57,7 +57,7 @@ def normalizar_telefono(telefono: str | None) -> str | None:
 
 def error_telefono_invalido(telefono: str | None) -> str | None:
     if not telefono or not str(telefono).strip():
-        return "Teléfono es obligatorio."
+        return None
     if not normalizar_telefono(telefono):
         return (
             "Celular inválido. Use 10 dígitos que empiecen por 3 "
