@@ -1,6 +1,8 @@
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { ReportesView } from "@/components/campaign/reportes-view";
 import type { VotanteListRow } from "@/components/campaign/votantes-table";
+import type { AlcanceValue } from "@/components/campaign/mapa-geografico";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ReportesPage({
   params,
@@ -9,7 +11,8 @@ export default async function ReportesPage({
 }) {
   const { id } = await params;
   const campaignId = Number(id);
-  const { supabase } = await requireCampaignAccess(campaignId);
+  const access = await requireCampaignAccess(campaignId);
+  const { supabase } = access;
 
   const [
     { count: total },
@@ -17,6 +20,7 @@ export default async function ReportesPage({
     { data: puestos },
     { data: tiposNovedad },
     { data: votantes },
+    { data: territorio },
   ] = await Promise.all([
     supabase
       .from("votantes")
@@ -45,7 +49,46 @@ export default async function ReportesPage({
       .eq("id_campana", campaignId)
       .order("creado_en", { ascending: false })
       .limit(100),
+    // Alcance territorial de la campaña
+    supabase
+      .from("campana_territorio")
+      .select("id_departamento, id_municipio")
+      .eq("id_campana", campaignId)
+      .maybeSingle(),
   ]);
+
+  // Determinar ámbito territorial
+  let initialAlcance: AlcanceValue | undefined;
+
+  if (territorio) {
+    if (territorio.id_departamento && !territorio.id_municipio) {
+      // Departamental: buscar nombre del departamento
+      const { data: depto } = await supabase
+        .from("departamentos")
+        .select("nombre")
+        .eq("id", territorio.id_departamento)
+        .single();
+      initialAlcance = {
+        tipo: "departamental",
+        id_departamento: territorio.id_departamento,
+        nombre_departamento: depto?.nombre ?? undefined,
+      };
+    } else if (territorio.id_municipio) {
+      // Municipal: buscar nombre del municipio y su departamento
+      const { data: mun } = await supabase
+        .from("municipios")
+        .select("nombre, id_departamento")
+        .eq("id", territorio.id_municipio)
+        .single();
+      initialAlcance = {
+        tipo: "municipal",
+        id_municipio: territorio.id_municipio,
+        nombre_municipio: mun?.nombre ?? undefined,
+        id_departamento: mun?.id_departamento ?? undefined,
+      };
+    }
+  }
+  // Si no hay fila en campana_territorio → nacional (no se asigna)
 
   return (
     <ReportesView
@@ -57,6 +100,7 @@ export default async function ReportesPage({
         (tiposNovedad ?? []) as { id: number; novedad: string }[]
       }
       initialVotantes={(votantes ?? []) as unknown as VotanteListRow[]}
+      initialAlcance={initialAlcance}
     />
   );
 }

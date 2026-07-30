@@ -22,6 +22,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
+import dynamic from "next/dynamic";
+import { type AlcanceValue, type GeoFilters } from "@/components/campaign/mapa-geografico";
+
+const MapaGeografico = dynamic(
+  () => import("@/components/campaign/mapa-geografico").then((m) => m.MapaGeografico),
+  { ssr: false }
+);
 
 type Props = {
   campaignId: number;
@@ -30,6 +37,8 @@ type Props = {
   initialPuestos: { id: number; nombre: string }[];
   initialTiposNovedad: { id: number; novedad: string }[];
   initialVotantes: VotanteListRow[];
+  /** Ámbito territorial de la campaña (nacional/departamental/municipal) */
+  initialAlcance?: AlcanceValue;
 };
 
 type TabId = "general" | "geografico" | "evolucion" | "novedades";
@@ -142,6 +151,7 @@ export function ReportesView({
   initialPuestos,
   initialTiposNovedad,
   initialVotantes,
+  initialAlcance,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -159,6 +169,14 @@ export function ReportesView({
   const debouncedSearchRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+
+  const alcance: AlcanceValue = initialAlcance ?? { tipo: "nacional" };
+
+  const geoFilters: GeoFilters = {
+    sexo: filters.sexo,
+    id_rol: filters.id_rol,
+    estado: filters.estado,
+  };
 
   const hasActiveFilters =
     filters.search ||
@@ -521,17 +539,11 @@ export function ReportesView({
       )}
 
       {activeTab === "geografico" && (
-        <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-white p-16">
-          <div className="text-center">
-            <BarChart3 className="mx-auto size-10 text-neutral-300" />
-            <p className="mt-3 text-sm font-medium text-neutral-500">
-              Distribución Geográfica
-            </p>
-            <p className="mt-1 text-xs text-neutral-400">
-              Próximamente: análisis por comuna, barrio y puesto de votación.
-            </p>
-          </div>
-        </div>
+        <MapaGeografico
+          campaignId={campaignId}
+          alcance={alcance}
+          filters={geoFilters}
+        />
       )}
 
       {activeTab === "evolucion" && (
