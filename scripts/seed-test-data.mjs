@@ -159,45 +159,82 @@ for (const r of rolesData) {
 }
 
 // ─── 6. Puestos de votación (globales, SIN id_campana) ──────────────────────
-console.log("\n📦 Creando 30 puestos de votación...");
-const puestosList = [];
+console.log("\n📦 Creando puestos de votación...");
+
 const puestosData = [
   // Nacional — varias ciudades
-  { nombre: "Colegio Nacional Bogotá",          municipio: "Bogotá",       direccion: "Cra 7 # 32-10",  votantes_hombres_admite: 2000, votantes_mujeres_admite: 2000, cantidad_mesas: 15 },
-  { nombre: "IE La Salle Medellín",             municipio: "Medellín",     direccion: "Cl 50 # 45-20",   votantes_hombres_admite: 1500, votantes_mujeres_admite: 1500, cantidad_mesas: 12 },
-  { nombre: "Colegio San José Cali",            municipio: "Cali",         direccion: "Av 3N # 20-50",   votantes_hombres_admite: 1800, votantes_mujeres_admite: 1800, cantidad_mesas: 14 },
-  { nombre: "IE INEM Barranquilla",             municipio: "Barranquilla", direccion: "Cra 51 # 80-30",   votantes_hombres_admite: 2000, votantes_mujeres_admite: 2000, cantidad_mesas: 16 },
-  { nombre: "Colegio San Juan Cartagena",       municipio: "Cartagena",    direccion: "Av Pedro Heredia",votantes_hombres_admite: 1200, votantes_mujeres_admite: 1200, cantidad_mesas: 10 },
-  { nombre: "IE Normal Bucaramanga",            municipio: "Bucaramanga",  direccion: "Cl 36 # 20-40",   votantes_hombres_admite: 1500, votantes_mujeres_admite: 1500, cantidad_mesas: 11 },
-  { nombre: "Colegio Santa Teresa Manizales",   municipio: "Manizales",    direccion: "Cra 23 # 60-30",  votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8  },
-  { nombre: "IE Pablo VI Pereira",              municipio: "Pereira",      direccion: "Av Circunvalar",  votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8  },
-  { nombre: "Colegio San Miguel Cúcuta",       municipio: "Cúcuta",       direccion: "Av 5 # 20-30",    votantes_hombres_admite: 1400, votantes_mujeres_admite: 1400, cantidad_mesas: 11 },
-  { nombre: "IE Jorge Isaacs Sincelejo",        municipio: "Sincelejo",    direccion: "Cl 25 # 15-50",   votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 6  },
+  { nombre: "Colegio Nacional Bogotá",          municipio: "Bogotá",       direccion: "Cra 7 # 32-10",  votantes_hombres_admite: 2000, votantes_mujeres_admite: 2000, cantidad_mesas: 15, id_departamento: "11", id_municipio: "11001" },
+  { nombre: "IE La Salle Medellín",             municipio: "Medellín",     direccion: "Cl 50 # 45-20",   votantes_hombres_admite: 1500, votantes_mujeres_admite: 1500, cantidad_mesas: 12, id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio San José Cali",            municipio: "Cali",         direccion: "Av 3N # 20-50",   votantes_hombres_admite: 1800, votantes_mujeres_admite: 1800, cantidad_mesas: 14, id_departamento: "76", id_municipio: "76001" },
+  { nombre: "IE INEM Barranquilla",             municipio: "Barranquilla", direccion: "Cra 51 # 80-30",   votantes_hombres_admite: 2000, votantes_mujeres_admite: 2000, cantidad_mesas: 16, id_departamento: "08", id_municipio: "08001" },
+  { nombre: "Colegio San Juan Cartagena",       municipio: "Cartagena",    direccion: "Av Pedro Heredia",votantes_hombres_admite: 1200, votantes_mujeres_admite: 1200, cantidad_mesas: 10, id_departamento: "13", id_municipio: "13001" },
+  { nombre: "IE Normal Bucaramanga",            municipio: "Bucaramanga",  direccion: "Cl 36 # 20-40",   votantes_hombres_admite: 1500, votantes_mujeres_admite: 1500, cantidad_mesas: 11, id_departamento: "68", id_municipio: "68001" },
+  { nombre: "Colegio Santa Teresa Manizales",   municipio: "Manizales",    direccion: "Cra 23 # 60-30",  votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8,  id_departamento: "17", id_municipio: "17001" },
+  { nombre: "IE Pablo VI Pereira",              municipio: "Pereira",      direccion: "Av Circunvalar",  votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8,  id_departamento: "66", id_municipio: "66001" },
+  { nombre: "Colegio San Miguel Cúcuta",       municipio: "Cúcuta",       direccion: "Av 5 # 20-30",    votantes_hombres_admite: 1400, votantes_mujeres_admite: 1400, cantidad_mesas: 11, id_departamento: "54", id_municipio: "54001" },
+  { nombre: "IE Jorge Isaacs Sincelejo",        municipio: "Sincelejo",    direccion: "Cl 25 # 15-50",   votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 6,  id_departamento: "70", id_municipio: "70001" },
   // Departamental — Antioquia
-  { nombre: "IE Marco Fidel Suárez Medellín",   municipio: "Medellín",     direccion: "Cl 44 # 70-30",   votantes_hombres_admite: 1500, votantes_mujeres_admite: 1500, cantidad_mesas: 12 },
-  { nombre: "Colegio San Ignacio Medellín",     municipio: "Medellín",     direccion: "Cra 50 # 40-20",  votantes_hombres_admite: 1200, votantes_mujeres_admite: 1200, cantidad_mesas: 10 },
-  { nombre: "IE Rafael Uribe Envigado",         municipio: "Envigado",     direccion: "Cl 38 Sur",       votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8  },
-  { nombre: "Colegio La Salle Bello",           municipio: "Bello",        direccion: "Av 42 # 55-30",   votantes_hombres_admite: 900,  votantes_mujeres_admite: 900,  cantidad_mesas: 7  },
-  { nombre: "IE San José Itagüí",              municipio: "Itagüí",       direccion: "Cl 50 # 55-20",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 6  },
-  { nombre: "Colegio Santa María Rionegro",     municipio: "Rionegro",     direccion: "Cra 52 # 40-10",  votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 6  },
-  { nombre: "IE La Paz Marinilla",              municipio: "Marinilla",    direccion: "Cra 30 # 30-20",  votantes_hombres_admite: 600,  votantes_mujeres_admite: 600,  cantidad_mesas: 5  },
-  { nombre: "Colegio San Sebastián Yarumal",   municipio: "Yarumal",      direccion: "Cl 20 # 15-40",   votantes_hombres_admite: 500,  votantes_mujeres_admite: 500,  cantidad_mesas: 4  },
-  { nombre: "IE José María Córdoba Apartadó",  municipio: "Apartadó",     direccion: "Av Las Américas", votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8  },
-  { nombre: "Colegio San Luis Turbo",           municipio: "Turbo",        direccion: "Cl 90 # 30-20",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 5  },
+  { nombre: "IE Marco Fidel Suárez Medellín",   municipio: "Medellín",     direccion: "Cl 44 # 70-30",   votantes_hombres_admite: 1500, votantes_mujeres_admite: 1500, cantidad_mesas: 12, id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio San Ignacio Medellín",     municipio: "Medellín",     direccion: "Cra 50 # 40-20",  votantes_hombres_admite: 1200, votantes_mujeres_admite: 1200, cantidad_mesas: 10, id_departamento: "05", id_municipio: "05001" },
+  { nombre: "IE Rafael Uribe Envigado",         municipio: "Envigado",     direccion: "Cl 38 Sur",       votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8,  id_departamento: "05", id_municipio: "05266" },
+  { nombre: "Colegio La Salle Bello",           municipio: "Bello",        direccion: "Av 42 # 55-30",   votantes_hombres_admite: 900,  votantes_mujeres_admite: 900,  cantidad_mesas: 7,  id_departamento: "05", id_municipio: "05088" },
+  { nombre: "IE San José Itagüí",              municipio: "Itagüí",       direccion: "Cl 50 # 55-20",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 6,  id_departamento: "05", id_municipio: "05360" },
+  { nombre: "Colegio Santa María Rionegro",     municipio: "Rionegro",     direccion: "Cra 52 # 40-10",  votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 6,  id_departamento: "05", id_municipio: "05604" },
+  { nombre: "IE La Paz Marinilla",              municipio: "Marinilla",    direccion: "Cra 30 # 30-20",  votantes_hombres_admite: 600,  votantes_mujeres_admite: 600,  cantidad_mesas: 5,  id_departamento: "05", id_municipio: "05440" },
+  { nombre: "Colegio San Sebastián Yarumal",   municipio: "Yarumal",      direccion: "Cl 20 # 15-40",   votantes_hombres_admite: 500,  votantes_mujeres_admite: 500,  cantidad_mesas: 4,  id_departamento: "05", id_municipio: "05890" },
+  { nombre: "IE José María Córdoba Apartadó",  municipio: "Apartadó",     direccion: "Av Las Américas", votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8,  id_departamento: "05", id_municipio: "05045" },
+  { nombre: "Colegio San Luis Turbo",           municipio: "Turbo",        direccion: "Cl 90 # 30-20",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 5,  id_departamento: "05", id_municipio: "05837" },
   // Municipal — Medellín
-  { nombre: "IE Alfonso López Pumarejo",        municipio: "Medellín",     direccion: "Cl 75 # 80-50",   votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8  },
-  { nombre: "Colegio San Carlos Medellín",      municipio: "Medellín",     direccion: "Cra 65 # 44-10",  votantes_hombres_admite: 1200, votantes_mujeres_admite: 1200, cantidad_mesas: 10 },
-  { nombre: "IE Monseñor Gerardo Valencia",     municipio: "Medellín",     direccion: "Cra 74 # 95-20",  votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 6  },
-  { nombre: "Colegio Jesús María Medellín",     municipio: "Medellín",     direccion: "Cl 56 # 50-40",   votantes_hombres_admite: 900,  votantes_mujeres_admite: 900,  cantidad_mesas: 7  },
-  { nombre: "IE Pedro Justo Berrío",            municipio: "Medellín",     direccion: "Av 76 # 35-60",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 6  },
-  { nombre: "Colegio La Enseñanza Medellín",    municipio: "Medellín",     direccion: "Cl 50 # 65-30",   votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 7  },
-  { nombre: "IE Héctor Abad Gómez",             municipio: "Medellín",     direccion: "Cra 97 # 45-70",  votantes_hombres_admite: 600,  votantes_mujeres_admite: 600,  cantidad_mesas: 5  },
-  { nombre: "Colegio San Lorenzo Medellín",     municipio: "Medellín",     direccion: "Av 80 # 60-50",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 6  },
-  { nombre: "IE Horacio Muñoz Suescún",         municipio: "Medellín",     direccion: "Cl 106 # 65-30",  votantes_hombres_admite: 500,  votantes_mujeres_admite: 500,  cantidad_mesas: 4  },
-  { nombre: "Colegio Hermano Miguel Medellín",  municipio: "Medellín",     direccion: "Cra 49 # 36-50",  votantes_hombres_admite: 600,  votantes_mujeres_admite: 600,  cantidad_mesas: 5  },
+  { nombre: "IE Alfonso López Pumarejo",        municipio: "Medellín",     direccion: "Cl 75 # 80-50",   votantes_hombres_admite: 1000, votantes_mujeres_admite: 1000, cantidad_mesas: 8,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio San Carlos Medellín",      municipio: "Medellín",     direccion: "Cra 65 # 44-10",  votantes_hombres_admite: 1200, votantes_mujeres_admite: 1200, cantidad_mesas: 10, id_departamento: "05", id_municipio: "05001" },
+  { nombre: "IE Monseñor Gerardo Valencia",     municipio: "Medellín",     direccion: "Cra 74 # 95-20",  votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 6,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio Jesús María Medellín",     municipio: "Medellín",     direccion: "Cl 56 # 50-40",   votantes_hombres_admite: 900,  votantes_mujeres_admite: 900,  cantidad_mesas: 7,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "IE Pedro Justo Berrío",            municipio: "Medellín",     direccion: "Av 76 # 35-60",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 6,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio La Enseñanza Medellín",    municipio: "Medellín",     direccion: "Cl 50 # 65-30",   votantes_hombres_admite: 800,  votantes_mujeres_admite: 800,  cantidad_mesas: 7,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "IE Héctor Abad Gómez",             municipio: "Medellín",     direccion: "Cra 97 # 45-70",  votantes_hombres_admite: 600,  votantes_mujeres_admite: 600,  cantidad_mesas: 5,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio San Lorenzo Medellín",     municipio: "Medellín",     direccion: "Av 80 # 60-50",   votantes_hombres_admite: 700,  votantes_mujeres_admite: 700,  cantidad_mesas: 6,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "IE Horacio Muñoz Suescún",         municipio: "Medellín",     direccion: "Cl 106 # 65-30",  votantes_hombres_admite: 500,  votantes_mujeres_admite: 500,  cantidad_mesas: 4,  id_departamento: "05", id_municipio: "05001" },
+  { nombre: "Colegio Hermano Miguel Medellín",  municipio: "Medellín",     direccion: "Cra 49 # 36-50",  votantes_hombres_admite: 600,  votantes_mujeres_admite: 600,  cantidad_mesas: 5,  id_departamento: "05", id_municipio: "05001" },
 ];
+
+// Primero: buscar municipios y crear comunas para cada uno
+const municipiosUnicos = new Set(puestosData.map(p => `${p.id_departamento}-${p.id_municipio}`));
+const comunasCreadas = new Map(); // key: municipioId, value: comunaId
+
+for (const key of municipiosUnicos) {
+  const [deptId, munId] = key.split("-");
+  
+  // Buscar municipio en catálogo
+  const munRes = await fetch(`${SUPABASE_URL}/rest/v1/municipios?id=eq.${munId}&select=id,nombre`, {
+    headers: HEADERS
+  });
+  const munData = await munRes.json();
+  
+  if (munData.length === 0) {
+    console.warn(`  ⚠️ Municipio ${munId} no encontrado en catálogo`);
+    continue;
+  }
+  
+  // Crear comuna simple para este municipio
+  const comunaRes = await post("/comunas", {
+    nombre: `Comuna ${munData[0].nombre}`,
+    id_municipio: munId
+  });
+  const comunaId = comunaRes[0]?.id ?? comunaRes?.id;
+  comunasCreadas.set(key, comunaId);
+  console.log(`  ✅ Comuna para ${munData[0].nombre} -> id=${comunaId}`);
+}
+
+const puestosList = [];
 for (const p of puestosData) {
-  const r = await post("/puestos_votacion", { ...p, fuente: "registraduria" });
+  const key = `${p.id_departamento}-${p.id_municipio}`;
+  const comunaId = comunasCreadas.get(key);
+  
+  const r = await post("/puestos_votacion", {
+    ...p,
+    id_comuna: comunaId,
+    fuente: "registraduria"
+  });
   puestosList.push(r[0] ?? r);
 }
 console.log(`  ✅ ${puestosList.length} puestos de votación creados`);

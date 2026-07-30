@@ -6,6 +6,14 @@ import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { cn } from "@/lib/utils";
+import {
+  MapPin,
+  Users,
+  Building2,
+  Layers,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export type AlcanceTipo = "nacional" | "departamental" | "municipal";
@@ -22,16 +30,22 @@ export type GeoFilters = {
 };
 
 type MetricKey = "total" | "activos" | "hombres" | "mujeres" | "pendientes" | "cuarentena";
+type ChoroplethSource = "mesas" | "votantes";
 
-type GeoStats = Record<string, Record<MetricKey, number>>;
+type AreaStats = {
+  mesas: number;
+  puestos: number;
+} & Record<MetricKey, number>;
 
-const METRICS: { key: MetricKey; label: string }[] = [
-  { key: "total", label: "Total votantes" },
+type GeoStats = Record<string, AreaStats>;
+
+const VOTANTE_METRICS: { key: MetricKey; label: string }[] = [
+  { key: "total", label: "Total" },
   { key: "activos", label: "Activos" },
   { key: "hombres", label: "Masculino" },
   { key: "mujeres", label: "Femenino" },
   { key: "pendientes", label: "Pendientes" },
-  { key: "cuarentena", label: "En cuarentena" },
+  { key: "cuarentena", label: "Cuarentena" },
 ];
 
 const METRIC_COLORS: Record<string, string> = {
@@ -56,6 +70,10 @@ function choroplethColor(value: number, max: number): string {
   if (pct < 0.85) return "#f57e28";
   if (pct < 0.95) return "#e34a1c";
   return "#b10026";
+}
+
+function fmt(n: number): string {
+  return n.toLocaleString("es-CO");
 }
 
 // ─── Fit map to GeoJSON bounds ─────────────────────────────────────────────
@@ -83,12 +101,18 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
   const supabase = useRef(createClient());
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(null);
   const [stats, setStats] = useState<GeoStats>({});
-  const [metric, setMetric] = useState<MetricKey>("total");
+  const [choroplethSource, setChoroplethSource] = useState<ChoroplethSource>("mesas");
+  const [votanteMetric, setVotanteMetric] = useState<MetricKey>("total");
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [listExpanded, setListExpanded] = useState(true);
   const geoJsonKey = useRef(0);
 
-  // ── Fetch GeoJSON and stats ───────────────────────────────────────────────
+  const selectCol = alcance.tipo === "departamental" ? "id_municipio" : "id_departamento";
+  const areaLabel = alcance.tipo === "nacional" ? "Departamento" : "Municipio";
+
+  // ── Fetch GeoJSON, mesas, and stats ───────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -96,21 +120,15 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
       setLoading(true);
       try {
         let geojson: GeoJSON.FeatureCollection | null = null;
-        let nameProp = "";
 
         if (alcance.tipo === "nacional") {
-          // Fetch department GeoJSON from public
           const res = await fetch("/data/geojson/dptos.geojson");
           geojson = await res.json();
-          nameProp = "DPTO_CCDGO";
         } else if (alcance.tipo === "departamental") {
           const deptCode = (alcance as any).id_departamento;
           const res = await fetch(`/api/geo/municipios/${deptCode}`);
           geojson = await res.json();
-          nameProp = "MPIO_CDPMP";
         } else {
-          // Municipal — fetch single municipio from dptos.geojson
-          // Actually, load municipios for the parent department and filter
           const parentDept = (alcance as any).id_departamento;
           if (parentDept) {
             const res = await fetch(`/api/geo/municipios/${parentDept}`);
@@ -121,22 +139,48 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
             );
             geojson = { type: "FeatureCollection", features: feats };
           } else {
-            // Fallback: show all deptos
             const res = await fetch("/data/geojson/dptos.geojson");
             geojson = await res.json();
           }
-          nameProp = "MPIO_CDPMP";
         }
 
         if (cancelled) return;
         setGeoData(geojson);
         geoJsonKey.current += 1;
 
-        // ── Fetch stats ─────────────────────────────────────────────────────
-        const selectCol = alcance.tipo === "departamental" ? "id_municipio" : "id_departamento";
-        const statsMap: GeoStats = {};
+        // ─ Fetch mesas from puestos_votacion (via JOINs) ───────────────────
+        // puestos_votacion → comunas → municipios → departamentos
+        const mesasMap: Record<string, { mesas: number; puestos: number }> = {};
 
-        // Helper: fetch grouped counts with optional extra filter
+        // Determinar qué relación usar según el alcance
+        let mesasQuery = supabase.current
+          .from("puestos_votacion")
+          .select("cantidad_mesas, comunas!inner(id_municipio, municipios!inner(id_departamento))") as any;
+
+        const { data: puestosData, error: puestosError } = await mesasQuery;
+        
+        if (!puestosError) {
+          for (const row of puestosData ?? []) {
+            // Extraer ids de la relación anidada
+            const deptId = row.comunas?.municipios?.id_departamento;
+            const munId = row.comunas?.id_municipio;
+            
+            // Determinar el área según el alcance
+            const areaId = alcance.tipo === "departamental" 
+              ? String(deptId ?? "unknown")
+              : String(munId ?? "unknown");
+            
+            // Filtrar por alcance si aplica
+            if (alcance.tipo === "departamental" && deptId !== (alcance as any).id_departamento) continue;
+            if (alcance.tipo === "municipal" && munId !== (alcance as any).id_municipio) continue;
+            
+            if (!mesasMap[areaId]) mesasMap[areaId] = { mesas: 0, puestos: 0 };
+            mesasMap[areaId].mesas += row.cantidad_mesas ?? 0;
+            mesasMap[areaId].puestos += 1;
+          }
+        }
+
+        // ── Fetch votantes stats ────────────────────────────────────────────
         async function fetchGrouped(extraFilters?: Record<string, string>): Promise<Record<string, number>> {
           let q = supabase.current
             .from("votantes")
@@ -169,34 +213,36 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
           return map;
         }
 
-        // Fetch all metric groups in parallel
-        const allFetches = await Promise.all([
-          fetchGrouped(),                                                         // total
-          fetchGrouped({ estado: "activo" }),                                     // activos
-          fetchGrouped({ sexo: "Masculino" }),                                    // hombres
-          fetchGrouped({ sexo: "Femenino" }),                                     // mujeres
-          fetchGrouped({ estado: "pendiente_verificacion" }),                     // pendientes
-          fetchGrouped({ estado: "en_cuarentena" }),                              // cuarentena
+        const [totalV, activosV, hombresV, mujeresV, pendientesV, cuarentenaV] = await Promise.all([
+          fetchGrouped(),
+          fetchGrouped({ estado: "activo" }),
+          fetchGrouped({ sexo: "Masculino" }),
+          fetchGrouped({ sexo: "Femenino" }),
+          fetchGrouped({ estado: "pendiente_verificacion" }),
+          fetchGrouped({ estado: "en_cuarentena" }),
         ]);
 
-        const metricKeys: MetricKey[] = ["total", "activos", "hombres", "mujeres", "pendientes", "cuarentena"];
-        const allIds = new Set<string>();
+        const allIds = new Set<string>([
+          ...Object.keys(mesasMap),
+          ...Object.keys(totalV),
+        ]);
 
-        // Collect all geo IDs from results
-        for (const m of allFetches) {
-          for (const id of Object.keys(m)) allIds.add(id);
-        }
-
-        // Merge into statsMap
+        const merged: GeoStats = {};
         for (const id of allIds) {
-          statsMap[id] = { total: 0, activos: 0, hombres: 0, mujeres: 0, pendientes: 0, cuarentena: 0 };
-          for (let mi = 0; mi < metricKeys.length; mi++) {
-            statsMap[id][metricKeys[mi]] = allFetches[mi][id] ?? 0;
-          }
+          merged[id] = {
+            mesas: mesasMap[id]?.mesas ?? 0,
+            puestos: mesasMap[id]?.puestos ?? 0,
+            total: totalV[id] ?? 0,
+            activos: activosV[id] ?? 0,
+            hombres: hombresV[id] ?? 0,
+            mujeres: mujeresV[id] ?? 0,
+            pendientes: pendientesV[id] ?? 0,
+            cuarentena: cuarentenaV[id] ?? 0,
+          };
         }
 
         if (!cancelled) {
-          setStats(statsMap);
+          setStats(merged);
           setLoading(false);
         }
       } catch (err) {
@@ -207,9 +253,9 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
 
     load();
     return () => { cancelled = true; };
-  }, [campaignId, alcance.tipo, (alcance as any).id_departamento, (alcance as any).id_municipio, filters.sexo, filters.id_rol, filters.estado]);
+  }, [campaignId, alcance.tipo, (alcance as any).id_departamento, (alcance as any).id_municipio, filters.sexo, filters.id_rol, filters.estado, selectCol]);
 
-  // ── Compute name map from GeoJSON ─────────────────────────────────────────
+  // ── Derived data ──────────────────────────────────────────────────────────
   const idToName = useMemo(() => {
     if (!geoData) return {};
     const map: Record<string, string> = {};
@@ -223,16 +269,58 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
     return map;
   }, [geoData, alcance.tipo]);
 
-  // ── Max value for color scaling ───────────────────────────────────────────
+  const totals = useMemo(() => {
+    let totalMesas = 0;
+    let totalVotantes = 0;
+    let totalPuestos = 0;
+    let areaCount = 0;
+    for (const id of Object.keys(stats)) {
+      totalMesas += stats[id].mesas;
+      totalVotantes += stats[id].total;
+      totalPuestos += stats[id].puestos;
+      if (stats[id].mesas > 0 || stats[id].total > 0) areaCount++;
+    }
+    return { totalMesas, totalVotantes, totalPuestos, areaCount };
+  }, [stats]);
+
+  const choroplethValue = useCallback(
+    (id: string): number => {
+      if (!stats[id]) return 0;
+      if (choroplethSource === "mesas") return stats[id].mesas;
+      return stats[id][votanteMetric];
+    },
+    [stats, choroplethSource, votanteMetric]
+  );
+
   const maxValue = useMemo(() => {
     let max = 0;
     for (const id of Object.keys(stats)) {
-      if (stats[id][metric] > max) max = stats[id][metric];
+      const v = choroplethValue(id);
+      if (v > max) max = v;
     }
     return max;
-  }, [stats, metric]);
+  }, [stats, choroplethValue]);
 
-  // ── Style function ────────────────────────────────────────────────────────
+  const sortedAreas = useMemo(() => {
+    return Object.entries(stats)
+      .map(([id, s]) => ({
+        id,
+        name: idToName[id] ?? id,
+        mesas: s.mesas,
+        puestos: s.puestos,
+        votantes: s.total,
+        activos: s.activos,
+      }))
+      .sort((a, b) => {
+        if (choroplethSource === "mesas") return b.mesas - a.mesas;
+        return b.votantes - a.votantes;
+      });
+  }, [stats, idToName, choroplethSource]);
+
+  const selectedStats = selectedId ? stats[selectedId] : null;
+  const selectedName = selectedId ? (idToName[selectedId] ?? selectedId) : null;
+
+  // ── Map style ─────────────────────────────────────────────────────────────
   const geoStyle = useCallback(
     (feature: GeoJSON.Feature | undefined) => {
       if (!feature) return {};
@@ -240,23 +328,22 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
         alcance.tipo === "nacional"
           ? feature.properties?.DPTO_CCDGO
           : feature.properties?.MPIO_CDPMP;
-      const value = stats[id]?.[metric] ?? 0;
+      const value = choroplethValue(id);
+      const isSelected = id === selectedId;
       return {
         fillColor: choroplethColor(value, maxValue),
-        weight: 1,
+        weight: isSelected ? 3 : 1,
         opacity: 1,
-        color: "white",
+        color: isSelected ? "#1d4ed8" : "white",
         fillOpacity: 0.8,
       };
     },
-    [stats, metric, maxValue, alcance.tipo]
+    [choroplethValue, maxValue, selectedId, alcance.tipo]
   );
 
-  // useCallback with fresh deps
   const geoStyleRef = useRef(geoStyle);
   geoStyleRef.current = geoStyle;
 
-  // ── Tooltip / Popup / Interaction ─────────────────────────────────────────
   const onEachFeature = useCallback(
     (feature: GeoJSON.Feature, layer: L.GeoJSON) => {
       const id =
@@ -264,32 +351,17 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
           ? feature.properties?.DPTO_CCDGO
           : feature.properties?.MPIO_CDPMP;
       const name = idToName[id] ?? id;
+      const s = stats[id];
 
-      // Tooltip on hover
       layer.bindTooltip(
-        `<div class="text-xs font-medium">${name}</div>`,
+        `<div class="text-xs font-medium">${name}</div>
+         ${s ? `<div class="text-[10px] text-neutral-500">${fmt(s.mesas)} mesas · ${fmt(s.total)} votantes</div>` : ""}`,
         { sticky: true, className: "rounded-md border border-neutral-200 bg-white/95 px-2 py-1 shadow-sm" }
       );
 
-      // Popup on click
-      const s = stats[id];
       layer.on({
         click: () => {
-          if (!s) return;
-          const content = `
-            <div class="min-w-[180px]">
-              <p class="mb-2 font-semibold text-sm">${name}</p>
-              <table class="w-full text-xs">
-                <tr><td class="pr-3 text-neutral-500">Total</td><td class="font-medium text-right">${s.total.toLocaleString("es-CO")}</td></tr>
-                <tr><td class="pr-3 text-neutral-500">Activos</td><td class="font-medium text-right">${s.activos.toLocaleString("es-CO")}</td></tr>
-                <tr><td class="pr-3 text-neutral-500">Masculino</td><td class="font-medium text-right">${s.hombres.toLocaleString("es-CO")}</td></tr>
-                <tr><td class="pr-3 text-neutral-500">Femenino</td><td class="font-medium text-right">${s.mujeres.toLocaleString("es-CO")}</td></tr>
-                <tr><td class="pr-3 text-neutral-500">Pendientes</td><td class="font-medium text-right">${s.pendientes.toLocaleString("es-CO")}</td></tr>
-                <tr><td class="pr-3 text-neutral-500">Cuarentena</td><td class="font-medium text-right">${s.cuarentena.toLocaleString("es-CO")}</td></tr>
-              </table>
-            </div>
-          `;
-          layer.bindPopup(content, { className: "rounded-lg shadow-lg border" }).openPopup();
+          setSelectedId((prev) => (prev === id ? null : id));
         },
         mouseover: () => setHoveredId(id),
         mouseout: () => setHoveredId(null),
@@ -298,14 +370,13 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
     [stats, idToName, alcance.tipo]
   );
 
-  // ── Highlight style on hover ──────────────────────────────────────────────
   const highlightStyle = useCallback(
     (feature: GeoJSON.Feature) => {
       const id =
         alcance.tipo === "nacional"
           ? feature.properties?.DPTO_CCDGO
           : feature.properties?.MPIO_CDPMP;
-      const value = stats[id]?.[metric] ?? 0;
+      const value = choroplethValue(id);
       return {
         fillColor: choroplethColor(value, maxValue),
         weight: 2.5,
@@ -314,10 +385,9 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
         fillOpacity: 0.95,
       };
     },
-    [stats, metric, maxValue, alcance.tipo]
+    [choroplethValue, maxValue, alcance.tipo]
   );
 
-  // ── Legend items ──────────────────────────────────────────────────────────
   const legendBreaks = useMemo(() => {
     const steps = [
       { label: "0", threshold: 0 },
@@ -335,9 +405,9 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
     }));
   }, [maxValue]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  const activeMetricLabel = METRICS.find((m) => m.key === metric)?.label ?? "Total votantes";
+  const choroplethLabel = choroplethSource === "mesas" ? "Mesas" : VOTANTE_METRICS.find((m) => m.key === votanteMetric)?.label ?? "Votantes";
 
+  // ─── Loading state ────────────────────────────────────────────────────────
   if (!geoData) {
     return (
       <div className="flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-16">
@@ -352,36 +422,234 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
   const geoId = `mapa-${alcance.tipo}-${geoJsonKey.current}`;
 
   return (
-    <div className="space-y-4">
-      {/* Métrica selector */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-neutral-500">Color por:</span>
-        <div className="flex flex-wrap gap-1">
-          {METRICS.map((m) => (
+    <div className="flex gap-4 h-[700px]">
+      {/* ─── Sidebar ──────────────────────────────────────────────────────── */}
+      <div className="w-80 flex-shrink-0 flex flex-col gap-3 overflow-hidden">
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-lg border border-neutral-200 bg-neutral-50/50 p-1">
+          <button
+            type="button"
+            className="flex-1 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-sm"
+          >
+            Mesas vs Votantes
+          </button>
+          <button
+            type="button"
+            disabled
+            className="flex-1 rounded-md px-3 py-1.5 text-xs font-medium text-neutral-400 cursor-not-allowed"
+          >
+            Género
+          </button>
+          <button
+            type="button"
+            disabled
+            className="flex-1 rounded-md px-3 py-1.5 text-xs font-medium text-neutral-400 cursor-not-allowed"
+          >
+            Estado
+          </button>
+        </div>
+
+        {/* Global stats */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+            <div className="flex items-center gap-1.5 text-blue-600">
+              <Layers className="size-3.5" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide">Mesas</span>
+            </div>
+            <p className="mt-1 text-xl font-bold text-blue-700">{fmt(totals.totalMesas)}</p>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+            <div className="flex items-center gap-1.5 text-emerald-600">
+              <Users className="size-3.5" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide">Votantes</span>
+            </div>
+            <p className="mt-1 text-xl font-bold text-emerald-700">{fmt(totals.totalVotantes)}</p>
+          </div>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
+            <div className="flex items-center gap-1.5 text-neutral-500">
+              <MapPin className="size-3.5" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide">Puestos</span>
+            </div>
+            <p className="mt-1 text-xl font-bold text-neutral-700">{fmt(totals.totalPuestos)}</p>
+          </div>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
+            <div className="flex items-center gap-1.5 text-neutral-500">
+              <Building2 className="size-3.5" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide">{areaLabel}s</span>
+            </div>
+            <p className="mt-1 text-xl font-bold text-neutral-700">{fmt(totals.areaCount)}</p>
+          </div>
+        </div>
+
+        {/* Selected area card */}
+        {selectedStats && selectedName && (
+          <div className="rounded-lg border border-blue-300 bg-blue-50/70 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-blue-900">{selectedName}</p>
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="text-xs text-blue-400 hover:text-blue-600"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-neutral-500">Mesas</span>
+                <p className="font-bold text-blue-700">{fmt(selectedStats.mesas)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500">Puestos</span>
+                <p className="font-bold text-neutral-700">{fmt(selectedStats.puestos)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500">Votantes</span>
+                <p className="font-bold text-emerald-700">{fmt(selectedStats.total)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500">Activos</span>
+                <p className="font-bold text-emerald-600">{fmt(selectedStats.activos)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500">Masculino</span>
+                <p className="font-bold text-sky-700">{fmt(selectedStats.hombres)}</p>
+              </div>
+              <div>
+                <span className="text-neutral-500">Femenino</span>
+                <p className="font-bold text-rose-700">{fmt(selectedStats.mujeres)}</p>
+              </div>
+            </div>
+            {selectedStats.total > 0 && (
+              <div className="mt-2 text-[10px] text-neutral-500">
+                Ratio: {(selectedStats.mesas / selectedStats.total * 100).toFixed(1)}% mesas/votantes
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Choropleth source toggle + votante sub-metrics */}
+        <div className="space-y-2">
+          <div className="flex gap-1 rounded-lg border border-neutral-200 bg-neutral-50/50 p-0.5">
             <button
-              key={m.key}
               type="button"
-              onClick={() => setMetric(m.key)}
+              onClick={() => setChoroplethSource("mesas")}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-                metric === m.key
-                  ? "bg-neutral-900 text-white shadow-sm"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+                choroplethSource === "mesas"
+                  ? "bg-white text-neutral-900 shadow-sm"
+                  : "text-neutral-500 hover:text-neutral-700"
               )}
             >
-              {m.label}
+              Mesas
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setChoroplethSource("votantes")}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+                choroplethSource === "votantes"
+                  ? "bg-white text-neutral-900 shadow-sm"
+                  : "text-neutral-500 hover:text-neutral-700"
+              )}
+            >
+              Votantes
+            </button>
+          </div>
+
+          {choroplethSource === "votantes" && (
+            <div className="flex flex-wrap gap-1">
+              {VOTANTE_METRICS.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setVotanteMetric(m.key)}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-[10px] font-medium transition-all",
+                    votanteMetric === m.key
+                      ? "bg-neutral-900 text-white"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Area list */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <button
+            type="button"
+            onClick={() => setListExpanded(!listExpanded)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900"
+          >
+            {listExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+            {areaLabel}s ({sortedAreas.length})
+          </button>
+
+          {listExpanded && (
+            <div className="mt-1 flex-1 overflow-y-auto rounded-lg border border-neutral-200">
+              {sortedAreas.map((area) => {
+                const isActive = area.id === selectedId;
+                const isHovered = area.id === hoveredId;
+                const displayValue = choroplethSource === "mesas" ? area.mesas : area.votantes;
+                return (
+                  <button
+                    key={area.id}
+                    type="button"
+                    onClick={() => setSelectedId(area.id === selectedId ? null : area.id)}
+                    onMouseEnter={() => setHoveredId(area.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className={cn(
+                      "flex w-full items-center justify-between border-b border-neutral-100 px-3 py-2 text-left transition-colors last:border-b-0",
+                      isActive && "bg-blue-50",
+                      isHovered && !isActive && "bg-neutral-50"
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className={cn(
+                        "truncate text-xs font-medium",
+                        isActive ? "text-blue-900" : "text-neutral-700"
+                      )}>
+                        {area.name}
+                      </p>
+                      <p className="text-[10px] text-neutral-400">
+                        {area.puestos} puesto{area.puestos !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className={cn(
+                        "text-xs font-bold",
+                        choroplethSource === "mesas" ? "text-blue-700" : "text-emerald-700"
+                      )}>
+                        {fmt(displayValue)}
+                      </span>
+                      <span className="text-[10px] text-neutral-400">
+                        {choroplethSource === "mesas" ? "mesas" : "votantes"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+              {sortedAreas.length === 0 && (
+                <div className="px-3 py-6 text-center text-xs text-neutral-400">
+                  Sin datos para mostrar
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Mapa */}
-      <div className="relative overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+      {/* ─── Map ──────────────────────────────────────────────────────────── */}
+      <div className="flex-1 relative overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
         <MapContainer
           key={geoId}
           center={[4.0, -73.0]}
           zoom={6}
-          className="z-0 h-[600px] w-full"
+          className="z-0 h-full w-full"
           zoomControl={true}
           scrollWheelZoom={true}
         >
@@ -401,24 +669,16 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
           />
         </MapContainer>
 
-        {/* Leyenda */}
+        {/* Legend */}
         <div className="absolute bottom-4 right-4 z-[1000] rounded-lg border border-neutral-200 bg-white/95 p-3 shadow-md">
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
-            {activeMetricLabel}
+            {choroplethLabel}
           </p>
           <div className="flex items-stretch gap-0">
             {legendBreaks.map((b, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center"
-              >
-                <div
-                  className="h-4 w-7"
-                  style={{ backgroundColor: b.color }}
-                />
-                <span className="mt-0.5 text-[9px] text-neutral-500">
-                  {b.label}
-                </span>
+              <div key={i} className="flex flex-col items-center">
+                <div className="h-4 w-7" style={{ backgroundColor: b.color }} />
+                <span className="mt-0.5 text-[9px] text-neutral-500">{b.label}</span>
               </div>
             ))}
           </div>
@@ -434,40 +694,6 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
           </div>
         )}
       </div>
-
-      {/* Info bar */}
-      {!loading && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg bg-neutral-50 px-4 py-2 text-xs text-neutral-500">
-          <span>
-            Unidades:{" "}
-            <strong className="text-neutral-700">
-              {alcance.tipo === "nacional"
-                ? "Departamentos"
-                : alcance.tipo === "departamental"
-                  ? "Municipios"
-                  : "Municipio"}
-            </strong>
-          </span>
-          {hoveredId && (
-            <>
-              <span className="text-neutral-300">|</span>
-              <span>
-                Seleccionado: <strong className="text-neutral-700">{idToName[hoveredId] ?? hoveredId}</strong>
-              </span>
-              <span className="text-neutral-300">|</span>
-              <span>
-                {activeMetricLabel}:{" "}
-                <strong className="text-neutral-700">
-                  {(stats[hoveredId]?.[metric] ?? 0).toLocaleString("es-CO")}
-                </strong>
-              </span>
-            </>
-          )}
-          {!hoveredId && (
-            <span className="italic">Pasá el mouse sobre el mapa para ver detalles</span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
