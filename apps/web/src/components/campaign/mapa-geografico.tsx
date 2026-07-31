@@ -57,19 +57,19 @@ const METRIC_COLORS: Record<string, string> = {
   cuarentena: "text-red-700 border-red-200",
 };
 
-// ─── Color scale (yellow → orange → red) ────────────────────────────────────
+// ─── Color scale (warm visible gradient) ─────────────────────────────────────
 function choroplethColor(value: number, max: number): string {
-  if (max === 0) return "#f0f0f0";
+  if (max === 0) return "#e2e8f0";  // slate-200: clearly "no data"
   const pct = value / max;
-  if (pct === 0) return "#ffffcc";
-  if (pct < 0.1) return "#ffe48d";
-  if (pct < 0.2) return "#ffdd7e";
-  if (pct < 0.35) return "#fecb66";
-  if (pct < 0.5) return "#feb751";
-  if (pct < 0.7) return "#fd9e3a";
-  if (pct < 0.85) return "#f57e28";
-  if (pct < 0.95) return "#e34a1c";
-  return "#b10026";
+  if (pct === 0) return "#fff3e0";  // visible warm off-white (was #ffffcc)
+  if (pct < 0.1) return "#ffe0b2";
+  if (pct < 0.2) return "#ffcc80";
+  if (pct < 0.35) return "#ffb74d";
+  if (pct < 0.5) return "#ffa726";
+  if (pct < 0.7) return "#ff8f00";
+  if (pct < 0.85) return "#f57c00";
+  if (pct < 0.95) return "#e65100";
+  return "#bf360c";
 }
 
 function fmt(n: number): string {
@@ -107,6 +107,7 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [listExpanded, setListExpanded] = useState(true);
+  const [deptBoundary, setDeptBoundary] = useState<GeoJSON.Feature | null>(null);
   const geoJsonKey = useRef(0);
 
   const selectCol = alcance.tipo === "departamental" ? "id_municipio" : "id_departamento";
@@ -255,6 +256,31 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
     return () => { cancelled = true; };
   }, [campaignId, alcance.tipo, (alcance as any).id_departamento, (alcance as any).id_municipio, filters.sexo, filters.id_rol, filters.estado, selectCol]);
 
+  // ── Fetch department boundary for hierarchy outline ─────────────────────
+  useEffect(() => {
+    if (alcance.tipo !== "departamental") {
+      setDeptBoundary(null);
+      return;
+    }
+    const deptCode = (alcance as any).id_departamento;
+    if (!deptCode) return;
+
+    let cancelled = false;
+    fetch("/data/geojson/dptos.geojson")
+      .then((res) => res.json())
+      .then((geojson: GeoJSON.FeatureCollection) => {
+        if (cancelled) return;
+        const feature = geojson.features.find(
+          (f: any) => String(f.properties?.DPTO_CCDGO) === String(deptCode)
+        );
+        setDeptBoundary(feature ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setDeptBoundary(null);
+      });
+    return () => { cancelled = true; };
+  }, [alcance.tipo, (alcance as any).id_departamento]);
+
   // ── Derived data ──────────────────────────────────────────────────────────
   const idToName = useMemo(() => {
     if (!geoData) return {};
@@ -330,12 +356,17 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
           : feature.properties?.MPIO_CDPMP;
       const value = choroplethValue(id);
       const isSelected = id === selectedId;
+      const isInternalScope = alcance.tipo === "departamental" || alcance.tipo === "municipal";
+
       return {
         fillColor: choroplethColor(value, maxValue),
-        weight: isSelected ? 3 : 1,
+        weight: isSelected ? 3.5 : (isInternalScope ? 0.8 : 1.5),
         opacity: 1,
-        color: isSelected ? "#1d4ed8" : "white",
-        fillOpacity: 0.8,
+        color: isSelected
+          ? "#1d4ed8"
+          : (isInternalScope ? "#94a3b8" : "#475569"),
+        fillOpacity: isSelected ? 0.9 : 0.75,
+        ...(isInternalScope && !isSelected ? { dashArray: "3 3" as const } : {}),
       };
     },
     [choroplethValue, maxValue, selectedId, alcance.tipo]
@@ -343,6 +374,27 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
 
   const geoStyleRef = useRef(geoStyle);
   geoStyleRef.current = geoStyle;
+
+  const highlightStyle = useCallback(
+    (feature: GeoJSON.Feature) => {
+      const id =
+        alcance.tipo === "nacional"
+          ? feature.properties?.DPTO_CCDGO
+          : feature.properties?.MPIO_CDPMP;
+      const value = choroplethValue(id);
+      return {
+        fillColor: choroplethColor(value, maxValue),
+        weight: 3,
+        opacity: 1,
+        color: "#1e293b",
+        fillOpacity: 0.95,
+      };
+    },
+    [choroplethValue, maxValue, alcance.tipo]
+  );
+
+  const highlightStyleRef = useRef(highlightStyle);
+  highlightStyleRef.current = highlightStyle;
 
   const onEachFeature = useCallback(
     (feature: GeoJSON.Feature, layer: L.GeoJSON) => {
@@ -363,29 +415,17 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
         click: () => {
           setSelectedId((prev) => (prev === id ? null : id));
         },
-        mouseover: () => setHoveredId(id),
-        mouseout: () => setHoveredId(null),
+        mouseover: () => {
+          setHoveredId(id);
+          layer.setStyle(highlightStyleRef.current(feature));
+        },
+        mouseout: () => {
+          setHoveredId(null);
+          layer.setStyle(geoStyleRef.current(feature));
+        },
       });
     },
     [stats, idToName, alcance.tipo]
-  );
-
-  const highlightStyle = useCallback(
-    (feature: GeoJSON.Feature) => {
-      const id =
-        alcance.tipo === "nacional"
-          ? feature.properties?.DPTO_CCDGO
-          : feature.properties?.MPIO_CDPMP;
-      const value = choroplethValue(id);
-      return {
-        fillColor: choroplethColor(value, maxValue),
-        weight: 2.5,
-        opacity: 1,
-        color: "#333",
-        fillOpacity: 0.95,
-      };
-    },
-    [choroplethValue, maxValue, alcance.tipo]
   );
 
   const legendBreaks = useMemo(() => {
@@ -667,6 +707,22 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
             style={(feature: any) => geoStyleRef.current(feature)}
             onEachFeature={onEachFeature}
           />
+
+          {/* Department boundary outline (hierarchy: container vs internal subdivisions) */}
+          {deptBoundary && (
+            <GeoJSON
+              key={`dept-boundary-${geoJsonKey.current}`}
+              data={deptBoundary}
+              style={{
+                fillOpacity: 0,
+                color: "#1e293b",
+                weight: 2.5,
+                opacity: 0.85,
+                dashArray: "6 4",
+                interactive: false,
+              }}
+            />
+          )}
         </MapContainer>
 
         {/* Legend */}
