@@ -149,35 +149,66 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
         setGeoData(geojson);
         geoJsonKey.current += 1;
 
-        // ─ Fetch mesas from puestos_votacion (via JOINs) ───────────────────
+        // ─ Fetch mesas from puestos_votacion (filtered by territorial scope) ──
         // puestos_votacion → comunas → municipios → departamentos
         const mesasMap: Record<string, { mesas: number; puestos: number }> = {};
 
-        // Determinar qué relación usar según el alcance
-        let mesasQuery = supabase.current
-          .from("puestos_votacion")
-          .select("cantidad_mesas, comunas!inner(id_municipio, municipios!inner(id_departamento))") as any;
+        // Pre-fetch comuna IDs based on campaign alcance (puestos_votacion
+        // lost id_campana in migration 033, so we filter via territorial chain).
+        let comunaIds: string[] | null = null;
 
-        const { data: puestosData, error: puestosError } = await mesasQuery;
-        
-        if (!puestosError) {
-          for (const row of puestosData ?? []) {
-            // Extraer ids de la relación anidada
-            const deptId = row.comunas?.municipios?.id_departamento;
-            const munId = row.comunas?.id_municipio;
-            
-            // Determinar el área según el alcance
-            const areaId = alcance.tipo === "departamental" 
-              ? String(deptId ?? "unknown")
-              : String(munId ?? "unknown");
-            
-            // Filtrar por alcance si aplica
-            if (alcance.tipo === "departamental" && deptId !== (alcance as any).id_departamento) continue;
-            if (alcance.tipo === "municipal" && munId !== (alcance as any).id_municipio) continue;
-            
-            if (!mesasMap[areaId]) mesasMap[areaId] = { mesas: 0, puestos: 0 };
-            mesasMap[areaId].mesas += row.cantidad_mesas ?? 0;
-            mesasMap[areaId].puestos += 1;
+        if (alcance.tipo === "municipal") {
+          const { data: comunasData } = await supabase.current
+            .from("comunas")
+            .select("id")
+            .eq("id_municipio", (alcance as any).id_municipio);
+          comunaIds = (comunasData ?? []).map((c: any) => c.id);
+        } else if (alcance.tipo === "departamental") {
+          const { data: municipiosData } = await supabase.current
+            .from("municipios")
+            .select("id")
+            .eq("id_departamento", (alcance as any).id_departamento);
+          const munIds = (municipiosData ?? []).map((m: any) => m.id);
+
+          if (munIds.length > 0) {
+            const { data: comunasData } = await supabase.current
+              .from("comunas")
+              .select("id")
+              .in("id_municipio", munIds);
+            comunaIds = (comunasData ?? []).map((c: any) => c.id);
+          } else {
+            comunaIds = [];
+          }
+        }
+        // nacional: comunaIds stays null → no filter, fetches all puestos
+
+        if (!comunaIds || comunaIds.length > 0) {
+          let mesasQuery = supabase.current
+            .from("puestos_votacion")
+            .select("cantidad_mesas, comunas!inner(id_municipio, municipios!inner(id_departamento))");
+
+          if (comunaIds && comunaIds.length > 0) {
+            mesasQuery = mesasQuery.in("id_comuna", comunaIds);
+          }
+
+          const { data: puestosData, error: puestosError } = await mesasQuery;
+
+          if (!puestosError) {
+            for (const row of (puestosData ?? []) as any[]) {
+              const deptId = row.comunas?.municipios?.id_departamento;
+              const munId = row.comunas?.id_municipio;
+
+              // Match areaId to GeoJSON feature keys:
+              //   nacional → DPTO_CCDGO (deptId)
+              //   departamental / municipal → MPIO_CDPMP (munId)
+              const areaId = alcance.tipo === "nacional"
+                ? String(deptId ?? "unknown")
+                : String(munId ?? "unknown");
+
+              if (!mesasMap[areaId]) mesasMap[areaId] = { mesas: 0, puestos: 0 };
+              mesasMap[areaId].mesas += row.cantidad_mesas ?? 0;
+              mesasMap[areaId].puestos += 1;
+            }
           }
         }
 
