@@ -185,8 +185,8 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
         async function fetchGrouped(extraFilters?: Record<string, string>): Promise<Record<string, number>> {
           let q = supabase.current
             .from("votantes")
-            .select(`${selectCol}, count:count(*)`)
-            .eq("id_campana", campaignId) as any;
+            .select(selectCol)
+            .eq("id_campana", campaignId);
 
           if (alcance.tipo === "departamental") {
             q = q.eq("id_departamento", (alcance as any).id_departamento);
@@ -208,8 +208,8 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
 
           const map: Record<string, number> = {};
           for (const row of data ?? []) {
-            const id = String(row[selectCol] ?? "unknown");
-            map[id] = (row as any).count ?? 0;
+            const id = String((row as any)[selectCol] ?? "unknown");
+            map[id] = (map[id] ?? 0) + 1;
           }
           return map;
         }
