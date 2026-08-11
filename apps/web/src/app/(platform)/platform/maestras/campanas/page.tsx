@@ -106,7 +106,7 @@ export default async function MaestrasCampanasPage({
 
       <Card
         title="Nueva campaña"
-        description="Un cliente solo puede tener una campaña por proceso electoral."
+        description="Un proceso electoral puede tener varias campañas (incluso para el mismo cliente)."
       >
         <CreateCampaignForm
           clientes={clientes ?? []}

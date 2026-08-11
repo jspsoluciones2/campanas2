@@ -774,20 +774,6 @@ export async function createCampaignAction(formData: FormData) {
     return { error: "Nombre, cliente y proceso electoral son obligatorios." };
   }
 
-  const { data: existente } = await supabase
-    .from("campanas")
-    .select("id")
-    .eq("id_cliente", idCliente)
-    .eq("id_proceso_electoral", idProceso)
-    .maybeSingle();
-
-  if (existente) {
-    return {
-      error:
-        "Ya existe una campaña para ese cliente en este proceso electoral.",
-    };
-  }
-
   const { data: campana, error } = await supabase
     .from("campanas")
     .insert({
@@ -801,12 +787,6 @@ export async function createCampaignAction(formData: FormData) {
     .single();
 
   if (error || !campana) {
-    if (error?.code === "23505") {
-      return {
-        error:
-          "Ya existe una campaña para ese cliente en este proceso electoral.",
-      };
-    }
     return { error: error?.message ?? "Error al crear campaña." };
   }
 
