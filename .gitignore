@@ -40,3 +40,14 @@ npm-debug.log*
 
 # Office temp files
 ~$*
+
+# Local junk / scratch
+.playwright-mcp/
+login-page/
+pruebas-estadisticas-master/
+CapturaReferenciaMapa.PNG
+Indicaciones.txt
+codigo_completo.txt
+estructura.txt
+supabase/seed/geo_poligonos_data*
+supabase/seed/geo_poligonos_test*
