@@ -1,7 +1,5 @@
 import { requireCampaignAccess } from "@/lib/campaign/access";
-import { VotanteRegisterForm } from "@/components/campaign/votante-register-form";
-import { VotantesTable } from "@/components/campaign/votantes-table";
-import { Card, PageHeader } from "@/components/platform/platform-ui";
+import { VotantesPanel } from "@/components/campaign/votantes-panel";
 import { fetchDepartamentos, fetchMunicipios } from "@/lib/campaign/comunas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -114,34 +112,17 @@ export default async function CampaignVotantesPage({
   });
 
   return (
-    <>
-      <PageHeader
-        title="Votantes"
-        description="Registro manual de votantes. Las novedades las completa el equipo al detectar irregularidades."
-      />
-
-      <VotanteRegisterForm
-        campaignId={campaignId}
-        roles={roles ?? []}
-        puestos={puestos ?? []}
-        lugaresTrabajo={lugaresTrabajo ?? []}
-        lideres={lideresConJerarquia}
-        departamentos={departamentos}
-        municipios={municipios}
-        barrios={barrios}
-      />
-
-      <Card
-        title="Listado"
-        description={`${rows.length} votante(s) mostrados (máx. 100)`}
-      >
-        <VotantesTable
-          campaignId={campaignId}
-          rows={rows}
-          tiposNovedad={tiposNovedad ?? []}
-          emptyMessage="Sin votantes. Configura catálogos y registra el primero arriba."
-        />
-      </Card>
-    </>
+    <VotantesPanel
+      campaignId={campaignId}
+      votantes={rows}
+      tiposNovedad={tiposNovedad ?? []}
+      roles={roles ?? []}
+      puestos={puestos ?? []}
+      lugaresTrabajo={lugaresTrabajo ?? []}
+      lideres={lideresConJerarquia}
+      departamentos={departamentos}
+      municipios={municipios}
+      barrios={barrios}
+    />
   );
 }

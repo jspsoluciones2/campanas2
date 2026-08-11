@@ -18,7 +18,6 @@ import {
   platformSelectClass,
 } from "@/components/platform/platform-ui";
 
-const TIPOS_DOCUMENTO = ["CC", "TI", "CE", "PA", "PEP", "PPT"] as const;
 const SIN_LIDER_VALUE = "__sin_lider__";
 
 type Rol = { id: number; nombre: string; nivel_jerarquia: number };
@@ -189,15 +188,7 @@ export function VotanteRegisterForm({
           <FormField label="Apellidos">
             <input name="apellidos" required className={platformInputClass} />
           </FormField>
-          <FormField label="Tipo documento">
-            <select name="tipo_documento" className={platformSelectClass} defaultValue="CC">
-              {TIPOS_DOCUMENTO.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </FormField>
+          <input type="hidden" name="tipo_documento" value="CC" />
           <FormField label="Documento">
             <input name="documento" required className={platformInputClass} />
           </FormField>
