@@ -199,6 +199,52 @@ export async function createVotanteAction(campaignId: number, formData: FormData
   };
 }
 
+export async function updateVotanteEstadoAction(
+  campaignId: number,
+  votanteId: number,
+  nuevoEstado: string
+) {
+  const { supabase, user } = await requireCampaignAccess(campaignId);
+
+  const puedeEditar = await userCanEditCampaign(user.id, campaignId);
+  if (!puedeEditar) {
+    return {
+      error:
+        "No tienes permiso para cambiar el estado del votante. Se requiere rol editor o administrador de campaña.",
+    };
+  }
+
+  const ESTADOS_VALIDOS = [
+    "activo",
+    "registrado",
+    "pendiente_verificacion",
+    "en_cuarentena",
+    "rechazado",
+  ];
+  if (!ESTADOS_VALIDOS.includes(nuevoEstado)) {
+    return { error: "Estado inválido." };
+  }
+
+  const { error } = await supabase
+    .from("votantes")
+    .update({ estado: nuevoEstado })
+    .eq("id", votanteId)
+    .eq("id_campana", campaignId);
+
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        error:
+          "No se pudo activar: ya existe un votante activo con ese documento en la campaña.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidateCampaign(campaignId);
+  return { ok: true };
+}
+
 export async function updateVotanteNovedadAction(
   campaignId: number,
   votanteId: number,
