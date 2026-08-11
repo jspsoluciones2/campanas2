@@ -8,6 +8,7 @@ import {
   UserCheck,
   AlertTriangle,
   Clock,
+  Download,
   X,
 } from "lucide-react";
 import {
@@ -17,12 +18,14 @@ import {
 } from "@/components/platform/platform-ui";
 import {
   VotantesTable,
+  ETIQUETAS_ESTADO,
   type VotanteListRow,
 } from "@/components/campaign/votantes-table";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
 import dynamic from "next/dynamic";
+import * as XLSX from "xlsx";
 import { type AlcanceValue, type GeoFilters } from "@/components/campaign/mapa-geografico";
 
 const MapaGeografico = dynamic(
@@ -46,8 +49,8 @@ type TabId = "general" | "geografico" | "evolucion" | "novedades";
 const TABS: { id: TabId; label: string }[] = [
   { id: "general", label: "General" },
   { id: "geografico", label: "Geográfico" },
-  { id: "evolucion", label: "Evolución" },
-  { id: "novedades", label: "Novedades" },
+  { id: "evolucion", label: "Cobertura Líder" },
+  { id: "novedades", label: "Cobertura Puestos" },
 ];
 
 type Filters = {
@@ -212,7 +215,7 @@ export function ReportesView({
     let q = supabase.current
       .from("votantes")
       .select(
-        `id, nombres, apellidos, documento, tipo_documento, sexo, telefono, fecha_nacimiento, direccion, estado, creado_en, id_tipo_novedad, detalle_novedad, roles(nombre), lugares_trabajo(nombre)`
+        `id, nombres, apellidos, documento, tipo_documento, sexo, telefono, fecha_nacimiento, direccion, mesa, estado, creado_en, id_tipo_novedad, detalle_novedad, roles(nombre), lugares_trabajo(nombre), puestos_votacion(nombre, municipio), lider_directo:votantes(nombres, apellidos)`
       )
       .eq("id_campana", campaignId)
       .order("creado_en", { ascending: false })
@@ -337,6 +340,37 @@ export function ReportesView({
       ...prev,
       [key]: key === "id_rol" || key === "id_puesto_votacion" ? Number(value) : value,
     }));
+  }
+
+  function primerValor<T>(rel: T | T[] | null | undefined): T | null {
+    if (!rel) return null;
+    return Array.isArray(rel) ? (rel[0] ?? null) : rel;
+  }
+
+  function descargarExcel() {
+    const filas = votantes.map((v) => {
+      const puesto = primerValor(v.puestos_votacion);
+      const lider = primerValor(v.lider_directo);
+      return {
+        "Nombre completo": `${v.nombres} ${v.apellidos}`,
+        Documento: `${v.tipo_documento} ${v.documento}`,
+        Zona: puesto?.municipio?.trim() || "—",
+        Puesto: puesto?.nombre ?? "—",
+        Mesa: v.mesa?.trim() || "—",
+        "Líder directo": lider ? `${lider.nombres} ${lider.apellidos}`.trim() : "—",
+        Trabajo: primerValor(v.lugares_trabajo)?.nombre ?? "—",
+        Dirección: v.direccion ?? "—",
+        Rol: primerValor(v.roles)?.nombre ?? "—",
+        Estado: ETIQUETAS_ESTADO[v.estado] ?? v.estado,
+        Registro: new Date(v.creado_en).toLocaleDateString("es-CO"),
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `reporte-votantes-campana-${campaignId}-${fecha}.xlsx`);
   }
 
   function TabButton({ tab }: { tab: (typeof TABS)[number] }) {
@@ -520,11 +554,21 @@ export function ReportesView({
           )}
 
           <div ref={tableContainerRef}>
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between gap-3">
               <p className="text-sm text-neutral-500">
                 {votantes.length} votante(s) mostrados
                 {hasActiveFilters && " (filtrados)"}
               </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={descargarExcel}
+                disabled={votantes.length === 0}
+                className="h-8 text-xs"
+              >
+                <Download className="mr-1 size-3" /> Descargar Excel
+              </Button>
             </div>
             <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-sm shadow-neutral-200/60">
               <VotantesTable
@@ -532,6 +576,7 @@ export function ReportesView({
                 rows={votantes}
                 tiposNovedad={initialTiposNovedad}
                 emptyMessage="Sin votantes que coincidan con los filtros."
+                showCobertura
               />
             </div>
           </div>
@@ -551,10 +596,10 @@ export function ReportesView({
           <div className="text-center">
             <BarChart3 className="mx-auto size-10 text-neutral-300" />
             <p className="mt-3 text-sm font-medium text-neutral-500">
-              Evolución de Registro
+              Cobertura de Líder
             </p>
             <p className="mt-1 text-xs text-neutral-400">
-              Próximamente: gráficos de registro de votantes en el tiempo.
+              Próximamente: reporte de cobertura por líder.
             </p>
           </div>
         </div>
@@ -565,10 +610,10 @@ export function ReportesView({
           <div className="text-center">
             <BarChart3 className="mx-auto size-10 text-neutral-300" />
             <p className="mt-3 text-sm font-medium text-neutral-500">
-              Novedades
+              Cobertura de Puestos
             </p>
             <p className="mt-1 text-xs text-neutral-400">
-              Próximamente: reporte de novedades y seguimiento de incidencias.
+              Próximamente: reporte de cobertura por puesto de votación.
             </p>
           </div>
         </div>
