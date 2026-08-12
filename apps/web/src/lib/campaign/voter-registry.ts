@@ -8,7 +8,7 @@ import {
 } from "@/lib/campaign/voter-normalize";
 import { JERARQUIA_MIN, liderJerarquiaValida } from "@/lib/campaign/roles";
 
-const ESTADOS_ACTIVOS = ["activo", "registrado", "pendiente_verificacion"] as const;
+const ESTADOS_ACTIVOS = ["activo", "pendiente_verificacion"] as const;
 const UMBRAL_SIMILITUD_NOMBRE = 0.85;
 
 export type RegisterVoterInput = {

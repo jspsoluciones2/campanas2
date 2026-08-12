@@ -81,7 +81,7 @@ export default async function CampaignVotantesPage({
       .from("votantes")
       .select("id, nombres, apellidos, documento, id_rol, roles(nivel_jerarquia)")
       .eq("id_campana", campaignId)
-      .in("estado", ["activo", "registrado", "pendiente_verificacion"])
+      .in("estado", ["activo", "pendiente_verificacion"])
       .order("apellidos")
       .limit(200),
     supabase

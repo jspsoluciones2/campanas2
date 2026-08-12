@@ -6,8 +6,6 @@ import { createVotanteAction } from "@/app/(campaign)/campaign/[id]/actions";
 import {
   etiquetaJerarquia,
   JERARQUIA_MIN,
-  rolesBajoJerarquia,
-  rolesJerarquiaMaxima,
 } from "@/lib/campaign/roles";
 import { Button } from "@/components/ui/button";
 import {
@@ -119,17 +117,22 @@ export function VotanteRegisterForm({
     if (Array.isArray(rel)) return rel[0]?.nombre ?? null;
     return rel.nombre;
   }, [puestoId, puestos]);
-  const sinLiderDirecto = liderId === SIN_LIDER_VALUE;
-  const liderSeleccionado = useMemo(
-    () => lideres.find((l) => l.id === Number(liderId)),
-    [liderId, lideres]
+  const rolSeleccionado = useMemo(
+    () => roles.find((r) => r.id === Number(rolId)),
+    [rolId, roles]
   );
-  const rolesDisponibles = useMemo(() => {
-    if (!liderId) return [];
-    if (sinLiderDirecto) return rolesJerarquiaMaxima(roles);
-    if (liderSeleccionado?.nivel_jerarquia == null) return [];
-    return rolesBajoJerarquia(roles, liderSeleccionado.nivel_jerarquia);
-  }, [liderId, sinLiderDirecto, liderSeleccionado, roles]);
+  const nivelRol = rolSeleccionado?.nivel_jerarquia ?? null;
+  const esJerarquiaMaximaRol = nivelRol === JERARQUIA_MIN;
+
+  // Candidatos a líder: solo jerarquías estrictamente superiores al rol elegido.
+  const lideresDisponibles = useMemo(() => {
+    if (nivelRol == null) return [];
+    return lideres.filter(
+      (l) => l.nivel_jerarquia != null && l.nivel_jerarquia < nivelRol
+    );
+  }, [lideres, nivelRol]);
+
+  const sinLiderDirecto = liderId === SIN_LIDER_VALUE;
 
   // Filtros para ubicación de residencia
   const municipiosResidencia = useMemo(
@@ -317,68 +320,65 @@ export function VotanteRegisterForm({
               ))}
             </select>
           </FormField>
-          <FormField label="Líder directo" className="min-w-[220px]">
-            <select
-              name="id_lider_directo"
-              className={platformSelectClass}
-              value={liderId}
-              onChange={(e) => {
-                setLiderId(e.target.value);
-                setRolId("");
-              }}
-            >
-              <option value="">—</option>
-              <option value={SIN_LIDER_VALUE}>
-                Sin líder (jerarquía {JERARQUIA_MIN})
-              </option>
-              {lideres.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.apellidos} {l.nombres} — {l.documento}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-neutral-500">
-              Elige quién lidera a esta persona, o «Sin líder» si es del cargo más alto.
-            </p>
-          </FormField>
           <FormField label="Rol organizacional" className="min-w-[220px]">
             <select
               name="id_rol"
               className={platformSelectClass}
               value={rolId}
-              disabled={!liderId}
-              onChange={(e) => setRolId(e.target.value)}
+              onChange={(e) => {
+                setRolId(e.target.value);
+                setLiderId("");
+              }}
             >
-              <option value="">
-                {!liderId
-                  ? "—"
-                  : rolesDisponibles.length === 0
-                    ? sinLiderDirecto
-                      ? "Sin roles nivel 1"
-                      : "Sin cargos bajo el líder"
-                    : "—"}
-              </option>
-              {rolesDisponibles.map((r) => (
+              <option value="">—</option>
+              {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.nombre} ({etiquetaJerarquia(r.nivel_jerarquia)})
                 </option>
               ))}
             </select>
-            {!liderId ? (
-              <p className="mt-1 text-xs text-neutral-500">
-                Disponible después de elegir el líder directo.
-              </p>
-            ) : liderId && !sinLiderDirecto && liderSeleccionado ? (
-              <p className="mt-1 text-xs text-neutral-500">
-                Solo cargos por debajo de{" "}
-                {liderSeleccionado.apellidos} {liderSeleccionado.nombres}.
-              </p>
-            ) : sinLiderDirecto ? (
-              <p className="mt-1 text-xs text-neutral-500">
-                Solo cargos de jerarquía {JERARQUIA_MIN} (sin líder).
-              </p>
-            ) : null}
+            <p className="mt-1 text-xs text-neutral-500">
+              {esJerarquiaMaximaRol
+                ? "Jerarquía 1: el votante no tiene líder directo."
+                : nivelRol != null
+                  ? `El líder directo debe tener un cargo superior a los de jerarquía ${nivelRol}.`
+                  : "Selecciona el cargo del votante."}
+            </p>
           </FormField>
+          {!esJerarquiaMaximaRol ? (
+            <FormField label="Líder directo" className="min-w-[220px]">
+              <select
+                name="id_lider_directo"
+                className={platformSelectClass}
+                value={liderId}
+                disabled={nivelRol == null}
+                onChange={(e) => setLiderId(e.target.value)}
+              >
+                <option value="">
+                  {nivelRol == null
+                    ? "Selecciona un rol primero"
+                    : lideresDisponibles.length === 0
+                      ? "No hay líder disponible"
+                      : "—"}
+                </option>
+                <option value={SIN_LIDER_VALUE}>Sin líder</option>
+                {lideresDisponibles.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.apellidos} {l.nombres} — {l.documento}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-neutral-500">
+                {nivelRol == null
+                  ? "Disponible después de seleccionar el rol."
+                  : lideresDisponibles.length === 0
+                    ? "No hay líderes con un cargo superior registrados. Usa «Sin líder»."
+                    : sinLiderDirecto
+                      ? "Votante sin líder directo."
+                      : "Elige quién lidera a esta persona (cargo superior), o «Sin líder»."}
+              </p>
+            </FormField>
+          ) : null}
 
           {/* === PUESTO DE VOTACIÓN (opcional) === */}
           <div className="w-full border-t border-neutral-100 pt-4 mt-2">
