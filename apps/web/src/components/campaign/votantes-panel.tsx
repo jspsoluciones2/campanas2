@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, UserPlus, Users, X } from "lucide-react";
+import { Plus, UserPlus, Users, X, Download, CheckSquare } from "lucide-react";
+import * as XLSX from "xlsx";
+import { updateVotantesEstadoBulkAction } from "@/app/(campaign)/campaign/[id]/actions";
 import { VotanteRegisterForm } from "@/components/campaign/votante-register-form";
 import {
   VotantesTable,
@@ -17,6 +19,8 @@ import {
 } from "@/components/platform/platform-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+import type { AlcanceValue } from "@/components/campaign/mapa-geografico";
 
 type Rol = { id: number; nombre: string; nivel_jerarquia: number };
 type Puesto = {
@@ -56,6 +60,7 @@ type Props = {
   municipios: Municipio[];
   barrios: BarrioConComuna[];
   comunas: Comuna[];
+  alcance?: AlcanceValue;
 };
 
 type TabId = "listado" | "crear";
@@ -111,6 +116,7 @@ export function VotantesPanel({
   municipios,
   barrios,
   comunas,
+  alcance,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>(
     votantes.length === 0 ? "crear" : "listado"
@@ -119,8 +125,16 @@ export function VotantesPanel({
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(votantes.length);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkEstado, setBulkEstado] = useState("");
+  const [bulkFeedback, setBulkFeedback] = useState<string | null>(null);
+  const [pendingBulk, startBulk] = useTransition();
   const supabase = useRef(createClient());
   const debouncedRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const PAGE_SIZE = 50;
 
   const municipiosResidencia = useMemo(
     () =>
@@ -148,13 +162,7 @@ export function VotantesPanel({
     filters.id_rol ||
     filters.estado;
 
-  const buildQuery = useCallback(() => {
-    let q = supabase.current
-      .from("votantes")
-      .select(LIST_COLUMNAS)
-      .eq("id_campana", campaignId)
-      .order("creado_en", { ascending: false })
-      .limit(100) as any;
+  const applyFilters = useCallback((q: any) => {
     if (filters.search) {
       q = q.or(
         `nombres.ilike.%${filters.search}%,apellidos.ilike.%${filters.search}%,documento.ilike.%${filters.search}%`
@@ -176,20 +184,95 @@ export function VotantesPanel({
     if (filters.id_rol) q = q.eq("id_rol", filters.id_rol);
     if (filters.estado) q = q.eq("estado", filters.estado);
     return q;
-  }, [campaignId, filters, barrios]);
+  }, [filters, barrios]);
 
   const fetchListado = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await buildQuery();
-    if (!error) setRows((data ?? []) as unknown as VotanteListRow[]);
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    let q = applyFilters(
+      supabase.current
+        .from("votantes")
+        .select(LIST_COLUMNAS, { count: "exact" } as any)
+        .eq("id_campana", campaignId)
+        .order("creado_en", { ascending: false })
+        .range(from, to)
+    );
+    const { data, count, error } = await q;
+    if (!error) {
+      setRows((data ?? []) as unknown as VotanteListRow[]);
+      if (typeof count === "number") setTotal(count);
+    }
     setLoading(false);
-  }, [buildQuery]);
+  }, [applyFilters, campaignId, page]);
 
   useEffect(() => {
     if (!activeTab || activeTab !== "listado") return;
     if (filters.search !== searchInput) return;
     fetchListado();
   }, [fetchListado, activeTab, filters, searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+    setSelectedIds(new Set());
+    setBulkFeedback(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.id_lider_directo, filters.id_departamento, filters.id_municipio, filters.id_comuna, filters.id_rol, filters.estado]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const allPageSelected =
+    rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
+  const selectedCount = selectedIds.size;
+
+  function toggleRow(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const pageIds = rows.map((r) => r.id);
+      const allSel = pageIds.length > 0 && pageIds.every((id) => next.has(id));
+      if (allSel) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function selectAllFiltered() {
+    setLoading(true);
+    let q = applyFilters(
+      supabase.current
+        .from("votantes")
+        .select("id")
+        .eq("id_campana", campaignId)
+        .limit(5000) as any
+    );
+    const { data, error } = await q;
+    if (!error) {
+      const ids = (data ?? []).map((r: any) => r.id).filter((n: any) => n != null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id: number) => next.add(id));
+        return next;
+      });
+    }
+    setLoading(false);
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setBulkFeedback(null);
+  }
+
+  function cambiarPagina(p: number) {
+    setPage(Math.min(Math.max(1, p), totalPages));
+  }
 
   function changeFilter(key: keyof Filters, value: string) {
     const numeric =
@@ -213,6 +296,64 @@ export function VotantesPanel({
   function clearFilters() {
     setSearchInput("");
     setFilters(DEFAULT_FILTERS);
+  }
+
+  async function aplicarBulkEstado() {
+    if (!bulkEstado || selectedIds.size === 0) return;
+    setBulkFeedback(null);
+    startBulk(async () => {
+      const result = await updateVotantesEstadoBulkAction(
+        campaignId,
+        Array.from(selectedIds),
+        bulkEstado
+      );
+      if (result?.error) {
+        setBulkFeedback(result.error);
+        return;
+      }
+      setBulkFeedback(
+        `Estado actualizado para ${result?.count ?? selectedIds.size} votante(s).`
+      );
+      clearSelection();
+      fetchListado();
+    });
+  }
+
+  function primer<T>(rel: T | T[] | null | undefined): T | null {
+    if (!rel) return null;
+    return Array.isArray(rel) ? (rel[0] ?? null) : rel;
+  }
+
+  async function descargarExcel() {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const { data } = await supabase.current
+      .from("votantes")
+      .select(LIST_COLUMNAS)
+      .eq("id_campana", campaignId)
+      .in("id", ids) as any;
+    const filas = (data ?? []).map((v: any) => {
+      const puesto = primer(v.puestos_votacion);
+      const lider = primer(v.lider_directo);
+      return {
+        "Nombre completo": `${v.nombres} ${v.apellidos}`,
+        Documento: `${v.tipo_documento} ${v.documento}`,
+        "Estado": v.estado,
+        Zona: puesto?.municipio?.trim() || "—",
+        Puesto: puesto?.nombre ?? "—",
+        Mesa: v.mesa?.trim() || "—",
+        "Líder directo": lider ? `${lider.nombres} ${lider.apellidos}`.trim() : "—",
+        Trabajo: primer(v.lugares_trabajo)?.nombre ?? "—",
+        Dirección: v.direccion ?? "—",
+        Rol: primer(v.roles)?.nombre ?? "—",
+        Registro: v.creado_en ? new Date(v.creado_en).toLocaleDateString("es-CO") : "—",
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Votantes");
+    const fecha = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `votantes-campana-${campaignId}-${fecha}.xlsx`);
   }
 
   return (
@@ -270,7 +411,7 @@ export function VotantesPanel({
       {activeTab === "listado" ? (
         <Card
           title="Listado"
-          description={`${rows.length} votante(s) mostrados (máx. 100)`}
+          description={`${total} votante(s) coinciden con los filtros`}
         >
           <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-end gap-3">
@@ -415,6 +556,70 @@ export function VotantesPanel({
             </div>
           </div>
 
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50/60 px-3 py-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={selectAllFiltered}
+              disabled={loading}
+            >
+              <CheckSquare className="mr-1 size-3.5" />
+              Seleccionar todos ({total})
+            </Button>
+            {selectedCount > 0 ? (
+              <>
+                <span className="text-xs font-semibold text-blue-700">
+                  {selectedCount} seleccionado(s)
+                </span>
+                <select
+                  value={bulkEstado}
+                  onChange={(e) => setBulkEstado(e.target.value)}
+                  className={cn(platformSelectClass, "h-8 w-[180px] text-xs")}
+                  aria-label="Cambiar estado en lote"
+                >
+                  <option value="">Cambiar estado a…</option>
+                  {ESTADOS.filter((s) => s.value).map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={aplicarBulkEstado}
+                  disabled={!bulkEstado || pendingBulk}
+                >
+                  {pendingBulk ? "Aplicando…" : "Aplicar estado"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={descargarExcel}
+                >
+                  <Download className="mr-1 size-3.5" /> Excel
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={clearSelection}
+                >
+                  <X className="mr-1 size-3" /> Quitar selección
+                </Button>
+              </>
+            ) : null}
+            {bulkFeedback ? (
+              <span className="text-xs text-neutral-600">{bulkFeedback}</span>
+            ) : null}
+          </div>
+
           {loading && (
             <div className="flex items-center justify-center py-3">
               <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -431,7 +636,39 @@ export function VotantesPanel({
             emptyMessage="Sin votantes que coincidan con los filtros. Registra el primero en la pestaña Crear votante."
             showEstadoEditor
             showCobertura
+            selectedIds={selectedIds}
+            onToggleRow={toggleRow}
+            onToggleAllPage={toggleAllPage}
+            allPageSelected={allPageSelected}
           />
+
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-neutral-500">
+              Página {page} de {totalPages} · {total} coincidencia(s)
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                disabled={page <= 1 || loading}
+                onClick={() => cambiarPagina(page - 1)}
+              >
+                Anterior
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                disabled={page >= totalPages || loading}
+                onClick={() => cambiarPagina(page + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
         </Card>
       ) : (
         <VotanteRegisterForm
@@ -443,6 +680,7 @@ export function VotantesPanel({
           departamentos={departamentos}
           municipios={municipios}
           barrios={barrios}
+          alcance={alcance}
         />
       )}
     </>

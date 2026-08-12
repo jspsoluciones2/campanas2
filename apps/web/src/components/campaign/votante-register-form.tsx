@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { createVotanteAction } from "@/app/(campaign)/campaign/[id]/actions";
+import type { AlcanceValue } from "@/components/campaign/mapa-geografico";
 import {
   etiquetaJerarquia,
   JERARQUIA_MIN,
@@ -51,6 +52,7 @@ type Props = {
   departamentos: Departamento[];
   municipios: Municipio[];
   barrios: BarrioConComuna[];
+  alcance?: AlcanceValue;
 };
 
 type ActionState = {
@@ -77,6 +79,7 @@ export function VotanteRegisterForm({
   departamentos,
   municipios,
   barrios,
+  alcance,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     submitVotante.bind(null, campaignId),
@@ -87,9 +90,20 @@ export function VotanteRegisterForm({
   const [municipio, setMunicipio] = useState("");
   const [puestoId, setPuestoId] = useState("");
 
+  // Alcance de la campaña → preselección de la residencia del votante
+  const alcanceDepto =
+    alcance?.tipo === "municipal"
+      ? (alcance.id_departamento ?? "")
+      : alcance?.tipo === "departamental"
+        ? alcance.id_departamento
+        : "";
+  const alcanceMuni = alcance?.tipo === "municipal" ? alcance.id_municipio : "";
+  const bloquearDepto = alcance?.tipo === "departamental" || alcance?.tipo === "municipal";
+  const bloquearMunicipio = alcance?.tipo === "municipal";
+
   // Estado para ubicación de residencia del votante
-  const [residenciaDeptoId, setResidenciaDeptoId] = useState("");
-  const [residenciaMuniId, setResidenciaMuniId] = useState("");
+  const [residenciaDeptoId, setResidenciaDeptoId] = useState(alcanceDepto ?? "");
+  const [residenciaMuniId, setResidenciaMuniId] = useState(alcanceMuni ?? "");
   const [residenciaBarrioId, setResidenciaBarrioId] = useState("");
 
   const municipiosPuesto = useMemo(() => {
@@ -230,7 +244,7 @@ export function VotanteRegisterForm({
           <FormField label="Departamento">
             <select
               name="id_departamento"
-              disabled={sinDeptos}
+              disabled={sinDeptos || bloquearDepto}
               value={residenciaDeptoId}
               onChange={(e) => {
                 setResidenciaDeptoId(e.target.value);
@@ -248,12 +262,17 @@ export function VotanteRegisterForm({
                 </option>
               ))}
             </select>
+            {bloquearDepto && !sinDeptos ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Fijado por el alcance de la campaña.
+              </p>
+            ) : null}
           </FormField>
 
           <FormField label="Municipio">
             <select
               name="id_municipio"
-              disabled={!residenciaDeptoId || sinMunisResidencia}
+              disabled={!residenciaDeptoId || sinMunisResidencia || bloquearMunicipio}
               value={residenciaMuniId}
               onChange={(e) => {
                 setResidenciaMuniId(e.target.value);
@@ -274,6 +293,11 @@ export function VotanteRegisterForm({
                 </option>
               ))}
             </select>
+            {bloquearMunicipio ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Fijado por el alcance de la campaña.
+              </p>
+            ) : null}
           </FormField>
 
           <FormField label="Barrio / Vereda (opcional)">

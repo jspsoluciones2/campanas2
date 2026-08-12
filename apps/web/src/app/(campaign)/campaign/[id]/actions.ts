@@ -245,6 +245,56 @@ export async function updateVotanteEstadoAction(
   return { ok: true };
 }
 
+export async function updateVotantesEstadoBulkAction(
+  campaignId: number,
+  votanteIds: number[],
+  nuevoEstado: string
+) {
+  const { supabase, user } = await requireCampaignAccess(campaignId);
+
+  const puedeEditar = await userCanEditCampaign(user.id, campaignId);
+  if (!puedeEditar) {
+    return {
+      error:
+        "No tienes permiso para cambiar el estado. Se requiere rol editor o administrador de campaña.",
+    };
+  }
+
+  const ESTADOS_VALIDOS = [
+    "activo",
+    "registrado",
+    "pendiente_verificacion",
+    "en_cuarentena",
+    "rechazado",
+  ];
+  if (!ESTADOS_VALIDOS.includes(nuevoEstado)) {
+    return { error: "Estado inválido." };
+  }
+
+  const ids = Array.from(
+    new Set(votanteIds.filter((n) => Number.isFinite(n)))
+  );
+  if (ids.length === 0) {
+    return { error: "No hay votantes seleccionados." };
+  }
+  if (ids.length > 2000) {
+    return { error: "Superas el límite de 2.000 votantes por edición masiva." };
+  }
+
+  const { error } = await supabase
+    .from("votantes")
+    .update({ estado: nuevoEstado })
+    .eq("id_campana", campaignId)
+    .in("id", ids);
+
+  if (error) {
+    return { error: "No se pudo actualizar el estado de los votantes." };
+  }
+
+  revalidateCampaign(campaignId);
+  return { ok: true, count: ids.length };
+}
+
 export async function updateVotanteNovedadAction(
   campaignId: number,
   votanteId: number,

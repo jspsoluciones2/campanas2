@@ -1,6 +1,11 @@
 import { requireCampaignAccess } from "@/lib/campaign/access";
 import { VotantesPanel } from "@/components/campaign/votantes-panel";
-import { fetchDepartamentos, fetchMunicipios } from "@/lib/campaign/comunas";
+import {
+  fetchDepartamentos,
+  fetchMunicipios,
+  fetchPuestosPorAlcance,
+} from "@/lib/campaign/comunas";
+import type { AlcanceValue } from "@/components/campaign/mapa-geografico";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type BarrioConComuna = {
@@ -45,7 +50,7 @@ export default async function CampaignVotantesPage({
   const [
     { data: votantes },
     { data: roles },
-    { data: puestos },
+    puestos,
     { data: lugaresTrabajo },
     { data: lideres },
     { data: tiposNovedad },
@@ -53,6 +58,7 @@ export default async function CampaignVotantesPage({
     municipios,
     barrios,
     { data: comunas },
+    { data: territorio },
   ] = await Promise.all([
     supabase
       .from("votantes")
@@ -72,11 +78,7 @@ export default async function CampaignVotantesPage({
       .select("id, nombre, nivel_jerarquia")
       .eq("id_campana", campaignId)
       .order("nivel_jerarquia"),
-    supabase
-      .from("puestos_votacion")
-      .select("id, nombre, municipio, comunas(nombre)")
-      .eq("id_campana", campaignId)
-      .order("nombre"),
+    fetchPuestosPorAlcance(supabase, campaignId),
     supabase
       .from("lugares_trabajo")
       .select("id, nombre")
@@ -98,9 +100,43 @@ export default async function CampaignVotantesPage({
     fetchMunicipios(supabase),
     fetchBarriosConMunicipio(supabase),
     supabase.from("comunas").select("id, nombre, id_municipio").order("nombre"),
+    supabase
+      .from("campana_territorio")
+      .select("id_departamento, id_municipio")
+      .eq("id_campana", campaignId)
+      .maybeSingle(),
   ]);
 
   const rows = votantes ?? [];
+
+  // Determinar ámbito territorial para preseleccionar residencia
+  let alcance: AlcanceValue | undefined;
+  if (territorio) {
+    if (territorio.id_departamento && !territorio.id_municipio) {
+      const { data: depto } = await supabase
+        .from("departamentos")
+        .select("nombre")
+        .eq("id", territorio.id_departamento)
+        .single();
+      alcance = {
+        tipo: "departamental",
+        id_departamento: territorio.id_departamento,
+        nombre_departamento: depto?.nombre ?? undefined,
+      };
+    } else if (territorio.id_municipio) {
+      const { data: mun } = await supabase
+        .from("municipios")
+        .select("nombre, id_departamento")
+        .eq("id", territorio.id_municipio)
+        .single();
+      alcance = {
+        tipo: "municipal",
+        id_municipio: territorio.id_municipio,
+        nombre_municipio: mun?.nombre ?? undefined,
+        id_departamento: mun?.id_departamento ?? undefined,
+      };
+    }
+  }
 
   const lideresConJerarquia = (lideres ?? []).map((l) => {
     const rel = l.roles as
@@ -130,6 +166,7 @@ export default async function CampaignVotantesPage({
       municipios={municipios}
       barrios={barrios}
       comunas={comunas ?? []}
+      alcance={alcance}
     />
   );
 }

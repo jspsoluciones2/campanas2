@@ -49,22 +49,62 @@ export async function fetchMunicipiosPorDepartamento(
   return (data ?? []) as MunicipioOption[];
 }
 
+export type PuestoOption = {
+  id: number;
+  nombre: string;
+  municipio: string | null;
+  comunas: { nombre: string } | { nombre: string }[] | null;
+};
+
+/**
+ * Puestos de votación del territorio cubierto por la campaña.
+ * puestos_votacion dejó de tener id_campana (migración 033), así que
+ * se filtra por la cadena territorial: puestos → comuna → municipio/departamento
+ * según el alcance definido en campana_territorio.
+ */
+export async function fetchPuestosPorAlcance(
+  supabase: SupabaseClient,
+  campaignId: number
+): Promise<PuestoOption[]> {
+  const comunas = await fetchComunasPorAlcance(supabase, campaignId);
+  const comunaIds = comunas.map((c) => c.id);
+
+  let q = supabase
+    .from("puestos_votacion")
+    .select("id, nombre, municipio, comunas(nombre)")
+    .order("nombre") as any;
+
+  if (comunaIds.length > 0) {
+    q = q.in("id_comuna", comunaIds);
+  } else {
+    q = q.limit(0);
+  }
+
+  const { data } = await q;
+  return (data ?? []) as PuestoOption[];
+}
+
 export async function fetchComunasPorAlcance(
   supabase: SupabaseClient,
   campaignId: number
 ): Promise<{ id: number; nombre: string }[]> {
   const alcance = await fetchTerritorioAlcance(supabase, campaignId);
 
-  let query = supabase
-    .from("comunas")
-    .select("id, nombre")
-    .order("nombre");
+  // Comunas dentro del territorio de la campaña.
+  // - Si el alcance define municipios → filtro directo por comunas.id_municipio.
+  // - Si el alcance define departamentos → filtro anidado vía municipios
+  //   (requiere incluir el embedding municipios en el select).
+  let columns = "id, nombre";
+  let query = supabase.from("comunas").select(columns).order("nombre") as any;
 
-  if (alcance.departamentos.length > 0) {
-    query = query.in("municipios.id_departamento", alcance.departamentos);
-  }
   if (alcance.municipios.length > 0) {
     query = query.in("id_municipio", alcance.municipios);
+  } else if (alcance.departamentos.length > 0) {
+    query = supabase
+      .from("comunas")
+      .select("id, nombre, municipios(id_departamento)")
+      .order("nombre")
+      .in("municipios.id_departamento", alcance.departamentos) as any;
   }
 
   const { data } = await query;

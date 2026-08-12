@@ -189,7 +189,11 @@ type Props = {
   emptyMessage: string;
   showCobertura?: boolean;
   showEstadoEditor?: boolean;
-};
+  selectedIds?: Set<number>;
+  onToggleRow?: (id: number) => void;
+  onToggleAllPage?: () => void;
+  allPageSelected?: boolean;
+}
 
 function EstadoEditorCell({
   campaignId,
@@ -258,12 +262,28 @@ export function VotantesTable({
   emptyMessage,
   showCobertura = false,
   showEstadoEditor = false,
+  selectedIds,
+  onToggleRow,
+  onToggleAllPage,
+  allPageSelected = false,
 }: Props) {
+  const selectable = Boolean(onToggleRow && onToggleAllPage);
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-100">
       <table className="w-full min-w-[72rem] text-sm">
         <thead>
           <tr className="border-b border-neutral-100 bg-neutral-50/80 text-left">
+            {selectable ? (
+              <th className="w-10 px-3 py-3">
+                <input
+                  type="checkbox"
+                  aria-label="Seleccionar todos los de la página"
+                  checked={allPageSelected && rows.length > 0}
+                  onChange={onToggleAllPage}
+                  className="size-4 accent-blue-600"
+                />
+              </th>
+            ) : null}
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
               Nombre completo
             </th>
@@ -314,8 +334,21 @@ export function VotantesTable({
             rows.map((v) => (
               <tr
                 key={v.id}
-                className="bg-white transition-colors hover:bg-neutral-50/50"
+                className={`bg-white transition-colors ${
+                  selectedIds?.has(v.id) ? "bg-blue-50/60" : "hover:bg-neutral-50/50"
+                }`}
               >
+                {selectable ? (
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Seleccionar a ${v.nombres} ${v.apellidos}`}
+                      checked={selectedIds?.has(v.id) ?? false}
+                      onChange={() => onToggleRow?.(v.id)}
+                      className="size-4 accent-blue-600"
+                    />
+                  </td>
+                ) : null}
                 <td className="px-4 py-3 font-medium text-neutral-900">
                   {v.nombres} {v.apellidos}
                 </td>
@@ -375,7 +408,7 @@ export function VotantesTable({
           ) : (
             <tr>
               <td
-                colSpan={showCobertura ? 13 : 9}
+                colSpan={(showCobertura ? 13 : 9) + (selectable ? 1 : 0)}
                 className="px-4 py-12 text-center text-neutral-500"
               >
                 {emptyMessage}
