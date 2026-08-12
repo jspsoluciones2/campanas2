@@ -10,6 +10,8 @@ type BarrioConComuna = {
   id_municipio: string;
 };
 
+type Comuna = { id: number; nombre: string; id_municipio: string | null };
+
 async function fetchBarriosConMunicipio(
   supabase: SupabaseClient
 ): Promise<BarrioConComuna[]> {
@@ -50,6 +52,7 @@ export default async function CampaignVotantesPage({
     departamentos,
     municipios,
     barrios,
+    { data: comunas },
   ] = await Promise.all([
     supabase
       .from("votantes")
@@ -57,7 +60,9 @@ export default async function CampaignVotantesPage({
         `id, nombres, apellidos, documento, tipo_documento, sexo, telefono,
          fecha_nacimiento, direccion, estado, creado_en,
          id_tipo_novedad, detalle_novedad,
-         roles(nombre), lugares_trabajo(nombre)`
+         roles(nombre), lugares_trabajo(nombre),
+         puestos_votacion(nombre, municipio),
+         lider_directo:votantes(nombres, apellidos)`
       )
       .eq("id_campana", campaignId)
       .order("creado_en", { ascending: false })
@@ -92,6 +97,7 @@ export default async function CampaignVotantesPage({
     fetchDepartamentos(supabase),
     fetchMunicipios(supabase),
     fetchBarriosConMunicipio(supabase),
+    supabase.from("comunas").select("id, nombre, id_municipio").order("nombre"),
   ]);
 
   const rows = votantes ?? [];
@@ -123,6 +129,7 @@ export default async function CampaignVotantesPage({
       departamentos={departamentos}
       municipios={municipios}
       barrios={barrios}
+      comunas={comunas ?? []}
     />
   );
 }
