@@ -135,10 +135,8 @@ const CARD_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 const ESTADOS = [
   { value: "", label: "Todos" },
   { value: "activo", label: "Activo" },
-  { value: "registrado", label: "Registrado" },
   { value: "pendiente_verificacion", label: "Pendiente verificación" },
   { value: "en_cuarentena", label: "En cuarentena" },
-  { value: "rechazado", label: "Rechazado" },
 ];
 
 const SEXOS = [
@@ -577,6 +575,7 @@ export function ReportesView({
                 tiposNovedad={initialTiposNovedad}
                 emptyMessage="Sin votantes que coincidan con los filtros."
                 showCobertura
+                hideNovedades
               />
             </div>
           </div>

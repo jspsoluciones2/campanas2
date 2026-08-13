@@ -93,10 +93,8 @@ const DEFAULT_FILTERS: Filters = {
 const ESTADOS = [
   { value: "", label: "Todos" },
   { value: "activo", label: "Activo" },
-  { value: "registrado", label: "Registrado" },
   { value: "pendiente_verificacion", label: "Pendiente verificación" },
   { value: "en_cuarentena", label: "En cuarentena" },
-  { value: "rechazado", label: "Rechazado" },
 ];
 
 const LIST_COLUMNAS = `id, nombres, apellidos, documento, tipo_documento, sexo, telefono,

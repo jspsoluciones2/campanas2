@@ -216,10 +216,8 @@ export async function updateVotanteEstadoAction(
 
   const ESTADOS_VALIDOS = [
     "activo",
-    "registrado",
     "pendiente_verificacion",
     "en_cuarentena",
-    "rechazado",
   ];
   if (!ESTADOS_VALIDOS.includes(nuevoEstado)) {
     return { error: "Estado inválido." };
@@ -262,10 +260,8 @@ export async function updateVotantesEstadoBulkAction(
 
   const ESTADOS_VALIDOS = [
     "activo",
-    "registrado",
     "pendiente_verificacion",
     "en_cuarentena",
-    "rechazado",
   ];
   if (!ESTADOS_VALIDOS.includes(nuevoEstado)) {
     return { error: "Estado inválido." };

@@ -18,10 +18,8 @@ type TipoNovedad = { id: number; novedad: string };
 
 const ESTADOS_EDITABLES: { value: string; label: string }[] = [
   { value: "activo", label: "Activo" },
-  { value: "registrado", label: "Registrado" },
   { value: "pendiente_verificacion", label: "Pendiente verificación" },
   { value: "en_cuarentena", label: "Cuarentena" },
-  { value: "rechazado", label: "Rechazado" },
 ];
 
 export type VotanteListRow = {
@@ -62,6 +60,14 @@ function nombreRelacion(
   if (!rel) return "—";
   if (Array.isArray(rel)) return rel[0]?.nombre ?? "—";
   return rel.nombre;
+}
+
+function nombreNovedad(
+  id: number | null,
+  tipos: TipoNovedad[]
+): string {
+  if (id == null) return "—";
+  return tipos.find((t) => t.id === id)?.novedad ?? String(id);
 }
 
 function nombreLider(
@@ -189,6 +195,8 @@ type Props = {
   emptyMessage: string;
   showCobertura?: boolean;
   showEstadoEditor?: boolean;
+  /** Oculta las columnas de novedad (tabla de solo lectura, ej. reportes). */
+  hideNovedades?: boolean;
   selectedIds?: Set<number>;
   onToggleRow?: (id: number) => void;
   onToggleAllPage?: () => void;
@@ -235,6 +243,11 @@ function EstadoEditorCell({
         onChange={(e) => cambiar(e.target.value)}
         aria-label="Cambiar estado"
       >
+        {!ESTADOS_EDITABLES.some((s) => s.value === estado) ? (
+          <option value={estado} disabled>
+            {ETIQUETAS_ESTADO[estado] ?? estado}
+          </option>
+        ) : null}
         {ESTADOS_EDITABLES.map((s) => (
           <option key={s.value} value={s.value}>
             {s.label}
@@ -262,12 +275,14 @@ export function VotantesTable({
   emptyMessage,
   showCobertura = false,
   showEstadoEditor = false,
+  hideNovedades = false,
   selectedIds,
   onToggleRow,
   onToggleAllPage,
   allPageSelected = false,
 }: Props) {
   const selectable = Boolean(onToggleRow && onToggleAllPage);
+  const mostrarNovedades = !hideNovedades;
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-100">
       <table className="w-full min-w-[72rem] text-sm">
@@ -315,12 +330,16 @@ export function VotantesTable({
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
               Rol
             </th>
-            <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
-              Tipo novedad
-            </th>
-            <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
-              Detalle novedad
-            </th>
+            {mostrarNovedades ? (
+              <>
+                <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
+                  Tipo novedad
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
+                  Detalle novedad
+                </th>
+              </>
+            ) : null}
             <th className="px-4 py-3 text-xs font-semibold tracking-wide text-neutral-600">
               Estado
             </th>
@@ -380,13 +399,26 @@ export function VotantesTable({
                 <td className="px-4 py-3 text-neutral-700">
                   {nombreRelacion(v.roles)}
                 </td>
-                <NovedadGestionCells
-                  campaignId={campaignId}
-                  votanteId={v.id}
-                  tipos={tiposNovedad}
-                  initialTipoId={v.id_tipo_novedad}
-                  initialDetalle={v.detalle_novedad}
-                />
+                {mostrarNovedades ? (
+                  v.estado === "en_cuarentena" && showEstadoEditor ? (
+                    <NovedadGestionCells
+                      campaignId={campaignId}
+                      votanteId={v.id}
+                      tipos={tiposNovedad}
+                      initialTipoId={v.id_tipo_novedad}
+                      initialDetalle={v.detalle_novedad}
+                    />
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {nombreNovedad(v.id_tipo_novedad, tiposNovedad)}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {v.detalle_novedad ?? "—"}
+                      </td>
+                    </>
+                  )
+                ) : null}
                 <td className="px-4 py-3">
                   {showEstadoEditor ? (
                     <EstadoEditorCell
@@ -408,7 +440,11 @@ export function VotantesTable({
           ) : (
             <tr>
               <td
-                colSpan={(showCobertura ? 13 : 9) + (selectable ? 1 : 0)}
+                colSpan={
+                  (showCobertura ? 13 : 9) +
+                  (selectable ? 1 : 0) -
+                  (mostrarNovedades ? 0 : 2)
+                }
                 className="px-4 py-12 text-center text-neutral-500"
               >
                 {emptyMessage}
