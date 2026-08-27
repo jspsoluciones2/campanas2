@@ -31,12 +31,19 @@ export type LoginBrandColors = {
   checkboxChecked: string;
 };
 
+export type LoginBrandAccentColors = {
+  primary: string;
+  secondary: string;
+  accent: string;
+};
+
 export type LoginBrandConfig = {
   logoUrl: string | null;
   logoAlt: string;
   title: string;
   subtitle: string;
   buttonLabel: string;
+  accentColors?: LoginBrandAccentColors;
   colors: LoginBrandColors;
 };
 
@@ -74,6 +81,11 @@ export function getLoginBrandConfig(): LoginBrandConfig {
       env("NEXT_PUBLIC_LOGIN_SUBTITLE") ??
       "Accede con tu usuario y contraseña",
     buttonLabel: env("NEXT_PUBLIC_LOGIN_BUTTON_LABEL") ?? "INICIAR SESIÓN",
+    accentColors: {
+      primary: "#6439f8",
+      secondary: "#0091e7",
+      accent: "#00ddb2",
+    },
     colors: {
       ...DEFAULT_COLORS,
       ...(env("NEXT_PUBLIC_LOGIN_BG") && {
@@ -96,6 +108,11 @@ export function loginBrandToStyle(
   config: LoginBrandConfig
 ): Record<string, string> {
   const { colors: c } = config;
+  const accentColors = config.accentColors ?? {
+    primary: "#6439f8",
+    secondary: "#0091e7",
+    accent: "#00ddb2",
+  };
   return {
     ["--login-page-bg" as string]: c.pageBackground,
     ["--login-page-bg-center" as string]: c.pageBackgroundCenter,
@@ -114,5 +131,9 @@ export function loginBrandToStyle(
     ["--login-link" as string]: c.linkColor,
     ["--login-checkbox-bg" as string]: c.checkboxBackground,
     ["--login-checkbox-checked" as string]: c.checkboxChecked,
+    ["--login-gradient" as string]: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 55%, ${accentColors.accent} 100%)`,
+    ["--login-gradient-primary" as string]: `linear-gradient(135deg, ${accentColors.primary} 0%, ${accentColors.secondary} 100%)`,
+    ["--login-glow" as string]: `0 0 28px color-mix(in srgb, ${accentColors.primary} 35%, transparent)`,
+    ["--login-glow-teal" as string]: `0 0 40px color-mix(in srgb, ${accentColors.accent} 25%, transparent)`,
   };
 }

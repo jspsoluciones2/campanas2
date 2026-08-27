@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  BarChart3,
   Users,
   UserCheck,
   AlertTriangle,
@@ -27,6 +26,8 @@ import gsap from "gsap";
 import dynamic from "next/dynamic";
 import * as XLSX from "xlsx";
 import { type AlcanceValue, type GeoFilters } from "@/components/campaign/mapa-geografico";
+import { CoberturaLiderTab } from "@/components/campaign/cobertura-lider-tab";
+import { CoberturaPuestosTab } from "@/components/campaign/cobertura-puestos-tab";
 
 const MapaGeografico = dynamic(
   () => import("@/components/campaign/mapa-geografico").then((m) => m.MapaGeografico),
@@ -591,31 +592,18 @@ export function ReportesView({
       )}
 
       {activeTab === "evolucion" && (
-        <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-white p-16">
-          <div className="text-center">
-            <BarChart3 className="mx-auto size-10 text-neutral-300" />
-            <p className="mt-3 text-sm font-medium text-neutral-500">
-              Cobertura de Líder
-            </p>
-            <p className="mt-1 text-xs text-neutral-400">
-              Próximamente: reporte de cobertura por líder.
-            </p>
-          </div>
-        </div>
+        <CoberturaLiderTab
+          campaignId={campaignId}
+          initialPuestos={initialPuestos}
+          initialAlcance={alcance}
+        />
       )}
 
       {activeTab === "novedades" && (
-        <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-neutral-200 bg-white p-16">
-          <div className="text-center">
-            <BarChart3 className="mx-auto size-10 text-neutral-300" />
-            <p className="mt-3 text-sm font-medium text-neutral-500">
-              Cobertura de Puestos
-            </p>
-            <p className="mt-1 text-xs text-neutral-400">
-              Próximamente: reporte de cobertura por puesto de votación.
-            </p>
-          </div>
-        </div>
+        <CoberturaPuestosTab
+          campaignId={campaignId}
+          initialAlcance={alcance}
+        />
       )}
     </div>
   );

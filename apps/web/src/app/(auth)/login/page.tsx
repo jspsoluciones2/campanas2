@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { loadLoginBrand } from "@/lib/platform/load-platform-brand";
 import { LoginBrandLogo } from "@/components/auth/login-brand-logo";
+import { GsapReveal } from "@/components/ui/gsap-reveal";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {
@@ -8,27 +9,29 @@ export default async function LoginPage() {
 
   return (
     <div className="w-full max-w-[400px]">
-      <div className="login-brand-card rounded-lg px-8 py-10 shadow-2xl shadow-black/25">
-        <LoginBrandLogo config={brand} />
+      <GsapReveal y={12} duration={0.6}>
+        <div className="login-brand-card rounded-xl px-8 py-10">
+          <LoginBrandLogo config={brand} />
 
-        {brand.title ? (
-          <h1 className="mt-6 text-center text-xl font-semibold tracking-wide">
-            {brand.title}
-          </h1>
-        ) : null}
+          {brand.title ? (
+            <h1 className="mt-6 text-center text-xl font-semibold tracking-wide">
+              {brand.title}
+            </h1>
+          ) : null}
 
-        {brand.subtitle ? (
-          <p className="login-text-muted mt-2 text-center text-sm">
-            {brand.subtitle}
-          </p>
-        ) : null}
+          {brand.subtitle ? (
+            <p className="login-text-muted mt-2 text-center text-sm">
+              {brand.subtitle}
+            </p>
+          ) : null}
 
-        <div className={brand.title || brand.subtitle ? "mt-8" : "mt-10"}>
-          <Suspense fallback={<LoginFormSkeleton />}>
-            <LoginForm brand={brand} />
-          </Suspense>
+          <div className={brand.title || brand.subtitle ? "mt-8" : "mt-10"}>
+            <Suspense fallback={<LoginFormSkeleton />}>
+              <LoginForm brand={brand} />
+            </Suspense>
+          </div>
         </div>
-      </div>
+      </GsapReveal>
     </div>
   );
 }

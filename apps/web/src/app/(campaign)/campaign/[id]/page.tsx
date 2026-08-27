@@ -7,6 +7,7 @@ import {
   StatCard,
   StatusBadge,
 } from "@/components/platform/platform-ui";
+import { GsapReveal } from "@/components/ui/gsap-reveal";
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
   activa: "Activa",
@@ -65,7 +66,10 @@ export default async function CampaignDashboardPage({
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <GsapReveal
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        stagger={0.08}
+      >
         <StatCard
           label="Votantes"
           value={totalVotantes ?? 0}
@@ -82,7 +86,7 @@ export default async function CampaignDashboardPage({
           value={enCuarentena ?? 0}
           href={`/campaign/${id}/quarantine`}
         />
-      </div>
+      </GsapReveal>
 
       <Card title="Empezar aquí">
         <ol className="space-y-4 text-sm text-neutral-600">

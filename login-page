@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - img "Plataforma de campañas" [ref=e6]
+    - heading "Plataforma" [level=1] [ref=e7]
+    - paragraph [ref=e8]: Accede con tu usuario y contraseña
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img [ref=e13]
+        - textbox "Usuario o correo" [ref=e17]
+      - generic [ref=e18]:
+        - img [ref=e20]
+        - generic [ref=e23]:
+          - textbox "Contraseña" [ref=e24]
+          - button "Mostrar contraseña" [ref=e25]:
+            - img [ref=e26]
+      - generic [ref=e29]:
+        - generic [ref=e30] [cursor=pointer]:
+          - checkbox "Recordarme" [ref=e31]
+          - generic [ref=e32]: Recordarme
+        - button "¿Olvidaste tu contraseña?" [ref=e33]
+      - button "INICIAR SESIÓN" [ref=e34]
+  - alert [ref=e35]

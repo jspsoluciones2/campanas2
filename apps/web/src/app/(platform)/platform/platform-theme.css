@@ -1,21 +1,48 @@
-/* Panel plataforma — escala de grises (alineado con login) */
+/* Panel plataforma — marca EL NODO (tríada púrpura → azul → teal). */
 
 .platform-shell {
-  --platform-sidebar: #111827;
-  --platform-sidebar-hover: #1f2937;
-  --platform-sidebar-active: #374151;
+  --platform-sidebar: #0e1422;
+  --platform-sidebar-hover: #151d30;
+  --platform-sidebar-active: #6439f8;
   --platform-sidebar-text: #e5e7eb;
-  --platform-sidebar-muted: #9ca3af;
-  --platform-main: #f3f4f6;
+  --platform-sidebar-muted: #9aa3b5;
+  --platform-main: #edeeef;
   --platform-surface: #ffffff;
-  --platform-border: #e5e7eb;
-  --platform-accent: #374151;
-  --platform-accent-secondary: #6b7280;
-  --platform-accent-soft: rgb(55 65 81 / 0.12);
-  --platform-accent-border: rgb(55 65 81 / 0.24);
-  --platform-accent-muted-soft: rgb(107 114 128 / 0.1);
+  --platform-border: #e4e6ea;
+  --platform-accent: #6439f8;
+  --platform-accent-secondary: #0091e7;
+  --platform-accent-highlight: #00ddb2;
+  --platform-accent-soft: rgb(100 57 248 / 0.12);
+  --platform-accent-border: rgb(100 57 248 / 0.24);
+  --platform-accent-muted-soft: rgb(0 145 231 / 0.1);
+  --platform-accent-glow: rgb(0 221 178 / 0.2);
+  --platform-gradient: linear-gradient(
+    135deg,
+    var(--platform-accent) 0%,
+    var(--platform-accent-secondary) 55%,
+    var(--platform-accent-highlight) 100%
+  );
+  --platform-gradient-primary: linear-gradient(
+    135deg,
+    var(--platform-accent) 0%,
+    var(--platform-accent-secondary) 100%
+  );
+  --platform-gradient-soft: linear-gradient(
+    135deg,
+    rgb(100 57 248 / 0.14) 0%,
+    rgb(0 145 231 / 0.14) 55%,
+    rgb(0 221 178 / 0.14) 100%
+  );
+  --platform-glow: 0 0 0 1px rgb(100 57 248 / 0.08),
+    0 8px 30px rgb(100 57 248 / 0.18);
+  --platform-glow-accent: 0 0 24px rgb(0 221 178 / 0.35);
+  --platform-ring: color-mix(in srgb, var(--platform-accent) 55%, white);
   --platform-button-bg: var(--platform-accent);
-  --platform-button-hover: color-mix(in srgb, var(--platform-button-bg) 82%, black);
+  --platform-button-hover: color-mix(
+    in srgb,
+    var(--platform-button-bg) 82%,
+    black
+  );
   --platform-button-text: #ffffff;
   --platform-font-title: Inter, system-ui, sans-serif;
   --platform-font-subtitle: Inter, system-ui, sans-serif;
@@ -30,63 +57,134 @@
   --platform-weight-label: 500;
 }
 
+.platform-shell :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--platform-ring);
+}
+
 .platform-main {
   background: var(--platform-main);
 }
 
+.platform-shell main {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--platform-accent) 40%, transparent)
+    transparent;
+}
+
+.platform-shell main::-webkit-scrollbar {
+  width: 8px;
+}
+
+.platform-shell main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.platform-shell main::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--platform-accent) 30%, transparent);
+  border-radius: 9999px;
+}
+
+.platform-shell main::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--platform-accent) 50%, transparent);
+}
+
 .platform-sidebar {
   background: var(--platform-sidebar);
+  background-image: radial-gradient(
+    120% 90% at 0% 0%,
+    rgb(0 221 178 / 0.1) 0%,
+    rgb(0 0 0 / 0) 45%
+  );
   color: var(--platform-sidebar-text);
 }
 
 .platform-nav-link {
   color: var(--platform-sidebar-muted);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.platform-nav-link svg {
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .platform-nav-link:hover {
-  background: var(--platform-sidebar-hover);
+  background: rgb(255 255 255 / 0.06);
   color: var(--platform-sidebar-text);
+  transform: translateX(3px);
 }
 
 .platform-nav-link[data-active="true"] {
-  background: var(--platform-sidebar-active);
+  background-color: var(--platform-sidebar-active);
+  background-image: var(--platform-gradient-primary);
+  box-shadow: var(--platform-glow);
   color: #fff;
+  transform: none;
+}
+
+.platform-nav-link[data-active="true"] svg {
+  color: #fff;
+  opacity: 1;
 }
 
 .platform-nav-submenu {
   margin-left: 0.625rem;
-  border-left: 1px solid rgb(255 255 255 / 0.12);
+  border-left: 1px solid rgb(255 255 255 / 0.1);
   padding-left: 0.5rem;
 }
 
 .platform-nav-sublink {
   color: var(--platform-sidebar-muted);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .platform-nav-sublink:hover {
-  background: var(--platform-sidebar-hover);
+  background: rgb(255 255 255 / 0.06);
   color: var(--platform-sidebar-text);
 }
 
 .platform-nav-sublink[data-active="true"] {
-  background: var(--platform-sidebar-active);
+  background: color-mix(in srgb, var(--platform-accent) 25%, transparent);
   color: #fff;
 }
 
 .platform-card {
   background: var(--platform-surface);
   border: 1px solid var(--platform-border);
+  border-radius: 1rem;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.platform-card:hover {
+  border-color: var(--platform-accent-border);
+  box-shadow:
+    0 1px 2px rgb(15 20 34 / 0.06),
+    0 10px 30px var(--platform-accent-glow);
 }
 
 .platform-input {
   border: 1px solid var(--platform-border);
   background: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .platform-input:focus {
   outline: none;
-  border-color: #6b7280;
-  box-shadow: 0 0 0 3px rgb(107 114 128 / 0.15);
+  border-color: var(--platform-accent);
+  box-shadow: 0 0 0 3px var(--platform-accent-border);
 }
 
 .platform-card-accent {
@@ -99,12 +197,18 @@
 .platform-card-accent-header {
   border-bottom: 1px solid var(--platform-accent-border);
   border-left: 4px solid var(--platform-accent);
-  background: linear-gradient(
-    120deg,
-    var(--platform-accent-soft) 0%,
-    var(--platform-accent-muted-soft) 42%,
-    transparent 72%
-  );
+  background-image:
+    radial-gradient(
+      60% 120% at 100% 0%,
+      var(--platform-accent-glow) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      120deg,
+      var(--platform-accent-soft) 0%,
+      var(--platform-accent-muted-soft) 42%,
+      var(--platform-accent-glow) 100%
+    );
   padding-left: calc(1.5rem - 4px);
 }
 
@@ -112,6 +216,7 @@
   font-family: var(--platform-font-title);
   font-weight: var(--platform-weight-title);
   color: var(--platform-color-title);
+  animation: platform-fade-up 0.4s ease-out both;
 }
 
 .platform-page-subtitle {
@@ -148,12 +253,21 @@
   font-family: var(--platform-font-body);
   font-weight: var(--platform-weight-label);
   color: var(--platform-color-label);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--platform-main) 82%, white),
+    var(--platform-main)
+  );
 }
 
 .platform-stat-value {
   font-family: var(--platform-font-title);
   font-weight: var(--platform-weight-title);
-  color: var(--platform-color-title);
+  background-image: var(--platform-gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .platform-stat-label {
@@ -169,33 +283,46 @@
 }
 
 .platform-card-accent-marker {
-  background: var(--platform-accent);
-  box-shadow: 0 0 0 3px var(--platform-accent-soft);
+  background: var(--platform-accent-highlight);
+  box-shadow: 0 0 0 3px var(--platform-accent-glow);
 }
 
-/* Botones unificados — color desde branding (color primario) */
+/* Botones unificados — gradiente de marca (color primario → secundario) */
 .platform-btn {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  border: 1px solid var(--platform-button-bg);
+  border: 1px solid transparent;
   background-color: var(--platform-button-bg);
+  background-image: var(--platform-gradient-primary);
   color: var(--platform-button-text);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  box-shadow:
+    0 2px 10px var(--platform-accent-glow),
+    0 1px 2px rgb(15 20 34 / 0.08);
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
+    filter 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .platform-btn:hover {
-  background-color: var(--platform-button-hover);
-  border-color: var(--platform-button-hover);
-  color: var(--platform-button-text);
+  filter: brightness(1.08) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 22px var(--platform-accent-glow),
+    0 2px 8px rgb(15 20 34 / 0.14);
+}
+
+.platform-btn:active:not(:disabled) {
+  filter: brightness(1);
+  transform: translateY(0) scale(0.98);
 }
 
 .platform-btn:disabled,
@@ -204,16 +331,75 @@
   opacity: 0.5;
 }
 
-.platform-shell [data-slot="button"]:not([data-variant="destructive"]) {
-  border-color: var(--platform-button-bg);
+/* shadcn/base-ui buttons dentro del shell: default/gradient con gradiente de marca */
+.platform-shell [data-slot="button"][data-variant="default"],
+.platform-shell [data-slot="button"][data-variant="gradient"] {
+  border-color: transparent;
   background-color: var(--platform-button-bg);
+  background-image: var(--platform-gradient-primary);
+  color: var(--platform-button-text);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  box-shadow:
+    0 2px 10px var(--platform-accent-glow),
+    0 1px 2px rgb(15 20 34 / 0.08);
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.platform-shell [data-slot="button"][data-variant="default"]:hover,
+.platform-shell [data-slot="button"][data-variant="default"][data-pressed],
+.platform-shell [data-slot="button"][data-variant="gradient"]:hover {
+  filter: brightness(1.08) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 22px var(--platform-accent-glow),
+    0 2px 8px rgb(15 20 34 / 0.14);
+  background-color: var(--platform-button-hover);
   color: var(--platform-button-text);
 }
 
-.platform-shell [data-slot="button"]:not([data-variant="destructive"]):hover,
-.platform-shell
-  [data-slot="button"]:not([data-variant="destructive"])[data-pressed] {
-  background-color: var(--platform-button-hover);
-  border-color: var(--platform-button-hover);
-  color: var(--platform-button-text);
+.platform-shell [data-slot="button"][data-variant="default"]:active:not(:disabled),
+.platform-shell [data-slot="button"][data-variant="gradient"]:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Variantes neutras dentro del shell: hover con acento sutil, sin gradiente */
+.platform-shell [data-slot="button"][data-variant="outline"]:hover {
+  border-color: var(--platform-accent-border);
+  color: var(--platform-accent);
+}
+
+.platform-shell [data-slot="button"][data-variant="secondary"]:hover,
+.platform-shell [data-slot="button"][data-variant="ghost"]:hover {
+  background-color: var(--platform-accent-soft);
+}
+
+@keyframes platform-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.platform-animate-in {
+  animation: platform-fade-up 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-shell,
+  .platform-shell *,
+  .platform-shell *::before,
+  .platform-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

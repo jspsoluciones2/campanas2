@@ -1,26 +1,46 @@
-/* Login — tema configurable vía CSS variables (login-brand.ts) */
+/* Login — tema configurable vía CSS variables (login-brand.ts), marca EL NODO */
 
 .login-brand-root {
   color: var(--login-text);
 }
 
 .login-brand-page {
-  background: radial-gradient(
-    ellipse 90% 80% at 50% 45%,
-    var(--login-page-bg-center) 0%,
-    var(--login-page-bg) 100%
-  );
+  background-image:
+    radial-gradient(
+      ellipse 90% 80% at 50% 45%,
+      var(--login-page-bg-center) 0%,
+      var(--login-page-bg) 100%
+    ),
+    radial-gradient(60% 50% at 85% 10%, rgb(0 221 178 / 0.14), transparent 60%),
+    radial-gradient(50% 40% at 10% 90%, rgb(0 145 231 / 0.12), transparent 60%);
 }
 
 .login-brand-card {
   background: var(--login-card-bg);
-  border: 1px solid var(--login-card-border);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    0 24px 60px rgb(0 0 0 / 0.45),
+    var(--login-glow),
+    var(--login-glow-teal);
 }
 
 .login-icon-box {
   background: var(--login-icon-box);
+  background-image: var(--login-gradient);
   color: var(--login-icon);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+
+.login-split-input {
+  transition: box-shadow 0.2s ease;
+}
+
+.login-split-input:focus-within {
+  box-shadow:
+    0 0 0 3px rgb(100 57 248 / 0.25),
+    0 4px 14px rgb(0 0 0 / 0.2);
 }
 
 .login-field {
@@ -34,11 +54,28 @@
 
 .login-submit {
   background: var(--login-button-bg);
+  background-image: var(--login-gradient);
   color: var(--login-button-text);
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.3),
+    var(--login-glow);
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .login-submit:hover:not(:disabled) {
-  background: var(--login-button-hover);
+  filter: brightness(1.1) saturate(1.05);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 32px rgb(0 0 0 / 0.35),
+    var(--login-glow);
+}
+
+.login-submit:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(1);
 }
 
 .login-link {
@@ -52,4 +89,14 @@
 
 .login-text-muted {
   color: var(--login-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-brand-root *,
+  .login-brand-root *::before,
+  .login-brand-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

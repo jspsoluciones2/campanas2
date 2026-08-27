@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Megaphone } from "lucide-react";
+import { Waypoints } from "lucide-react";
 import type { LoginBrandConfig } from "@/lib/config/login-brand";
 
 type LoginBrandLogoProps = {
@@ -24,7 +24,7 @@ export function LoginBrandLogo({ config }: LoginBrandLogoProps) {
           className="flex size-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-500"
           title="Logo configurable en Configuración → Branding"
         >
-          <Megaphone className="size-8" strokeWidth={1.5} />
+          <Waypoints className="size-8" strokeWidth={1.5} />
         </div>
       )}
     </div>

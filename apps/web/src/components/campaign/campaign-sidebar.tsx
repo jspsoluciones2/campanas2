@@ -13,9 +13,9 @@ import {
   ChevronDown,
   FileSearch,
   LayoutDashboard,
-  Megaphone,
   UserCog,
   Users,
+  Waypoints,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -88,17 +88,17 @@ export function CampaignSidebar({
   return (
     <aside className="platform-sidebar sticky top-0 flex h-svh w-64 shrink-0 flex-col self-start border-r border-white/5">
       <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-5 py-5">
-        <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+        <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[linear-gradient(135deg,var(--platform-accent),var(--platform-accent-secondary))] shadow-[0_0_16px_color-mix(in_srgb,var(--platform-accent)_45%,transparent)]">
           {logoUrl ? (
             <Image
               src={logoUrl}
               alt={logoAlt}
               width={32}
               height={32}
-              className="size-8 object-contain"
+              className="size-8 object-contain p-0.5"
             />
           ) : (
-            <Megaphone className="size-5 text-neutral-600" />
+            <Waypoints className="size-5 text-white" />
           )}
         </div>
         <div className="min-w-0">

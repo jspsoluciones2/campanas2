@@ -53,6 +53,10 @@ export type PuestoOption = {
   id: number;
   nombre: string;
   municipio: string | null;
+  id_comuna: number | null;
+  id_barrio: number | null;
+  votantes_mujeres_admite: number;
+  votantes_hombres_admite: number;
   comunas: { nombre: string } | { nombre: string }[] | null;
 };
 
@@ -71,7 +75,9 @@ export async function fetchPuestosPorAlcance(
 
   let q = supabase
     .from("puestos_votacion")
-    .select("id, nombre, municipio, comunas(nombre)")
+    .select(
+      "id, nombre, municipio, id_comuna, id_barrio, votantes_mujeres_admite, votantes_hombres_admite, comunas(nombre)"
+    )
     .order("nombre") as any;
 
   if (comunaIds.length > 0) {

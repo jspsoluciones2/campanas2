@@ -53,6 +53,20 @@ export function validateBrandAssetFile(
 
 export const BRAND_COLOR_PRESETS = [
   {
+    id: "el-nodo",
+    label: "El Nodo",
+    colors: {
+      color_primario: "#6439F8",
+      color_secundario: "#0091E7",
+      color_acento: "#00DDB2",
+      color_fondo_sidebar: "#0E1422",
+      color_fondo_pagina: "#EDEEEF",
+      login_fondo_exterior: "#0E1422",
+      login_fondo_centro: "#6439F8",
+      login_boton_fondo: "#6439F8",
+    },
+  },
+  {
     id: "gris",
     label: "Gris profesional",
     colors: {

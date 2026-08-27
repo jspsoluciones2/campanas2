@@ -10,6 +10,7 @@ import {
   PageHeader,
   StatCard,
 } from "@/components/platform/platform-ui";
+import { GsapReveal } from "@/components/ui/gsap-reveal";
 
 type CampanaRow = {
   id: number;
@@ -54,7 +55,10 @@ export default async function PlatformHomePage() {
         description="Dueño de plataforma - Administrador"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <GsapReveal
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        stagger={0.08}
+      >
         <StatCard
           label="Clientes"
           value={totalClientes ?? 0}
@@ -66,7 +70,7 @@ export default async function PlatformHomePage() {
           href="/platform/campaigns"
         />
         <StatCard label="Usuarios activos" value="—" />
-      </div>
+      </GsapReveal>
 
       <Card
         variant="accent"

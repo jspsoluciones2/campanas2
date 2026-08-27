@@ -197,9 +197,10 @@ export function platformBrandToStyle(
 ): CSSProperties {
   const primary = hexToRgb(config.colorPrimario);
   const secondary = hexToRgb(config.colorSecundario);
-  const accent = hexToRgb(
-    HEX_COLOR.test(config.colorAcento) ? config.colorAcento : config.colorPrimario
-  );
+  const accentHex = HEX_COLOR.test(config.colorAcento)
+    ? config.colorAcento
+    : config.colorPrimario;
+  const accent = hexToRgb(accentHex);
 
   return {
     ...typographyToCssVars(config),
@@ -217,6 +218,12 @@ export function platformBrandToStyle(
     ["--platform-button-bg" as string]: config.colorPrimario,
     ["--platform-button-hover" as string]: `color-mix(in srgb, ${config.colorPrimario} 82%, black)`,
     ["--platform-button-text" as string]: "#ffffff",
+    ["--platform-gradient" as string]: `linear-gradient(135deg, ${config.colorPrimario} 0%, ${config.colorSecundario} 55%, ${accentHex} 100%)`,
+    ["--platform-gradient-primary" as string]: `linear-gradient(135deg, ${config.colorPrimario} 0%, ${config.colorSecundario} 100%)`,
+    ["--platform-gradient-soft" as string]: `linear-gradient(135deg, rgba(${primary.r}, ${primary.g}, ${primary.b}, 0.14) 0%, rgba(${secondary.r}, ${secondary.g}, ${secondary.b}, 0.14) 55%, rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.14) 100%)`,
+    ["--platform-glow" as string]: `0 0 0 1px rgba(${primary.r}, ${primary.g}, ${primary.b}, 0.08), 0 8px 30px rgba(${primary.r}, ${primary.g}, ${primary.b}, 0.18)`,
+    ["--platform-glow-accent" as string]: `0 0 24px rgba(${accent.r}, ${accent.g}, ${accent.b}, 0.35)`,
+    ["--platform-ring" as string]: `color-mix(in srgb, ${config.colorPrimario} 55%, white)`,
     ["--primary" as string]: config.colorPrimario,
     ["--primary-foreground" as string]: "#ffffff",
     fontFamily: fontFamilyStack(config.fuenteCuerpo),
@@ -232,6 +239,11 @@ export function platformBrandToLoginConfig(
     title: platform.nombrePlataforma,
     subtitle: platform.subtituloLogin,
     buttonLabel: platform.textoBotonLogin,
+    accentColors: {
+      primary: platform.colorPrimario,
+      secondary: platform.colorSecundario,
+      accent: platform.colorAcento,
+    },
     colors: {
       pageBackground: platform.loginFondoExterior,
       pageBackgroundCenter: platform.loginFondoCentro,

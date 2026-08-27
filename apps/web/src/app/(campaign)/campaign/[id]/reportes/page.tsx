@@ -3,6 +3,7 @@ import { ReportesView } from "@/components/campaign/reportes-view";
 import type { VotanteListRow } from "@/components/campaign/votantes-table";
 import type { AlcanceValue } from "@/components/campaign/mapa-geografico";
 import { createClient } from "@/lib/supabase/server";
+import { fetchPuestosPorAlcance } from "@/lib/campaign/comunas";
 
 export default async function ReportesPage({
   params,
@@ -17,7 +18,7 @@ export default async function ReportesPage({
   const [
     { count: total },
     { data: roles },
-    { data: puestos },
+     puestos,
     { data: tiposNovedad },
     { data: votantes },
     { data: territorio },
@@ -31,11 +32,7 @@ export default async function ReportesPage({
       .select("id, nombre")
       .eq("id_campana", campaignId)
       .order("nombre"),
-    supabase
-      .from("puestos_votacion")
-      .select("id, nombre")
-      .eq("id_campana", campaignId)
-      .order("nombre"),
+     fetchPuestosPorAlcance(supabase, campaignId),
     supabase
       .from("tipos_novedad")
       .select("id, novedad")

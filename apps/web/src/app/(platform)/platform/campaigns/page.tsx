@@ -19,6 +19,7 @@ import {
   platformButtonClass,
   StatusBadge,
 } from "@/components/platform/platform-ui";
+import { GsapReveal } from "@/components/ui/gsap-reveal";
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
   activa: "Activa",
@@ -94,83 +95,85 @@ export default async function GestionCampanasPage({
         description="Equipo, integraciones, uso de APIs y estado operativo. Alta y baja en Maestras → Campañas."
       />
 
-      <Card title="Campañas activas" description={`${total} campaña(s)`}>
-        <CampaignsListFilter
-          q={q}
-          listPath={GESTION_CAMPAIGNS_LIST_PATH}
-        />
-        <DataTable
-          data={rows}
-          rowKey={(c) => c.id}
-          emptyMessage={emptyMessage}
-          columns={[
-            {
-              key: "nombre",
-              header: "Campaña",
-              cell: (c) => (
-                <span className="font-medium text-neutral-900">{c.nombre}</span>
-              ),
-            },
-            {
-              key: "cliente",
-              header: "Cliente",
-              cell: (c) => nombreRelacion(c.clientes),
-            },
-            {
-              key: "proceso",
-              header: "Proceso",
-              cell: (c) => nombreRelacion(c.procesos_electorales),
-            },
-            {
-              key: "estado",
-              header: "Estado",
-              cell: (c) => (
-                <StatusBadge
-                  variant={
-                    c.estado as "activa" | "pausada" | "finalizada" | "purgada"
-                  }
-                >
-                  {ETIQUETAS_ESTADO[c.estado] ?? c.estado}
-                </StatusBadge>
-              ),
-            },
-            {
-              key: "acciones",
-              header: "Acciones",
-              className: "text-right",
-              cell: (c) => (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Link
-                    href={`/platform/campaigns/${c.id}/integrations?from=gestion`}
-                    className={platformButtonClass}
+      <GsapReveal stagger={0.1}>
+        <Card title="Campañas activas" description={`${total} campaña(s)`}>
+          <CampaignsListFilter
+            q={q}
+            listPath={GESTION_CAMPAIGNS_LIST_PATH}
+          />
+          <DataTable
+            data={rows}
+            rowKey={(c) => c.id}
+            emptyMessage={emptyMessage}
+            columns={[
+              {
+                key: "nombre",
+                header: "Campaña",
+                cell: (c) => (
+                  <span className="font-medium text-neutral-900">{c.nombre}</span>
+                ),
+              },
+              {
+                key: "cliente",
+                header: "Cliente",
+                cell: (c) => nombreRelacion(c.clientes),
+              },
+              {
+                key: "proceso",
+                header: "Proceso",
+                cell: (c) => nombreRelacion(c.procesos_electorales),
+              },
+              {
+                key: "estado",
+                header: "Estado",
+                cell: (c) => (
+                  <StatusBadge
+                    variant={
+                      c.estado as "activa" | "pausada" | "finalizada" | "purgada"
+                    }
                   >
-                    APIs
-                  </Link>
-                  <Link
-                    href={`/platform/campaigns/${c.id}?from=gestion`}
-                    className={platformButtonClass}
-                  >
-                    Gestionar
-                  </Link>
-                  <Link
-                    href={`/campaign/${c.id}?from=gestion`}
-                    className={platformButtonClass}
-                  >
-                    Abrir campaña
-                  </Link>
-                </div>
-              ),
-            },
-          ]}
-        />
-        <CampaignsPagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          filters={filters}
-          listPath={GESTION_CAMPAIGNS_LIST_PATH}
-        />
-      </Card>
+                    {ETIQUETAS_ESTADO[c.estado] ?? c.estado}
+                  </StatusBadge>
+                ),
+              },
+              {
+                key: "acciones",
+                header: "Acciones",
+                className: "text-right",
+                cell: (c) => (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Link
+                      href={`/platform/campaigns/${c.id}/integrations?from=gestion`}
+                      className={platformButtonClass}
+                    >
+                      APIs
+                    </Link>
+                    <Link
+                      href={`/platform/campaigns/${c.id}?from=gestion`}
+                      className={platformButtonClass}
+                    >
+                      Gestionar
+                    </Link>
+                    <Link
+                      href={`/campaign/${c.id}?from=gestion`}
+                      className={platformButtonClass}
+                    >
+                      Abrir campaña
+                    </Link>
+                  </div>
+                ),
+              },
+            ]}
+          />
+          <CampaignsPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            filters={filters}
+            listPath={GESTION_CAMPAIGNS_LIST_PATH}
+          />
+        </Card>
+      </GsapReveal>
     </>
   );
 }

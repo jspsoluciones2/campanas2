@@ -36,6 +36,10 @@ export function PageHeader({
         <h1 className="platform-page-title text-2xl tracking-tight">
           {title}
         </h1>
+        <div
+          aria-hidden
+          className="mt-2 h-1 w-12 rounded-full bg-[linear-gradient(90deg,var(--platform-accent),var(--platform-accent-highlight))]"
+        />
         {description && (
           <p className="platform-page-subtitle mt-1 max-w-2xl text-sm">
             {description}
@@ -142,13 +146,15 @@ type StatCardProps = {
 export function StatCard({ label, value, href }: StatCardProps) {
   const inner = (
     <>
-      <p className="platform-stat-value text-3xl tabular-nums">{value}</p>
+      <p className="platform-stat-value bg-[linear-gradient(135deg,var(--platform-accent),var(--platform-accent-secondary))] bg-clip-text text-3xl text-transparent tabular-nums">
+        {value}
+      </p>
       <p className="platform-stat-label mt-1 text-sm">{label}</p>
     </>
   );
 
   const className =
-    "platform-card group rounded-xl p-6 shadow-sm shadow-neutral-200/60 transition-shadow hover:shadow-md";
+    "platform-card group rounded-xl p-6 shadow-sm shadow-neutral-200/60 transition-shadow hover:shadow-[0_8px_24px_color-mix(in_srgb,var(--platform-accent)_18%,transparent)]";
 
   if (href) {
     return (
@@ -164,10 +170,13 @@ export function StatCard({ label, value, href }: StatCardProps) {
 type BadgeVariant = "activa" | "pausada" | "finalizada" | "purgada" | "default";
 
 const BADGE_STYLES: Record<BadgeVariant, string> = {
-  activa: "bg-neutral-800 text-white",
-  pausada: "bg-neutral-500 text-white",
+  activa:
+    "bg-[color-mix(in_srgb,var(--platform-accent-highlight)_16%,transparent)] text-[color-mix(in_srgb,var(--platform-accent-highlight)_72%,#0f172a)]",
+  pausada:
+    "bg-[color-mix(in_srgb,var(--platform-accent-secondary)_15%,transparent)] text-[color-mix(in_srgb,var(--platform-accent-secondary)_78%,#0f172a)]",
   finalizada: "bg-neutral-200 text-neutral-800",
-  purgada: "bg-neutral-100 text-neutral-500",
+  purgada:
+    "bg-[color-mix(in_srgb,#ef4444_14%,transparent)] text-[color-mix(in_srgb,#ef4444_80%,#0f172a)]",
   default: "bg-neutral-100 text-neutral-700",
 };
 
