@@ -20,13 +20,19 @@ export async function loadPlatformBrand(): Promise<PlatformBrandConfig> {
     return getPlatformBrandConfigOffline();
   }
 
-  const admin = createAdminClient();
-  if (admin) {
-    return getPlatformBrandConfig(admin);
+  // La marca es configuración pública: leerla con el client anónimo del
+  // servidor para no depender de una service role key mal registrada
+  // (una key no registrada devuelve 401 y el fallback a defaults grises).
+  try {
+    const supabase = await createClient();
+    return await getPlatformBrandConfig(supabase);
+  } catch {
+    const admin = createAdminClient();
+    if (admin) {
+      return getPlatformBrandConfig(admin);
+    }
+    return getPlatformBrandConfigOffline();
   }
-
-  const supabase = await createClient();
-  return getPlatformBrandConfig(supabase);
 }
 
 export async function loadLoginBrand(): Promise<LoginBrandConfig> {

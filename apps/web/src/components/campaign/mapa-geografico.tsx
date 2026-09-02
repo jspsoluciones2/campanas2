@@ -15,6 +15,15 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+// ─── CARTO Basemaps ─────────────────────────────────────────────────────────
+// Since CARTO requires an API key on the tile URL, append it as `key` param.
+// Pública de cliente (se envía desde el navegador); sin key el tile muestra el
+// aviso "API key required".
+const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY?.trim() ?? "";
+const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${
+  CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ""
+}`;
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 export type AlcanceTipo = "nacional" | "departamental" | "municipal";
 
@@ -1084,7 +1093,8 @@ export function MapaGeografico({ campaignId, alcance, filters }: Props) {
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url={CARTO_TILE_URL}
+            subdomains="abcd"
             maxZoom={20}
           />
 
